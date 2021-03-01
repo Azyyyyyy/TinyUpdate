@@ -2,7 +2,7 @@
 
 namespace TinyUpdate.Core.Tests.Utils
 {
-    public class SHA1Test
+    public class SHA1UtilTest
     {
         [SetUp]
         public void Setup()
