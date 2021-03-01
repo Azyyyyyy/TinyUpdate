@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
+        <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -11,7 +11,11 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="DeltaCompressionDotNet" Version="2.0.0" />
       <PackageReference Include="SharpZipLib" Version="1.3.1" />
+      <PackageReference Include="System.IO" Version="4.3.0" />
+      <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
+      <PackageReference Include="System.Memory" Version="4.5.4" />
     </ItemGroup>
 
 </Project>

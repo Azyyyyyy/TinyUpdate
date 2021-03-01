@@ -1,6 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.IO;
-using System.Threading;
+using System.Threading.Tasks;
 using ICSharpCode.SharpZipLib.BZip2;
 
 // Squirrel.Bsdiff: Adapted from https://github.com/LogosBible/bsdiff.net/blob/master/src/bsdiff/BinaryPatchUtility.cs
@@ -53,7 +54,7 @@ namespace TinyUpdate.Binary
     IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
     */
-    class BinaryPatchUtility
+    internal static class BinaryPatchUtility
     {
         /// <summary>
         /// Creates a binary patch (in <a href="http://www.daemonology.net/bsdiff/">bsdiff</a> format) that can be used
@@ -62,52 +63,18 @@ namespace TinyUpdate.Binary
         /// <param name="oldData">The original binary data.</param>
         /// <param name="newData">The new binary data.</param>
         /// <param name="output">A <see cref="Stream"/> to which the patch will be written.</param>
-        public static void Create(byte[] oldData, byte[] newData, Stream output)
-        {
-            // NB: If you diff a file big enough, we blow the stack. This doesn't 
-            // solve it, just buys us more space. The solution is to rewrite Split
-            // using iteration instead of recursion, but that's Hard(tm).
-            var ex = default(Exception);
-            var t = new Thread(() =>
-            {
-                try
-                {
-                    CreateInternal(oldData, newData, output);
-                }
-                catch (Exception exc)
-                {
-                    ex = exc;
-                }
-            }, 40 * 1048576);
-
-            t.Start();
-            t.Join();
-
-            if (ex != null) {throw ex;}
-        }
-
-        static void CreateInternal(byte[] oldData, byte[] newData, Stream output)
+        public static bool Create(byte[] oldData, byte[] newData, Stream output)
         {
             // check arguments
-            if (oldData == null)
-            {
-                throw new ArgumentNullException(nameof(oldData));
-            }
-            if (newData == null)
-            {
-                throw new ArgumentNullException(nameof(newData));
-            }
-            if (output == null)
-            {
-                throw new ArgumentNullException(nameof(output));
-            }
             if (!output.CanSeek)
             {
-                throw new ArgumentException("Output stream must be seekable.", nameof(output));
+                Trace.WriteLine("Output stream must be seekable");
+                return false;
             }
             if (!output.CanWrite)
             {
-                throw new ArgumentException("Output stream must be writable.", nameof(output));
+                Trace.WriteLine("Output stream must be writable");
+                return false;
             }
 
             /* Header is
@@ -129,7 +96,7 @@ namespace TinyUpdate.Binary
             long startPosition = output.Position;
             output.Write(header, 0, header.Length);
 
-            int[] I = SuffixSort(oldData);
+            var I = SuffixSort(oldData);
 
             byte[] db = new byte[newData.Length];
             byte[] eb = new byte[newData.Length];
@@ -251,7 +218,7 @@ namespace TinyUpdate.Binary
             }
 
             // compute size of compressed ctrl data
-            long controlEndPosition = output.Position;
+            var controlEndPosition = output.Position;
             WriteInt64(controlEndPosition - startPosition - CHeaderSize, header, 8);
 
             // write compressed diff data
@@ -279,6 +246,8 @@ namespace TinyUpdate.Binary
             output.Position = startPosition;
             output.Write(header, 0, header.Length);
             output.Position = endPosition;
+
+            return true;
         }
 
         /// <summary>
@@ -290,16 +259,8 @@ namespace TinyUpdate.Binary
         /// This stream must support reading and seeking, and <paramref name="openPatchStream"/> must allow multiple streams on
         /// the patch to be opened concurrently.</param>
         /// <param name="output">A <see cref="Stream"/> to which the patched data is written.</param>
-        public static void Apply(Stream input, Func<Stream> openPatchStream, Stream output)
+        public static async Task<bool> Apply(Stream input, Func<Stream> openPatchStream, Stream output)
         {
-            // check arguments
-            if (input == null)
-                throw new ArgumentNullException(nameof(input));
-            if (openPatchStream == null)
-                throw new ArgumentNullException(nameof(openPatchStream));
-            if (output == null)
-                throw new ArgumentNullException(nameof(output));
-
             /*
             File format:
                 0   8   "BSDIFF40"
@@ -319,23 +280,35 @@ namespace TinyUpdate.Binary
             {
                 // check patch stream capabilities
                 if (!patchStream.CanRead)
-                    throw new ArgumentException("Patch stream must be readable.", nameof(openPatchStream));
+                {
+                    Trace.WriteLine("Patch stream must be readable.");
+                    return false;
+                }
                 if (!patchStream.CanSeek)
-                    throw new ArgumentException("Patch stream must be seekable.", nameof(openPatchStream));
+                {
+                    Trace.WriteLine("Patch stream must be seekable.");
+                    return false;
+                }
 
                 byte[] header = patchStream.ReadExactly(CHeaderSize);
 
                 // check for appropriate magic
                 long signature = ReadInt64(header, 0);
                 if (signature != CFileSignature)
-                    throw new InvalidOperationException("Corrupt patch.");
+                {
+                    Trace.WriteLine("Corrupt patch.");
+                    return false;
+                }
 
                 // read lengths from header
                 controlLength = ReadInt64(header, 8);
                 diffLength = ReadInt64(header, 16);
                 newSize = ReadInt64(header, 24);
                 if (controlLength < 0 || diffLength < 0 || newSize < 0)
-                    throw new InvalidOperationException("Corrupt patch.");
+                {
+                    Trace.WriteLine("Corrupt patch.");
+                    return false;
+                }
             }
 
             // preallocate buffers for reading and writing
@@ -344,86 +317,93 @@ namespace TinyUpdate.Binary
             byte[] oldData = new byte[cBufferSize];
 
             // prepare to read three parts of the patch in parallel
-            using (Stream compressedControlStream = openPatchStream())
-            using (Stream compressedDiffStream = openPatchStream())
-            using (Stream compressedExtraStream = openPatchStream())
             {
+                using Stream compressedControlStream = openPatchStream();
+                using Stream compressedDiffStream = openPatchStream();
+                using Stream compressedExtraStream = openPatchStream();
+
                 // seek to the start of each part
                 compressedControlStream.Seek(CHeaderSize, SeekOrigin.Current);
                 compressedDiffStream.Seek(CHeaderSize + controlLength, SeekOrigin.Current);
                 compressedExtraStream.Seek(CHeaderSize + controlLength + diffLength, SeekOrigin.Current);
 
                 // decompress each part (to read it)
-                using (var controlStream = new BZip2OutputStream(compressedControlStream))
-                using (var diffStream = new BZip2OutputStream(compressedDiffStream))
-                using (var extraStream = new BZip2OutputStream(compressedExtraStream))
+                using var controlStream = new BZip2InputStream(compressedControlStream);
+                using var diffStream = new BZip2InputStream(compressedDiffStream);
+                using var extraStream = new BZip2InputStream(compressedExtraStream);
+                var control = new long[3];
+                var buffer = new byte[8];
+
+                int oldPosition = 0;
+                int newPosition = 0;
+                while (newPosition < newSize)
                 {
-                    long[] control = new long[3];
-                    byte[] buffer = new byte[8];
-
-                    int oldPosition = 0;
-                    int newPosition = 0;
-                    while (newPosition < newSize)
+                    // read control data
+                    for (int i = 0; i < 3; i++)
                     {
-                        // read control data
-                        for (int i = 0; i < 3; i++)
-                        {
-                            controlStream.ReadExactly(buffer, 0, 8);
-                            control[i] = ReadInt64(buffer, 0);
-                        }
-
-                        // sanity-check
-                        if (newPosition + control[0] > newSize)
-                            throw new InvalidOperationException("Corrupt patch.");
-
-                        // seek old file to the position that the new data is diffed against
-                        input.Position = oldPosition;
-
-                        int bytesToCopy = (int)control[0];
-                        while (bytesToCopy > 0)
-                        {
-                            int actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
-
-                            // read diff string
-                            diffStream.ReadExactly(newData, 0, actualBytesToCopy);
-
-                            // add old data to diff string
-                            int availableInputBytes = Math.Min(actualBytesToCopy, (int)(input.Length - input.Position));
-                            input.ReadExactly(oldData, 0, availableInputBytes);
-
-                            for (int index = 0; index < availableInputBytes; index++)
-                                newData[index] += oldData[index];
-
-                            output.Write(newData, 0, actualBytesToCopy);
-
-                            // adjust counters
-                            newPosition += actualBytesToCopy;
-                            oldPosition += actualBytesToCopy;
-                            bytesToCopy -= actualBytesToCopy;
-                        }
-
-                        // sanity-check
-                        if (newPosition + control[1] > newSize)
-                            throw new InvalidOperationException("Corrupt patch.");
-
-                        // read extra string
-                        bytesToCopy = (int)control[1];
-                        while (bytesToCopy > 0)
-                        {
-                            int actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
-
-                            extraStream.ReadExactly(newData, 0, actualBytesToCopy);
-                            output.Write(newData, 0, actualBytesToCopy);
-
-                            newPosition += actualBytesToCopy;
-                            bytesToCopy -= actualBytesToCopy;
-                        }
-
-                        // adjust position
-                        oldPosition = (int)(oldPosition + control[2]);
+                        controlStream.ReadExactly(buffer, 0, 8);
+                        control[i] = ReadInt64(buffer, 0);
                     }
+
+                    // sanity-check
+                    if (newPosition + control[0] > newSize)
+                    {
+                        Trace.WriteLine("Corrupt patch.");
+                        return false;
+                    }
+
+                    // seek old file to the position that the new data is diffed against
+                    input.Position = oldPosition;
+
+                    int bytesToCopy = (int)control[0];
+                    while (bytesToCopy > 0)
+                    {
+                        int actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
+
+                        // read diff string
+                        diffStream.ReadExactly(newData, 0, actualBytesToCopy);
+
+                        // add old data to diff string
+                        int availableInputBytes = Math.Min(actualBytesToCopy, (int)(input.Length - input.Position));
+                        input.ReadExactly(oldData, 0, availableInputBytes);
+
+                        for (int index = 0; index < availableInputBytes; index++)
+                            newData[index] += oldData[index];
+
+                        await output.WriteAsync(newData, 0, actualBytesToCopy);
+
+                        // adjust counters
+                        newPosition += actualBytesToCopy;
+                        oldPosition += actualBytesToCopy;
+                        bytesToCopy -= actualBytesToCopy;
+                    }
+
+                    // sanity-check
+                    if (newPosition + control[1] > newSize)
+                    {
+                        Trace.WriteLine("Corrupt patch.");
+                        return false;
+                    }
+
+                    // read extra string
+                    bytesToCopy = (int)control[1];
+                    while (bytesToCopy > 0)
+                    {
+                        int actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
+
+                        extraStream.ReadExactly(newData, 0, actualBytesToCopy);
+                        await output.WriteAsync(newData, 0, actualBytesToCopy);
+
+                        newPosition += actualBytesToCopy;
+                        bytesToCopy -= actualBytesToCopy;
+                    }
+
+                    // adjust position
+                    oldPosition = (int)(oldPosition + control[2]);
                 }
             }
+
+            return true;
         }
 
         private static int CompareBytes(byte[] left, int leftOffset, byte[] right, int rightOffset)
@@ -450,118 +430,130 @@ namespace TinyUpdate.Binary
 
         private static int Search(int[] I, byte[] oldData, byte[] newData, int newOffset, int start, int end, out int pos)
         {
-            if (end - start < 2)
+            while (true)
             {
-                int startLength = MatchLength(oldData, I[start], newData, newOffset);
-                int endLength = MatchLength(oldData, I[end], newData, newOffset);
+                if (end - start < 2)
+                {
+                    int startLength = MatchLength(oldData, I[start], newData, newOffset);
+                    int endLength = MatchLength(oldData, I[end], newData, newOffset);
 
-                if (startLength > endLength)
-                {
-                    pos = I[start];
-                    return startLength;
-                }
-                else
-                {
+                    if (startLength > endLength)
+                    {
+                        pos = I[start];
+                        return startLength;
+                    }
+
                     pos = I[end];
                     return endLength;
                 }
-            }
-            else
-            {
+
                 int midPoint = start + (end - start) / 2;
-                return CompareBytes(oldData, I[midPoint], newData, newOffset) < 0 ?
-                    Search(I, oldData, newData, newOffset, midPoint, end, out pos) :
-                    Search(I, oldData, newData, newOffset, start, midPoint, out pos);
+                if (CompareBytes(oldData, I[midPoint], newData, newOffset) < 0)
+                {
+                    start = midPoint;
+                    continue;
+                }
+
+                end = midPoint;
             }
         }
 
         private static void Split(int[] I, int[] v, int start, int len, int h)
         {
-            if (len < 16)
+            while (true)
             {
-                int j;
-                for (int k = start; k < start + len; k += j)
+                if (len < 16)
                 {
-                    j = 1;
-                    int x = v[I[k] + h];
-                    for (int i = 1; k + i < start + len; i++)
+                    int j;
+                    for (int k = start; k < start + len; k += j)
                     {
-                        if (v[I[k + i] + h] < x)
+                        j = 1;
+                        int x = v[I[k] + h];
+                        for (int i = 1; k + i < start + len; i++)
                         {
-                            x = v[I[k + i] + h];
-                            j = 0;
+                            if (v[I[k + i] + h] < x)
+                            {
+                                x = v[I[k + i] + h];
+                                j = 0;
+                            }
+
+                            if (v[I[k + i] + h] == x)
+                            {
+                                Swap(ref I[k + j], ref I[k + i]);
+                                j++;
+                            }
                         }
-                        if (v[I[k + i] + h] == x)
+
+                        for (int i = 0; i < j; i++) v[I[k + i]] = k + j - 1;
+                        if (j == 1) I[k] = -1;
+                    }
+                }
+                else
+                {
+                    int x = v[I[start + len / 2] + h];
+                    int jj = 0;
+                    int kk = 0;
+                    for (int i2 = start; i2 < start + len; i2++)
+                    {
+                        if (v[I[i2] + h] < x) jj++;
+                        if (v[I[i2] + h] == x) kk++;
+                    }
+
+                    jj += start;
+                    kk += jj;
+
+                    int i = start;
+                    int j = 0;
+                    int k = 0;
+                    while (i < jj)
+                    {
+                        if (v[I[i] + h] < x)
                         {
-                            Swap(ref I[k + j], ref I[k + i]);
+                            i++;
+                        }
+                        else if (v[I[i] + h] == x)
+                        {
+                            Swap(ref I[i], ref I[jj + j]);
                             j++;
                         }
+                        else
+                        {
+                            Swap(ref I[i], ref I[kk + k]);
+                            k++;
+                        }
                     }
-                    for (int i = 0; i < j; i++)
-                        v[I[k + i]] = k + j - 1;
-                    if (j == 1)
-                        I[k] = -1;
-                }
-            }
-            else
-            {
-                int x = v[I[start + len / 2] + h];
-                int jj = 0;
-                int kk = 0;
-                for (int i2 = start; i2 < start + len; i2++)
-                {
-                    if (v[I[i2] + h] < x)
-                        jj++;
-                    if (v[I[i2] + h] == x)
-                        kk++;
-                }
-                jj += start;
-                kk += jj;
 
-                int i = start;
-                int j = 0;
-                int k = 0;
-                while (i < jj)
-                {
-                    if (v[I[i] + h] < x)
+                    while (jj + j < kk)
                     {
-                        i++;
+                        if (v[I[jj + j] + h] == x)
+                        {
+                            j++;
+                        }
+                        else
+                        {
+                            Swap(ref I[jj + j], ref I[kk + k]);
+                            k++;
+                        }
                     }
-                    else if (v[I[i] + h] == x)
+
+                    if (jj > start)
                     {
-                        Swap(ref I[i], ref I[jj + j]);
-                        j++;
+                        Split(I, v, start, jj - start, h);
                     }
-                    else
+
+                    for (i = 0; i < kk - jj; i++) v[I[jj + i]] = kk - 1;
+                    if (jj == kk - 1) I[jj] = -1;
+
+                    if (start + len > kk)
                     {
-                        Swap(ref I[i], ref I[kk + k]);
-                        k++;
+                        var start1 = start;
+                        start = kk;
+                        len = start1 + len - kk;
+                        continue;
                     }
                 }
 
-                while (jj + j < kk)
-                {
-                    if (v[I[jj + j] + h] == x)
-                    {
-                        j++;
-                    }
-                    else
-                    {
-                        Swap(ref I[jj + j], ref I[kk + k]);
-                        k++;
-                    }
-                }
-
-                if (jj > start)
-                    Split(I, v, start, jj - start, h);
-
-                for (i = 0; i < kk - jj; i++)
-                    v[I[jj + i]] = kk - 1;
-                if (jj == kk - 1)
-                    I[jj] = -1;
-
-                if (start + len > kk)
-                    Split(I, v, kk, start + len - kk, h);
+                break;
             }
         }
 
@@ -690,19 +682,19 @@ namespace TinyUpdate.Binary
         /// Gets a value indicating whether the current stream supports reading.
         /// </summary>
         /// <returns><c>true</c> if the stream supports reading; otherwise, <c>false</c>.</returns>
-        public override bool CanRead => _mStreamBase?.CanRead ?? false;
+        public override bool CanRead => _mStreamBase.CanRead;
 
         /// <summary>
         /// Gets a value indicating whether the current stream supports seeking.
         /// </summary>
         /// <returns><c>true</c> if the stream supports seeking; otherwise, <c>false</c>.</returns>
-        public override bool CanSeek => _mStreamBase?.CanSeek ?? false;
+        public override bool CanSeek => _mStreamBase.CanSeek;
 
         /// <summary>
         /// Gets a value indicating whether the current stream supports writing.
         /// </summary>
         /// <returns><c>true</c> if the stream supports writing; otherwise, <c>false</c>.</returns>
-        public override bool CanWrite => _mStreamBase?.CanWrite ?? false;
+        public override bool CanWrite => _mStreamBase.CanWrite;
 
         /// <summary>
         /// Gets the length in bytes of the stream.
@@ -842,7 +834,7 @@ namespace TinyUpdate.Binary
         /// Gets the wrapped stream.
         /// </summary>
         /// <value>The wrapped stream.</value>
-        protected Stream? WrappedStream => _mStreamBase;
+        protected Stream WrappedStream => _mStreamBase;
 
         /// <summary>
         /// Releases the unmanaged resources used by the <see cref="WrappingStream"/> and optionally releases the managed resources.
@@ -858,11 +850,11 @@ namespace TinyUpdate.Binary
                     return;
                 }
 
-                if (_mStreamBase != null && _mOwnership == Ownership.Owns)
+                if (_mOwnership == Ownership.Owns)
                 {
                     _mStreamBase.Dispose();
                 }
-                _mStreamBase = null;
+                _disposed = true;
             }
             finally
             {
@@ -873,22 +865,19 @@ namespace TinyUpdate.Binary
         /// <summary>
         /// Throws if the stream is disposed
         /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
         /// <exception cref="ObjectDisposedException"></exception>
         // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
-        private bool ThrowIfDisposed()
+        private void ThrowIfDisposed()
         {
             // throws an ObjectDisposedException if this object has been disposed
-            if (_mStreamBase == null)
+            if (_disposed)
             {
                 throw new ObjectDisposedException(GetType().Name);
             }
-
-            return true;
         }
 
-        private Stream? _mStreamBase;
+        private bool _disposed;
+        private readonly Stream _mStreamBase;
         private readonly Ownership _mOwnership;
     }
 
@@ -922,8 +911,11 @@ namespace TinyUpdate.Binary
         public static byte[] ReadExactly(this Stream stream, int count)
         {
             if (count < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(count));
-            byte[] buffer = new byte[count];
+            }
+
+            var buffer = new byte[count];
             ReadExactly(stream, buffer, 0, count);
             return buffer;
         }

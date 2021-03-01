@@ -5,7 +5,7 @@
     /// </summary>
     public class ReleaseNote
     {
-        public ReleaseNote(string content, ReleaseNote type)
+        public ReleaseNote(string? content, ReleaseNote type)
         {
             Content = content;
             Type = type;
@@ -14,10 +14,10 @@
         /// <summary>
         /// Content to use for rendering a changelog
         /// </summary>
-        public string Content { get; }
+        public string? Content { get; }
 
         /// <summary>
-        /// What the <see cref="Content"/> is using for being rendered to a display
+        /// What is going to be used when rendering <see cref="Content"/> to the user
         /// </summary>
         public ReleaseNote Type { get; }
     }

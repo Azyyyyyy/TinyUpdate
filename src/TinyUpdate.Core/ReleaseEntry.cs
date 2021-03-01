@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
+using TinyUpdate.Core.Exceptions;
+using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core
 {
@@ -7,15 +11,26 @@ namespace TinyUpdate.Core
     /// </summary>
     public class ReleaseEntry
     {
-        public ReleaseEntry(string sha1, string filename, long filesize, bool isDelta, Version version)
+        public ReleaseEntry(string sha1, string filename, long filesize, bool isDelta, Version version, string? filePath = null)
         {
+            if (!SHA1Util.IsValidSHA1(sha1))
+            {
+                throw new Exception("SHA1 hash given is not a valid SHA1 hash");
+            }
+            if (!filename.IsValidForFileName(out var invalidChar))
+            {
+                throw new InvalidFilePathException(invalidChar);
+            }
+            
             SHA1 = sha1;
             Filename = filename;
             Filesize = filesize;
             IsDelta = isDelta;
             Version = version;
+            FileLocation = Path.Combine(filePath ?? Global.TempFolder, Filename);
         }
 
+        //TODO: Replace this with SHA256, just used this so had something workingTM
         /// <summary>
         /// The SHA1 of the file that contains this release
         /// </summary>
@@ -37,16 +52,50 @@ namespace TinyUpdate.Core
         public bool IsDelta { get; }
 
         /// <summary>
-        /// What version this release will bump the application too
+        /// What <see cref="Version"/> this release will bump the application too
         /// </summary>
         public Version Version { get; }
 
         /// <summary>
-        /// Reports if this <see cref="ReleaseEntry"/> can be applied
+        /// The location of the update file
         /// </summary>
-        public virtual bool IsValidReleaseEntry()
+        public string FileLocation { get; }
+
+        /// <summary>
+        /// Reports if this <see cref="ReleaseEntry"/> is valid and can be applied
+        /// </summary>
+        /// <param name="checkFile">If we should also check the update file and not just the metadata we have about it and if it's currently on disk</param>
+        public virtual bool IsValidReleaseEntry(bool checkFile = false)
         {
-            throw new NotImplementedException();
+            //Check that file exists
+            if (!File.Exists(FileLocation))
+            {
+                return false;
+            }
+            
+            //If we want to check the file then we want to check the SHA1 + file size
+            if (checkFile)
+            {
+                try
+                {
+                    using var file = File.Open(FileLocation, FileMode.Open);
+                    if (file.Length != Filesize ||
+                        !SHA1Util.CheckSHA1(file, SHA1))
+                    {
+                        return false;
+                    }
+                }
+                catch (Exception e)
+                {
+                    /*TODO: Add some kind of logging, for now we will just throw it
+                     to the console*/
+                    Trace.WriteLine(e);
+                    return false;
+                }
+            }
+            
+            //Check that this version is higher then what we are running now
+            return Global.ApplicationVersion < Version;
         }
     }
 }

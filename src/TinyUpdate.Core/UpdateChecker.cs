@@ -10,15 +10,15 @@ namespace TinyUpdate.Core
     public abstract class UpdateChecker
     {
         private readonly IUpdateApplier _updateApplier;
-        public UpdateChecker(IUpdateApplier updateApplier)
+        protected UpdateChecker(IUpdateApplier updateApplier)
         {
             _updateApplier = updateApplier;
         }
 
         /// <summary>
-        /// Finds any updates that are to be applied to the application
+        /// Finds any updates that are haven't been applied to the application
         /// </summary>
-        /// <returns><see cref="UpdateInfo"/> with all updates that are pending</returns>
+        /// <returns><see cref="UpdateInfo"/> with all the updates that are pending</returns>
         public virtual Task<UpdateInfo> CheckForUpdate() => throw new NotImplementedException();
 
         /// <summary>
@@ -26,19 +26,18 @@ namespace TinyUpdate.Core
         /// </summary>
         /// <param name="entry"><see cref="ReleaseEntry"/> to grab a <see cref="ReleaseNote"/> for</param>
         /// <returns>The <see cref="ReleaseNote"/> with all the details of this <see cref="ReleaseEntry"/></returns>
-        public virtual Task<ReleaseEntry> GetChangelog(ReleaseEntry entry) => throw new NotImplementedException();
+        public virtual Task<ReleaseNote> GetChangelog(ReleaseEntry entry) => throw new NotImplementedException();
 
         /// <summary>
         /// Grabs the newest changelog for this application
         /// </summary>
         /// <param name="updateInfo">Updates that we need to apply</param>
         /// <returns>The <see cref="ReleaseNote"/> with all the details of the newest <see cref="ReleaseEntry"/> (or null if we don't have an update to apply)</returns>
-        public virtual async Task<ReleaseEntry?> GetLatestChangelog(UpdateInfo updateInfo)
+        public virtual async Task<ReleaseNote?> GetLatestChangelog(UpdateInfo updateInfo)
         {
             if (updateInfo.HasUpdate)
             {
-                //TODO: Get newest update
-                return await GetChangelog(updateInfo.Updates.Last());
+                return await GetChangelog(updateInfo.Updates.OrderBy(x => x.Version).First());
             }
 
             return null;
