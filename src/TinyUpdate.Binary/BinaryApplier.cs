@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using DeltaCompressionDotNet.MsDelta;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Helper;
-using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
@@ -20,7 +20,7 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryApplier : IUpdateApplier
     {
-        private static readonly ILogging Logger = Logging.CreateLogger("BinaryApplier");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryApplier");
         private static readonly Dictionary<string, PatchType> PatchExtensions = new()
         {
             { ".bsdiff", PatchType.BSDiff },
@@ -31,6 +31,13 @@ namespace TinyUpdate.Binary
         /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ReleaseEntry, Action{decimal})"/>
         public async Task<bool> ApplyUpdate(ReleaseEntry entry, Action<decimal>? progress = null)
         {
+            //Check that we was the one who made the update (as shown with the file extension
+            if (Path.GetExtension(entry.Filename) != Global.TinyUpdateExtension)
+            {
+                Logger.Error("{0} is not a update made by BinaryCreator, bail...", entry.FileLocation);
+                return false;
+            }
+            
             //Get the paths for where the version will be and where the older version is
             var newPath = entry.Version.GetApplicationPath();
             var basePath = Global.ApplicationVersion.GetApplicationPath();
@@ -39,6 +46,7 @@ namespace TinyUpdate.Binary
              (This also shows that something is wrong)*/
             if (!Directory.Exists(basePath))
             {
+                Logger.Error("{0} doesn't exist, can't update", basePath);
                 return false;
             }
             
@@ -75,7 +83,7 @@ namespace TinyUpdate.Binary
 
             if (!entry.IsValidReleaseEntry(true))
             {
-                Logger.Error("Update file doesn't match what we expect... Deleting update file and bailing");
+                Logger.Error("Update file doesn't match what we expect... deleting update file and bailing");
                 File.Delete(entry.FileLocation);
                 return false;
             }
@@ -85,9 +93,9 @@ namespace TinyUpdate.Binary
             var files = await GetFilesFromPackage(zip);
             if (files == null)
             {
-                Logger.Error("Something happened while grabbing files in update file");
-                /*This only happens when something is up with the update file
+                /*This only happens when something is up with the update file,
                   delete and return false*/
+                Logger.Error("Something happened while grabbing files in update file... deleting update file and bailing");
                 zip.Dispose();
                 File.Delete(entry.FileLocation);
                 return false;
@@ -100,7 +108,9 @@ namespace TinyUpdate.Binary
                 //If we have a folder path then create it
                 if (!string.IsNullOrWhiteSpace(file.FolderPath))
                 {
-                    Directory.CreateDirectory(Path.Combine(newPath, file.FolderPath));
+                    var folder = Path.Combine(newPath, file.FolderPath);
+                    Logger.Debug("Creating folder {0}", folder);
+                    Directory.CreateDirectory(folder);
                 }
 
                 //Get where the old and new file should be
@@ -109,9 +119,8 @@ namespace TinyUpdate.Binary
 
                 /*Check that the files exists and that we was 
                   able to process file, if not then hard bail!*/
-                var applySuccessful = 
-                    (file.PatchType != PatchType.New && File.Exists(originalFile) ||
-                     true) &&
+                var applySuccessful =
+                    file.PatchType != PatchType.New ? File.Exists(originalFile) : true &&
                     await ProcessFile(originalFile, newFile, file);
 
                 if (!applySuccessful || !CheckUpdatedFile(newFile, file))
@@ -138,6 +147,7 @@ namespace TinyUpdate.Binary
             //This file didn't change, assume it's fine
             if (fileEntry.Filesize == 0)
             {
+                Logger.Debug("Filesize is 0, we should be fine");
                 return true;
             }
             
@@ -152,6 +162,7 @@ namespace TinyUpdate.Binary
              reinstall then to catch a virus!*/
             if (!isExpectedFile)
             {
+                Logger.Error("Updated file is not what we expect, deleting it!");
                 File.Delete(fileLocation);
             }
             return isExpectedFile;
@@ -169,6 +180,7 @@ namespace TinyUpdate.Binary
             //If the filesize isn't 0 then it means that the file was updated
             if (file.Filesize != 0)
             {
+                Logger.Debug("File was updated, apply delta update");
                 return await (file.PatchType switch
                 {
                     PatchType.MSDiff => ApplyMSDiffUpdate(file, newFile, originalFile),
@@ -180,6 +192,7 @@ namespace TinyUpdate.Binary
 
             /*If we got here then it means that we are working on a file that
              we *should* have, check that is the case*/
+            Logger.Debug("File wasn't updated, making sure file exists and then making hard link");
             if (!File.Exists(originalFile))
             {
                 Logger.Error("File that we need to copy doesn't exist!");
@@ -193,6 +206,7 @@ namespace TinyUpdate.Binary
             }
 
             //We wasn't able to hard link, just try to copy the file
+            Logger.Warning("Wasn't able to create hard link, just going to copy the file");
             try
             {
                 File.Copy(originalFile, newFile);
@@ -215,6 +229,12 @@ namespace TinyUpdate.Binary
         /// <returns>If we was able to process the file</returns>
         private static async Task<bool> CopyFile(FileEntry fileEntry, string fileLocation)
         {
+            if (fileEntry.Stream == null)
+            {
+                Logger.Error("fileEntry's doesn't have a stream, can't copy file that would be at {0}", fileLocation);
+                return false;
+            }
+            
             var fileStream = File.OpenWrite(fileLocation);
             await fileEntry.Stream.CopyToAsync(fileStream);
             fileStream.Dispose();
@@ -241,6 +261,12 @@ namespace TinyUpdate.Binary
                 File.Delete(tmpFile);
             }
 
+            if (fileEntry.Stream == null)
+            {
+                Logger.Error("fileEntry's doesn't have a stream, can't make MSDiff update");
+                return false;
+            }
+            
             //Put the delta file onto disk
             var tmpFileStream = File.OpenWrite(tmpFile);
             await fileEntry.Stream.CopyToAsync(tmpFileStream);
@@ -263,7 +289,6 @@ namespace TinyUpdate.Binary
             return true;
         }
 
-
         /// <summary>
         /// Applies a patch that was created using <see cref="BinaryPatchUtility"/>
         /// </summary>
@@ -273,8 +298,17 @@ namespace TinyUpdate.Binary
             //Create streams for old file and where the new file will be
             var outputStream = File.OpenWrite(outputLocation);
             var inputStream = StreamUtil.GetFileStreamRead(baseFile);
+
+            //Check streams that can be null
             if (inputStream == null)
             {
+                Logger.Error("Wasn't able to grab {0} for applying a BSDiff update", baseFile);
+                return false;
+            }
+            
+            if (fileEntry.Stream == null)
+            {
+                Logger.Error("fileEntry's doesn't have a stream, can't make BSDiff update");
                 return false;
             }
             

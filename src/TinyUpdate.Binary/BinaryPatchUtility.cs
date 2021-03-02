@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using ICSharpCode.SharpZipLib.BZip2;
-using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Logging;
 
 // Squirrel.Bsdiff: Adapted from https://github.com/LogosBible/bsdiff.net/blob/master/src/bsdiff/BinaryPatchUtility.cs
 // TinyUpdate: Adapted from https://github.com/Squirrel/Squirrel.Windows/blob/develop/src/Squirrel/BinaryPatchUtility.cs
@@ -56,7 +56,7 @@ namespace TinyUpdate.Binary
     */
     internal static class BinaryPatchUtility
     {
-        private static readonly ILogging Logger = Logging.CreateLogger("BinaryPatchUtility");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryPatchUtility");
 
         /// <summary>
         /// Creates a binary patch (in <a href="http://www.daemonology.net/bsdiff/">bsdiff</a> format) that can be used

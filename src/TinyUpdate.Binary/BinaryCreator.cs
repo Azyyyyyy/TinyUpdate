@@ -6,13 +6,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using DeltaCompressionDotNet.MsDelta;
 using TinyUpdate.Core;
-using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Any commenting and extra logging that would help
     //TODO: Report back the progress
     //TODO: Create CreateFullPackage
     /// <summary>
@@ -20,8 +19,9 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryCreator : IUpdateCreator
     {
-        private static readonly ILogging Logger = Logging.CreateLogger("BinaryCreator");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryCreator");
 
+        /// <inheritdoc cref="IUpdateCreator.CreateDeltaPackage"/>
         public async Task<bool> CreateDeltaPackage(string newVersionLocation, string baseVersionLocation, Action<decimal>? progress = null)
         {
             if (!Directory.Exists(newVersionLocation) || 
@@ -34,8 +34,8 @@ namespace TinyUpdate.Binary
             //Create the Temp folder in case it doesn't exist
             Directory.CreateDirectory(Global.TempFolder);
 
-            Logger.Debug("Creating delta file");
             //Create the delta file that will contain all our data
+            Logger.Debug("Creating delta file");
             var deltaFileLocation = Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Global.TinyUpdateExtension);
             var deltaFileStream = File.OpenWrite(deltaFileLocation);
             var zipArchive = new ZipArchive(deltaFileStream, ZipArchiveMode.Create);
@@ -56,12 +56,12 @@ namespace TinyUpdate.Binary
                 Directory.EnumerateFiles(baseVersionLocation, "*", SearchOption.AllDirectories), 
                 baseVersionLocation).ToArray();
 
-            Logger.Information("Processing files that are in both versions");
             //Find any files that are in both version and process them based on if they had any changes
+            Logger.Information("Processing files that are in both versions");
             var sameFiles = newVersionFiles.Where(x => baseVersionFiles.Contains(x)).ToArray();
             foreach (var maybeDeltaFile in sameFiles)
             {
-                Logger.Debug("Processing {0}", maybeDeltaFile);
+                Logger.Debug("Processing possible delta file {0}", maybeDeltaFile);
                 var newFileLocation = Path.Combine(newVersionLocation, maybeDeltaFile);
 
                 //Try to create the file as a delta file
@@ -90,6 +90,8 @@ namespace TinyUpdate.Binary
             Logger.Information("Processing files that only exist in the new version");
             foreach (var newFile in newVersionFiles.Where(x => !sameFiles.Contains(x)))
             {
+                Logger.Debug("Processing new file {0}", newFile);
+
                 //Process file
                 var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFile));
                 if (await AddNewFile(zipArchive, fileStream, newFile))
@@ -110,6 +112,7 @@ namespace TinyUpdate.Binary
             return true;
         }
 
+        /// <inheritdoc cref="IUpdateCreator.CreateFullPackage"/>
         public Task<bool> CreateFullPackage(string applicationLocation, Action<decimal>? progress = null)
         {
             throw new NotImplementedException();
@@ -137,12 +140,12 @@ namespace TinyUpdate.Binary
             newFileStream.Dispose();
             if (hasChanged)
             {
-                Logger.Debug("Making Delta file");
+                Logger.Information("Making Delta file");
                 return await AddDeltaFile(zipArchive, baseFileLocation, newFileLocation);
             }
 
             //If both checks return as true then make something that the Applier can point back to
-            Logger.Debug("Making same file pointer");
+            Logger.Information("Making same file pointer");
             return await AddSameFile(zipArchive, GetRelativePath(baseFileLocation, newFileLocation));
         }
 
@@ -163,9 +166,11 @@ namespace TinyUpdate.Binary
                 !CreateBSDiffFile(baseFileLocation, newFileLocation, tmpDeltaFile, out extension))
             {
                 //Wasn't able to, report back as fail
+                Logger.Error("Wasn't able to create delta file");
                 return false;
             }
 
+            //Get hash and filesize to add to file
             var newFileStream = File.OpenRead(newFileLocation);
             var newFilesize = newFileStream.Length;
             var hash = SHA1Util.CreateSHA1Hash(newFileStream);
@@ -174,7 +179,7 @@ namespace TinyUpdate.Binary
             //Grab file and add it to the set of files
             var deltaFileStream = File.OpenRead(tmpDeltaFile);
             var addSuccessful = await AddFile(zipArchive, deltaFileStream,
-                GetRelativePath(baseFileLocation, newFileLocation) + extension, filesize: newFilesize, sha1hash: hash);
+                GetRelativePath(baseFileLocation, newFileLocation) + extension, filesize: newFilesize, sha1Hash: hash);
                 
             //Dispose stream and report back if we was able to add file
             deltaFileStream.Dispose();
@@ -195,8 +200,8 @@ namespace TinyUpdate.Binary
             extension = ".bsdiff";
             var outputStream = File.OpenWrite(deltaFileLocation);
 
-            var success = BinaryPatchUtility.Create(GetBytesFromFile(baseFileLocation).ToArray(),
-                    GetBytesFromFile(newFileLocation).ToArray(), outputStream);
+            var success = BinaryPatchUtility.Create(GetBytesFromFile(baseFileLocation),
+                    GetBytesFromFile(newFileLocation), outputStream);
 
             outputStream.Dispose();
             return success;
@@ -207,7 +212,7 @@ namespace TinyUpdate.Binary
         /// </summary>
         /// <param name="fileLocation">Where the file is located</param>
         /// <returns>The files contents</returns>
-        private static Span<byte> GetBytesFromFile(string fileLocation)
+        private static byte[] GetBytesFromFile(string fileLocation)
         {
             //Get stream and then make byte[] to fill
             var stream = File.OpenRead(fileLocation);
@@ -257,8 +262,7 @@ namespace TinyUpdate.Binary
         /// <param name="filepath">File to add</param>
         /// <returns>If we was able to add the file</returns>
         private static async Task<bool> AddNewFile(ZipArchive zipArchive, Stream fileStream, string filepath) =>
-            await AddFile(zipArchive, fileStream, filepath + ".new", false); //We give 0 for filesize or it will make a shasum file
-        //Give hash
+            await AddFile(zipArchive, fileStream, filepath + ".new", false);
         
         /// <summary>
         /// Adds a file that is the same as the last version into the <see cref="ZipArchive"/>
@@ -276,7 +280,9 @@ namespace TinyUpdate.Binary
         /// <param name="fileStream">Stream of the file contents</param>
         /// <param name="filepath">Path of the file</param>
         /// <param name="keepFileStreamOpen">If we should keep <see cref="fileStream"/> open once done with it</param>
-        private static async Task<bool> AddFile(ZipArchive zipArchive, Stream fileStream, string filepath, bool keepFileStreamOpen = true, long? filesize = null, string? sha1hash = null)
+        /// <param name="filesize">The size that the final file should be</param>
+        /// <param name="sha1Hash">The hash that the final file should be</param>
+        private static async Task<bool> AddFile(ZipArchive zipArchive, Stream fileStream, string filepath, bool keepFileStreamOpen = true, long? filesize = null, string? sha1Hash = null)
         {
             filesize ??= fileStream.Length;
             //Create and add the file contents to the zip
@@ -295,12 +301,12 @@ namespace TinyUpdate.Binary
                 return true;
             }
 
-            sha1hash ??= SHA1Util.CreateSHA1Hash(fileStream);
+            sha1Hash ??= SHA1Util.CreateSHA1Hash(fileStream);
             //Create .shasum file if we have some content from the fileStream
             var zipShasumStream = zipArchive.CreateEntry(Path.ChangeExtension(filepath, ".shasum")).Open();
             var textWriter = new StreamWriter(zipShasumStream);
 
-            await textWriter.WriteAsync($"{sha1hash} {filesize}");
+            await textWriter.WriteAsync($"{sha1Hash} {filesize}");
             textWriter.Dispose();
             zipShasumStream.Dispose();
 

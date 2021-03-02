@@ -19,14 +19,14 @@ namespace TinyUpdate.Core.Update
         /// Finds any updates that are haven't been applied to the application
         /// </summary>
         /// <returns><see cref="UpdateInfo"/> with all the updates that are pending</returns>
-        public virtual Task<UpdateInfo> CheckForUpdate() => throw new NotImplementedException();
+        public abstract Task<UpdateInfo> CheckForUpdate();
 
         /// <summary>
         /// Gets the changelog for a <see cref="ReleaseEntry"/> that needs to be applied
         /// </summary>
         /// <param name="entry"><see cref="ReleaseEntry"/> to grab a <see cref="ReleaseNote"/> for</param>
         /// <returns>The <see cref="ReleaseNote"/> with all the details of this <see cref="ReleaseEntry"/></returns>
-        public virtual Task<ReleaseNote> GetChangelog(ReleaseEntry entry) => throw new NotImplementedException();
+        public abstract Task<ReleaseNote> GetChangelog(ReleaseEntry entry);
 
         /// <summary>
         /// Grabs the newest changelog for this application

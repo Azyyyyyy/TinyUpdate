@@ -1,4 +1,4 @@
-using TinyUpdate.Test;
+using TinyUpdate.Test.Update;
 
 namespace TinyUpdate.Binary.Tests
 {

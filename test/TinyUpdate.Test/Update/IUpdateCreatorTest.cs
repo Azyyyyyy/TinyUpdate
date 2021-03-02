@@ -4,7 +4,7 @@ using NUnit.Framework;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 
-namespace TinyUpdate.Test
+namespace TinyUpdate.Test.Update
 {
     public class IUpdateCreatorTest
     {
@@ -17,6 +17,7 @@ namespace TinyUpdate.Test
         [SetUp]
         public void Setup()
         {
+            
         }
 
         [Test]

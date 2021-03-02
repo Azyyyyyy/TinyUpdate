@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using TinyUpdate.Core.Exceptions;
-using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core
@@ -23,7 +23,7 @@ namespace TinyUpdate.Core
             {
                 throw new InvalidFilePathException(invalidChar);
             }
-            _logger = Logging.CreateLogger($"ReleaseEntry ({filename})");
+            _logger = LoggingCreator.CreateLogger($"ReleaseEntry ({filename})");
 
             SHA1 = sha1;
             Filename = filename;
@@ -73,6 +73,7 @@ namespace TinyUpdate.Core
             //Check that file exists
             if (!File.Exists(FileLocation))
             {
+                _logger.Warning("{0} doesn't exist, this release entry isn't valid", FileLocation);
                 return false;
             }
             
@@ -85,6 +86,7 @@ namespace TinyUpdate.Core
                     if (file.Length != Filesize ||
                         !SHA1Util.CheckSHA1(file, SHA1))
                     {
+                        _logger.Warning("{0} validation failed, this release entry isn't valid", FileLocation);
                         return false;
                     }
                 }

@@ -6,7 +6,7 @@ using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
-namespace TinyUpdate.Test
+namespace TinyUpdate.Test.Update
 {
     public abstract class IUpdateApplierTest
     {

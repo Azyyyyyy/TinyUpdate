@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
+        <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+        <PackageOutputPath>../../packages</PackageOutputPath>
     </PropertyGroup>
+    <Import Project="../../Nuget-metadata.csproj" />
 
 </Project>

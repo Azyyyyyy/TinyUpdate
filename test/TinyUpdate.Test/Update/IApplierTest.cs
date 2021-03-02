@@ -4,11 +4,11 @@ using NUnit.Framework;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 
-namespace TinyUpdate.Test
+namespace TinyUpdate.Test.Update
 {
     public abstract class UpdateApplierTest
     {
-        private IUpdateApplier _updateApplier;
+        private readonly IUpdateApplier _updateApplier;
         protected UpdateApplierTest(IUpdateApplier updateApplier)
         {
             _updateApplier = updateApplier;

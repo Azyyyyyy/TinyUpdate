@@ -1,11 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
         <TargetFramework>net5.0</TargetFramework>
+        <PackageOutputPath>../../packages</PackageOutputPath>
+        
+        <OutputType>Exe</OutputType>
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>tinyupdate</ToolCommandName>
-        <PackageOutputPath>./nupkg</PackageOutputPath>
     </PropertyGroup>
+    <Import Project="../../Nuget-metadata.csproj" />
 
 </Project>

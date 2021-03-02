@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Core.Utils
 {
@@ -9,7 +9,7 @@ namespace TinyUpdate.Core.Utils
     /// </summary>
     public static class FilePathUtil
     {
-        private static readonly ILogging Logger = Logging.CreateLogger("FilePathUtil");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger("FilePathUtil");
         private static readonly string[] FileNameInvalidChars;
         private static readonly string[] PathInvalidChars;
 
@@ -47,6 +47,12 @@ namespace TinyUpdate.Core.Utils
         public static bool IsValidForFilePath(this string s, out char? invalidChar) => CheckValidation(PathInvalidChars, s, out invalidChar);
         
         
+        /// <summary>
+        /// Checks string for anything that it shouldn't be in it
+        /// </summary>
+        /// <param name="chars"><see cref="char"/>[] that shouldn't be in <see cref="s"/></param>
+        /// <param name="s">string to check</param>
+        /// <param name="invalidChar"><see cref="char"/> that was in <see cref="s"/> but shouldn't be</param>
         private static bool CheckValidation(IEnumerable<string> chars, string s, out char? invalidChar)
         {
             Logger.Debug("Checking {0}", s);
@@ -54,7 +60,7 @@ namespace TinyUpdate.Core.Utils
             invalidChar = null;
             if (string.IsNullOrWhiteSpace(s))
             {
-                Logger.Debug("{0} is not useable", s);
+                Logger.Debug("{0} is not usable", s);
                 return false;
             }
 
@@ -64,12 +70,12 @@ namespace TinyUpdate.Core.Utils
                 if (s.Contains(charToCheck))
                 {
                     invalidChar = charToCheck[0];
-                    Logger.Debug("{0} is not useable", s);
+                    Logger.Debug("{0} is not usable", s);
                     return false;
                 }
             }
 
-            Logger.Debug("{0} is useable", s);
+            Logger.Debug("{0} is usable", s);
             return true;
         }
     }

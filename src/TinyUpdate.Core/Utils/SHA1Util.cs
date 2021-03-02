@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Core.Utils
 {
@@ -11,7 +11,7 @@ namespace TinyUpdate.Core.Utils
     /// </summary>
     public static class SHA1Util
     {
-        private static readonly ILogging Logger = Logging.CreateLogger("SHA1");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger("SHA1");
         private static readonly Regex SHA1Regex = new("^[a-fA-F0-9]{40}$");
         
         /// <summary>
