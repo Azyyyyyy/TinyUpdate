@@ -12,7 +12,8 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Report back the progress
+    //TODO: Make it process files that are the same and then process delta files
+    //TODO: Add a DeltaCreation class for allowing multiple deltas to be made at the same time (Warn about CPU + Mem with this)
     //TODO: Create CreateFullPackage
     /// <summary>
     /// Creates update files in a binary format 
@@ -24,6 +25,23 @@ namespace TinyUpdate.Binary
         /// <inheritdoc cref="IUpdateCreator.CreateDeltaPackage"/>
         public async Task<bool> CreateDeltaPackage(string newVersionLocation, string baseVersionLocation, Action<decimal>? progress = null)
         {
+            //To keep track of progress
+            long fileCount = 0;
+            long sameFilesLength;
+            long newFilesLength;
+            decimal lastProgress = 0;
+            
+            void UpdateProgress(decimal extraProgress = 0)
+            {
+                //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
+                var progressValue = (fileCount + extraProgress) / (sameFilesLength + newFilesLength + 1);
+                if (progressValue != lastProgress)
+                {
+                    progress?.Invoke(progressValue);
+                    lastProgress = progressValue;
+                }
+            }
+            
             if (!Directory.Exists(newVersionLocation) || 
                 !Directory.Exists(baseVersionLocation))
             {
@@ -44,6 +62,7 @@ namespace TinyUpdate.Binary
             {
                 zipArchive.Dispose();
                 deltaFileStream.Dispose();
+                progress?.Invoke(1);
             }
             
             //Get all the files that are in the new version (Removing the Path so we only have the relative path of the file)
@@ -59,6 +78,11 @@ namespace TinyUpdate.Binary
             //Find any files that are in both version and process them based on if they had any changes
             Logger.Information("Processing files that are in both versions");
             var sameFiles = newVersionFiles.Where(x => baseVersionFiles.Contains(x)).ToArray();
+            var newFiles = newVersionFiles.Where(x => !sameFiles.Contains(x)).ToArray();
+
+            sameFilesLength = sameFiles.LongLength;
+            newFilesLength = newFiles.LongLength;
+            
             foreach (var maybeDeltaFile in sameFiles)
             {
                 Logger.Debug("Processing possible delta file {0}", maybeDeltaFile);
@@ -67,8 +91,10 @@ namespace TinyUpdate.Binary
                 //Try to create the file as a delta file
                 if (await ProcessMaybeDeltaFile(zipArchive,
                     Path.Combine(baseVersionLocation, maybeDeltaFile),
-                    newFileLocation))
+                    newFileLocation, UpdateProgress))
                 {
+                    fileCount++;
+                    UpdateProgress();
                     continue;
                 }
 
@@ -77,6 +103,8 @@ namespace TinyUpdate.Binary
                 var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFileLocation));
                 if (await AddNewFile(zipArchive, fileStream, maybeDeltaFile))
                 {
+                    fileCount++;
+                    UpdateProgress();
                     continue;
                 }
 
@@ -88,8 +116,9 @@ namespace TinyUpdate.Binary
 
             //Process files that was added into the new version
             Logger.Information("Processing files that only exist in the new version");
-            foreach (var newFile in newVersionFiles.Where(x => !sameFiles.Contains(x)))
+            foreach (var newFile in newFiles)
             {
+                fileCount++;
                 Logger.Debug("Processing new file {0}", newFile);
 
                 //Process file
@@ -97,6 +126,7 @@ namespace TinyUpdate.Binary
                 if (await AddNewFile(zipArchive, fileStream, newFile))
                 {
                     fileStream.Dispose();
+                    UpdateProgress();
                     continue;
                 }
 
@@ -117,15 +147,16 @@ namespace TinyUpdate.Binary
         {
             throw new NotImplementedException();
         }
-        
+
         /// <summary>
         /// Checks a file that might be a delta file and passes it to the correct functions
         /// </summary>
         /// <param name="zipArchive">zipArchive to add file to</param>
         /// <param name="baseFileLocation">File that matches the new file</param>
         /// <param name="newFileLocation">New file to compare</param>
+        /// <param name="progress">Progress of creating delta file (if file is a delta file)</param>
         /// <returns>If we was able to create the file needed</returns>
-        private static async Task<bool> ProcessMaybeDeltaFile(ZipArchive zipArchive, string baseFileLocation, string newFileLocation)
+        private static async Task<bool> ProcessMaybeDeltaFile(ZipArchive zipArchive, string baseFileLocation, string newFileLocation, Action<decimal>? progress = null)
         {
             //Get the two files from disk
             var baseFileStream = File.OpenRead(baseFileLocation);
@@ -141,7 +172,7 @@ namespace TinyUpdate.Binary
             if (hasChanged)
             {
                 Logger.Information("Making Delta file");
-                return await AddDeltaFile(zipArchive, baseFileLocation, newFileLocation);
+                return await AddDeltaFile(zipArchive, baseFileLocation, newFileLocation, progress);
             }
 
             //If both checks return as true then make something that the Applier can point back to
@@ -155,18 +186,26 @@ namespace TinyUpdate.Binary
         /// <param name="zipArchive"><see cref="ZipArchive"/> to add the file too</param>
         /// <param name="baseFileLocation">Old file</param>
         /// <param name="newFileLocation">New file</param>
+        /// <param name="progress">Progress of creating delta file (If possible)</param>
         /// <returns>If we was able to create the delta file</returns>
-        private static async Task<bool> AddDeltaFile(ZipArchive zipArchive, string baseFileLocation, string newFileLocation)
+        private static async Task<bool> AddDeltaFile(ZipArchive zipArchive, string baseFileLocation, string newFileLocation, Action<decimal>? progress = null)
         {
             //Create where the delta file can be stored to grab once made 
             var tmpDeltaFile = Path.Combine(Global.TempFolder, Path.GetRandomFileName());
-
-            //Try to create diff file, outputting extension based on what was used to make it
+            Stream? deltaFileStream = null;
+            
+            //Try to create diff file, outputting extension (and maybe a stream) based on what was used to make it
             if (!CreateMSDiffFile(baseFileLocation, newFileLocation, tmpDeltaFile, out var extension) &&
-                !CreateBSDiffFile(baseFileLocation, newFileLocation, tmpDeltaFile, out extension))
+                !CreateBSDiffFile(baseFileLocation, newFileLocation, tmpDeltaFile, out extension, out deltaFileStream, progress))
             {
                 //Wasn't able to, report back as fail
                 Logger.Error("Wasn't able to create delta file");
+                return false;
+            }
+
+            if (deltaFileStream == null && !File.Exists(tmpDeltaFile))
+            {
+                Logger.Error("We have no delta file/stream to work off somehow");
                 return false;
             }
 
@@ -177,7 +216,7 @@ namespace TinyUpdate.Binary
             newFileStream.Dispose();
             
             //Grab file and add it to the set of files
-            var deltaFileStream = File.OpenRead(tmpDeltaFile);
+            deltaFileStream ??= File.OpenRead(tmpDeltaFile);
             var addSuccessful = await AddFile(zipArchive, deltaFileStream,
                 GetRelativePath(baseFileLocation, newFileLocation) + extension, filesize: newFilesize, sha1Hash: hash);
                 
@@ -187,23 +226,30 @@ namespace TinyUpdate.Binary
         }
 
         /// <summary>
-        /// Creates a delta file using <see cref="BinaryPatchUtility.Create(byte[], byte[], Stream)"/>
+        /// Creates a delta file using <see cref="BinaryPatchUtility.Create"/>
         /// </summary>
         /// <param name="baseFileLocation">Old file location</param>
         /// <param name="newFileLocation">New file location</param>
         /// <param name="deltaFileLocation">Where to output the delta file</param>
         /// <param name="extension">What extension to know it was made using this when applying the delta</param>
+        /// <param name="deltaFileStream">Stream with the </param>
+        /// <param name="progress">Reports back progress</param>
         /// <returns>If we was able to create the delta file</returns>
-        private static bool CreateBSDiffFile(string baseFileLocation, string newFileLocation, string deltaFileLocation, out string extension)
+        private static bool CreateBSDiffFile(string baseFileLocation, string newFileLocation, string deltaFileLocation, out string extension, out Stream? deltaFileStream, Action<decimal>? progress = null)
         {
-            //TODO: Don't write this to disk but to memoryStream
             extension = ".bsdiff";
-            var outputStream = File.OpenWrite(deltaFileLocation);
+            deltaFileStream = new MemoryStream();
 
             var success = BinaryPatchUtility.Create(GetBytesFromFile(baseFileLocation),
-                    GetBytesFromFile(newFileLocation), outputStream);
+                    GetBytesFromFile(newFileLocation), deltaFileStream, progress);
 
-            outputStream.Dispose();
+            if (!success)
+            {
+                deltaFileStream.Dispose();
+                deltaFileStream = null;
+            }
+
+            deltaFileStream?.Seek(0, SeekOrigin.Begin);
             return success;
         }
 
@@ -227,7 +273,7 @@ namespace TinyUpdate.Binary
         }
         
         /// <summary>
-        /// Creates a delta file using <see cref="BinaryPatchUtility.Create(byte[], byte[], Stream)"/>
+        /// Creates a delta file using <see cref="BinaryPatchUtility.Create"/>
         /// </summary>
         /// <param name="baseFileLocation">Old file location</param>
         /// <param name="newFileLocation">New file location</param>
@@ -236,9 +282,6 @@ namespace TinyUpdate.Binary
         /// <returns>If we was able to create the delta file</returns>
         private static bool CreateMSDiffFile(string baseFileLocation, string newFileLocation, string deltaFileLocation, out string extension)
         {
-            //Here just to quickly test stuff
-            return CreateBSDiffFile(baseFileLocation, newFileLocation, deltaFileLocation, out extension);
-            
             extension = ".diff";
             var msDelta = new MsDeltaCompression();
             try

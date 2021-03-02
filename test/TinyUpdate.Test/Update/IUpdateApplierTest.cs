@@ -23,11 +23,14 @@ namespace TinyUpdate.Test.Update
             Global.ApplicationVersion = Version.Parse("2021.129.0");
             
             //Get details about update file
-            var releaseFileLocation = @"E:\aaron\Downloads\ryqs43xb.uzg.tuup";
+            var releaseFileLocation = @"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\r0upvlv4.pb3.tuup";
             var fileStream = File.OpenRead(releaseFileLocation);
             var fileHash = SHA1Util.CreateSHA1Hash(fileStream);
             var fileLength = fileStream.Length;
             fileStream.Dispose();
+
+            var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
+            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
 
             var res = new ReleaseEntry(
                 fileHash, 
@@ -35,8 +38,10 @@ namespace TinyUpdate.Test.Update
                 fileLength,
                 true, 
                 Version.Parse("2021.129.1"),
-                @"E:\aaron\Downloads");
-            await _updateApplier.ApplyUpdate(res);
+                @"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner");
+            await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
+            deltaFileProgressStreamText.Dispose();
+            deltaFileProgressStream.Dispose();
         }
 
         [Test]

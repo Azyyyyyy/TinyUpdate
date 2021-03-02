@@ -65,7 +65,8 @@ namespace TinyUpdate.Binary
         /// <param name="oldData">The original binary data.</param>
         /// <param name="newData">The new binary data.</param>
         /// <param name="output">A <see cref="Stream"/> to which the patch will be written.</param>
-        public static bool Create(byte[] oldData, byte[] newData, Stream output)
+        /// <param name="progress">Reports back progress making delta file</param>
+        public static bool Create(byte[] oldData, byte[] newData, Stream output, Action<decimal>? progress = null)
         {
             // check arguments
             if (!output.CanSeek)
@@ -99,12 +100,13 @@ namespace TinyUpdate.Binary
             output.Write(header, 0, header.Length);
 
             var I = SuffixSort(oldData);
+            progress?.Invoke(0.5m);
 
             byte[] db = new byte[newData.Length];
             byte[] eb = new byte[newData.Length];
 
-            int dblen = 0;
-            int eblen = 0;
+            int dbLen = 0;
+            int ebLen = 0;
 
             using (WrappingStream wrappingStream = new(output, Ownership.None))
             using (BZip2OutputStream bz2Stream = new(wrappingStream))
@@ -113,12 +115,14 @@ namespace TinyUpdate.Binary
                 int scan = 0;
                 int pos = 0;
                 int len = 0;
-                int lastscan = 0;
+                int lastScan = 0;
                 int lastPos = 0;
                 int lastOffset = 0;
                 while (scan < newData.Length)
                 {
-                    int oldscore = 0;
+                    progress?.Invoke((((decimal)scan / newData.Length) / 2) + 0.5m);
+                    
+                    int oldScore = 0;
 
                     for (int scsc = scan += len; scan < newData.Length; scan++)
                     {
@@ -127,24 +131,24 @@ namespace TinyUpdate.Binary
                         for (; scsc < scan + len; scsc++)
                         {
                             if ((scsc + lastOffset < oldData.Length) && (oldData[scsc + lastOffset] == newData[scsc]))
-                                oldscore++;
+                                oldScore++;
                         }
 
-                        if ((len == oldscore && len != 0) || (len > oldscore + 8))
+                        if ((len == oldScore && len != 0) || (len > oldScore + 8))
                             break;
 
                         if ((scan + lastOffset < oldData.Length) && (oldData[scan + lastOffset] == newData[scan]))
-                            oldscore--;
+                            oldScore--;
                     }
 
-                    if (len != oldscore || scan == newData.Length)
+                    if (len != oldScore || scan == newData.Length)
                     {
                         int s = 0;
                         int sf = 0;
                         int lenf = 0;
-                        for (int i = 0; (lastscan + i < scan) && (lastPos + i < oldData.Length);)
+                        for (int i = 0; (lastScan + i < scan) && (lastPos + i < oldData.Length);)
                         {
-                            if (oldData[lastPos + i] == newData[lastscan + i])
+                            if (oldData[lastPos + i] == newData[lastScan + i])
                                 s++;
                             i++;
                             if (s * 2 - i > sf * 2 - lenf)
@@ -159,7 +163,7 @@ namespace TinyUpdate.Binary
                         {
                             s = 0;
                             int sb = 0;
-                            for (int i = 1; (scan >= lastscan + i) && (pos >= i); i++)
+                            for (int i = 1; (scan >= lastScan + i) && (pos >= i); i++)
                             {
                                 if (oldData[pos - i] == newData[scan - i])
                                     s++;
@@ -171,15 +175,15 @@ namespace TinyUpdate.Binary
                             }
                         }
 
-                        if (lastscan + lenf > scan - lenb)
+                        if (lastScan + lenf > scan - lenb)
                         {
-                            int overlap = (lastscan + lenf) - (scan - lenb);
+                            int overlap = (lastScan + lenf) - (scan - lenb);
                             s = 0;
                             int ss = 0;
                             int lens = 0;
                             for (int i = 0; i < overlap; i++)
                             {
-                                if (newData[lastscan + lenf - overlap + i] == oldData[lastPos + lenf - overlap + i])
+                                if (newData[lastScan + lenf - overlap + i] == oldData[lastPos + lenf - overlap + i])
                                     s++;
                                 if (newData[scan - lenb + i] == oldData[pos - lenb + i])
                                     s--;
@@ -195,24 +199,24 @@ namespace TinyUpdate.Binary
                         }
 
                         for (int i = 0; i < lenf; i++)
-                            db[dblen + i] = (byte)(newData[lastscan + i] - oldData[lastPos + i]);
-                        for (int i = 0; i < (scan - lenb) - (lastscan + lenf); i++)
-                            eb[eblen + i] = newData[lastscan + lenf + i];
+                            db[dbLen + i] = (byte)(newData[lastScan + i] - oldData[lastPos + i]);
+                        for (int i = 0; i < (scan - lenb) - (lastScan + lenf); i++)
+                            eb[ebLen + i] = newData[lastScan + lenf + i];
 
-                        dblen += lenf;
-                        eblen += (scan - lenb) - (lastscan + lenf);
+                        dbLen += lenf;
+                        ebLen += (scan - lenb) - (lastScan + lenf);
 
                         byte[] buf = new byte[8];
                         WriteInt64(lenf, buf, 0);
                         bz2Stream.Write(buf, 0, 8);
 
-                        WriteInt64((scan - lenb) - (lastscan + lenf), buf, 0);
+                        WriteInt64((scan - lenb) - (lastScan + lenf), buf, 0);
                         bz2Stream.Write(buf, 0, 8);
 
                         WriteInt64((pos - lenb) - (lastPos + lenf), buf, 0);
                         bz2Stream.Write(buf, 0, 8);
 
-                        lastscan = scan - lenb;
+                        lastScan = scan - lenb;
                         lastPos = pos - lenb;
                         lastOffset = pos - scan;
                     }
@@ -224,11 +228,11 @@ namespace TinyUpdate.Binary
             WriteInt64(controlEndPosition - startPosition - CHeaderSize, header, 8);
 
             // write compressed diff data
-            if (dblen > 0)
+            if (dbLen > 0)
             {
                 using WrappingStream wrappingStream = new(output, Ownership.None);
                 using var bz2Stream = new BZip2OutputStream(wrappingStream);
-                bz2Stream.Write(db, 0, dblen);
+                bz2Stream.Write(db, 0, dbLen);
             }
 
             // compute size of compressed diff data
@@ -236,11 +240,11 @@ namespace TinyUpdate.Binary
             WriteInt64(diffEndPosition - controlEndPosition, header, 16);
 
             // write compressed extra data
-            if (eblen > 0)
+            if (ebLen > 0)
             {
                 using WrappingStream wrappingStream = new(output, Ownership.None);
                 using BZip2OutputStream bz2Stream = new(wrappingStream);
-                bz2Stream.Write(eb, 0, eblen);
+                bz2Stream.Write(eb, 0, ebLen);
             }
 
             // seek to the beginning, write the header, then seek back to end

@@ -13,7 +13,6 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Report back the progress
     //TODO: Create ApplyUpdate(UpdateInfo, Action<decimal>?)
     /// <summary>
     /// Applies updates that the <see cref="BinaryCreator"/> has created
@@ -31,7 +30,7 @@ namespace TinyUpdate.Binary
         /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ReleaseEntry, Action{decimal})"/>
         public async Task<bool> ApplyUpdate(ReleaseEntry entry, Action<decimal>? progress = null)
         {
-            //Check that we was the one who made the update (as shown with the file extension
+            //Check that we was the one who made the update (as shown with the file extension)
             if (Path.GetExtension(entry.Filename) != Global.TinyUpdateExtension)
             {
                 Logger.Error("{0} is not a update made by BinaryCreator, bail...", entry.FileLocation);
@@ -43,7 +42,7 @@ namespace TinyUpdate.Binary
             var basePath = Global.ApplicationVersion.GetApplicationPath();
 
             /*Make sure the basePath exists, can't do a delta update without it!
-             (This also shows that something is wrong)*/
+             (This also shows that something is *REALLY* wrong)*/
             if (!Directory.Exists(basePath))
             {
                 Logger.Error("{0} doesn't exist, can't update", basePath);
@@ -90,7 +89,7 @@ namespace TinyUpdate.Binary
 
             //Grab all the files from the update file
             var zip = new ZipArchive(File.OpenRead(entry.FileLocation));
-            var files = await GetFilesFromPackage(zip);
+            var files = (await GetFilesFromPackage(zip))?.ToArray();
             if (files == null)
             {
                 /*This only happens when something is up with the update file,
@@ -101,8 +100,12 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
+            var fileCounter = 0L;
+            var filesCount = files.LongCount();
+
             foreach (var file in files)
             {
+                fileCounter++;
                 Logger.Debug("Processing {0}", file.FileLocation);
                 
                 //If we have a folder path then create it
@@ -119,20 +122,23 @@ namespace TinyUpdate.Binary
 
                 /*Check that the files exists and that we was 
                   able to process file, if not then hard bail!*/
-                var applySuccessful =
-                    file.PatchType != PatchType.New ? File.Exists(originalFile) : true &&
-                    await ProcessFile(originalFile, newFile, file);
+                var applySuccessful = await ProcessFile(originalFile, newFile, file);
 
                 if (!applySuccessful || !CheckUpdatedFile(newFile, file))
                 {
                     zip.Dispose();
                     file.Stream?.Dispose();
+                    progress?.Invoke(1);
                     return false;
                 }
+
+                //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
+                progress?.Invoke((decimal)fileCounter / (filesCount + 1));
                 file.Stream?.Dispose();
             }
 
             zip.Dispose();
+            progress?.Invoke(1);
             return true;
         }
 

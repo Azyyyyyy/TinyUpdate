@@ -18,6 +18,10 @@ namespace TinyUpdate.Core
         {
             //Get the assembly, check that a version number exists and that we can make a Version out of it
             var runningAssembly = Assembly.GetEntryAssembly();
+            if (runningAssembly == null)
+            {
+                throw new Exception("We somehow can't get the currently running assembly");
+            }
 
             var versionString = runningAssembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             if (string.IsNullOrWhiteSpace(versionString))
