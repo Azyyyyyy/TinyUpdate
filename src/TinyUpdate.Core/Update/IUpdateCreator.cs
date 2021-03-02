@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace TinyUpdate.Core
+namespace TinyUpdate.Core.Update
 {
     /// <summary>
     /// Creates updates that a <see cref="IUpdateApplier"/> can apply

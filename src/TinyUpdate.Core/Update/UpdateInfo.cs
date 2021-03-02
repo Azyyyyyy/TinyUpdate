@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TinyUpdate.Core
+namespace TinyUpdate.Core.Update
 {
     /// <summary>
     /// Contains all the updates that we need to apply and version details

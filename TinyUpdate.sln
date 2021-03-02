@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TinyUpdate.Binary.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Test", "test\TinyUpdate.Test\TinyUpdate.Test.csproj", "{3688FDF1-07F4-48F3-B4E2-CA53B4991ADC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Create", "src\TinyUpdate.Create\TinyUpdate.Create.csproj", "{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,10 @@ Global
 		{3688FDF1-07F4-48F3-B4E2-CA53B4991ADC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3688FDF1-07F4-48F3-B4E2-CA53B4991ADC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3688FDF1-07F4-48F3-B4E2-CA53B4991ADC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +59,7 @@ Global
 		{9579646D-F6F7-4AE2-99D3-2E92A69BE100} = {2758B32D-CB41-474D-BB8B-ADB8473C77AE}
 		{0392D9B0-B557-42AF-B0DF-C6B97703F902} = {2758B32D-CB41-474D-BB8B-ADB8473C77AE}
 		{3688FDF1-07F4-48F3-B4E2-CA53B4991ADC} = {2758B32D-CB41-474D-BB8B-ADB8473C77AE}
+		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426} = {9C7F5078-B017-4447-85E8-74E38B1D0147}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C33583C4-B2A9-41B5-A4DA-9062595FDCBD}

@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Test

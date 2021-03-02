@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using DeltaCompressionDotNet.MsDelta;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Create logging
+    //TODO: Any commenting and extra logging that would help
     //TODO: Report back the progress
     //TODO: Create CreateFullPackage
     /// <summary>
@@ -19,19 +20,21 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryCreator : IUpdateCreator
     {
+        private static readonly ILogging Logger = Logging.CreateLogger("BinaryCreator");
+
         public async Task<bool> CreateDeltaPackage(string newVersionLocation, string baseVersionLocation, Action<decimal>? progress = null)
         {
             if (!Directory.Exists(newVersionLocation) || 
                 !Directory.Exists(baseVersionLocation))
             {
-                Trace.WriteLine("One of the folders don't exist, can't create....");
+                Logger.Error("One of the folders don't exist, can't create....");
                 return false;
             }
             
             //Create the Temp folder in case it doesn't exist
             Directory.CreateDirectory(Global.TempFolder);
 
-            Trace.WriteLine("Creating delta file");
+            Logger.Debug("Creating delta file");
             //Create the delta file that will contain all our data
             var deltaFileLocation = Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Global.TinyUpdateExtension);
             var deltaFileStream = File.OpenWrite(deltaFileLocation);
@@ -52,13 +55,13 @@ namespace TinyUpdate.Binary
             var baseVersionFiles = RemovePath(
                 Directory.EnumerateFiles(baseVersionLocation, "*", SearchOption.AllDirectories), 
                 baseVersionLocation).ToArray();
-            
-            Trace.WriteLine("Processing files that are in both versions");
+
+            Logger.Information("Processing files that are in both versions");
             //Find any files that are in both version and process them based on if they had any changes
             var sameFiles = newVersionFiles.Where(x => baseVersionFiles.Contains(x)).ToArray();
             foreach (var maybeDeltaFile in sameFiles)
             {
-                Trace.WriteLine($"Processing {maybeDeltaFile}");
+                Logger.Debug("Processing {0}", maybeDeltaFile);
                 var newFileLocation = Path.Combine(newVersionLocation, maybeDeltaFile);
 
                 //Try to create the file as a delta file
@@ -70,21 +73,21 @@ namespace TinyUpdate.Binary
                 }
 
                 //If we can't make the file as a delta file try to create it as a "new" file
-                Trace.WriteLine("Wasn't able to make delta file, creating file as \"new\" file");
+                Logger.Warning("Wasn't able to make delta file, creating file as \"new\" file");
                 var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFileLocation));
                 if (await AddNewFile(zipArchive, fileStream, maybeDeltaFile))
                 {
                     continue;
                 }
-                
+
                 //Hard bail if we can't even do that
-                Trace.WriteLine("Wasn't able to process file as a new file as well, bailing");
+                Logger.Error("Wasn't able to process file as a new file as well, bailing");
                 Cleanup();
                 return false;
             }
 
             //Process files that was added into the new version
-            Trace.WriteLine("Processing files that only exist in the new version");
+            Logger.Information("Processing files that only exist in the new version");
             foreach (var newFile in newVersionFiles.Where(x => !sameFiles.Contains(x)))
             {
                 //Process file
@@ -94,15 +97,15 @@ namespace TinyUpdate.Binary
                     fileStream.Dispose();
                     continue;
                 }
-                
+
                 //if we can't add it then hard fail, can't do anything to save this
-                Trace.WriteLine("Wasn't able to process new file, bailing");
+                Logger.Error("Wasn't able to process new file, bailing");
                 Cleanup();
                 return false;
             }
-            
+
             //We have created the delta file if we get here, do cleanup and then report as success!
-            Trace.WriteLine("We are done with creating delta file, cleaning up");
+            Logger.Information("We are done with creating delta file, cleaning up");
             Cleanup();
             return true;
         }
@@ -134,12 +137,12 @@ namespace TinyUpdate.Binary
             newFileStream.Dispose();
             if (hasChanged)
             {
-                Trace.WriteLine("Making Delta file");
+                Logger.Debug("Making Delta file");
                 return await AddDeltaFile(zipArchive, baseFileLocation, newFileLocation);
             }
 
             //If both checks return as true then make something that the Applier can point back to
-            Trace.WriteLine("Making same file pointer");
+            Logger.Debug("Making same file pointer");
             return await AddSameFile(zipArchive, GetRelativePath(baseFileLocation, newFileLocation));
         }
 
@@ -239,7 +242,7 @@ namespace TinyUpdate.Binary
             }
             catch (Exception e)
             {
-                Trace.WriteLine(e);
+                Logger.Error(e);
                 return false;
             }
 

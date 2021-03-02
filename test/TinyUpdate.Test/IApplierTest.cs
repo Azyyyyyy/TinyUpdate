@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using NUnit.Framework;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Test
 {

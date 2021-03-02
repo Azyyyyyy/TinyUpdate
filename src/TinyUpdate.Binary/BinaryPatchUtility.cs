@@ -1,8 +1,8 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using ICSharpCode.SharpZipLib.BZip2;
+using TinyUpdate.Core.Logger;
 
 // Squirrel.Bsdiff: Adapted from https://github.com/LogosBible/bsdiff.net/blob/master/src/bsdiff/BinaryPatchUtility.cs
 // TinyUpdate: Adapted from https://github.com/Squirrel/Squirrel.Windows/blob/develop/src/Squirrel/BinaryPatchUtility.cs
@@ -56,6 +56,8 @@ namespace TinyUpdate.Binary
     */
     internal static class BinaryPatchUtility
     {
+        private static readonly ILogging Logger = Logging.CreateLogger("BinaryPatchUtility");
+
         /// <summary>
         /// Creates a binary patch (in <a href="http://www.daemonology.net/bsdiff/">bsdiff</a> format) that can be used
         /// (by <see cref="Apply"/>) to transform <paramref name="oldData"/> into <paramref name="newData"/>.
@@ -68,12 +70,12 @@ namespace TinyUpdate.Binary
             // check arguments
             if (!output.CanSeek)
             {
-                Trace.WriteLine("Output stream must be seekable");
+                Logger.Error("Output stream must be seekable");
                 return false;
             }
             if (!output.CanWrite)
             {
-                Trace.WriteLine("Output stream must be writable");
+                Logger.Error("Output stream must be writable");
                 return false;
             }
 
@@ -281,12 +283,12 @@ namespace TinyUpdate.Binary
                 // check patch stream capabilities
                 if (!patchStream.CanRead)
                 {
-                    Trace.WriteLine("Patch stream must be readable.");
+                    Logger.Error("Patch stream must be readable.");
                     return false;
                 }
                 if (!patchStream.CanSeek)
                 {
-                    Trace.WriteLine("Patch stream must be seekable.");
+                    Logger.Error("Patch stream must be seekable.");
                     return false;
                 }
 
@@ -296,7 +298,7 @@ namespace TinyUpdate.Binary
                 long signature = ReadInt64(header, 0);
                 if (signature != CFileSignature)
                 {
-                    Trace.WriteLine("Corrupt patch.");
+                    Logger.Error("Corrupt patch.");
                     return false;
                 }
 
@@ -306,7 +308,7 @@ namespace TinyUpdate.Binary
                 newSize = ReadInt64(header, 24);
                 if (controlLength < 0 || diffLength < 0 || newSize < 0)
                 {
-                    Trace.WriteLine("Corrupt patch.");
+                    Logger.Error("Corrupt patch.");
                     return false;
                 }
             }
@@ -348,7 +350,7 @@ namespace TinyUpdate.Binary
                     // sanity-check
                     if (newPosition + control[0] > newSize)
                     {
-                        Trace.WriteLine("Corrupt patch.");
+                        Logger.Error("Corrupt patch.");
                         return false;
                     }
 
@@ -381,7 +383,7 @@ namespace TinyUpdate.Binary
                     // sanity-check
                     if (newPosition + control[1] > newSize)
                     {
-                        Trace.WriteLine("Corrupt patch.");
+                        Logger.Error("Corrupt patch.");
                         return false;
                     }
 

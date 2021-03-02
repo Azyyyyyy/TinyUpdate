@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using TinyUpdate.Core.Logger;
 
 namespace TinyUpdate.Core.Utils
 {
@@ -8,6 +9,7 @@ namespace TinyUpdate.Core.Utils
     /// </summary>
     public static class FilePathUtil
     {
+        private static readonly ILogging Logger = Logging.CreateLogger("FilePathUtil");
         private static readonly string[] FileNameInvalidChars;
         private static readonly string[] PathInvalidChars;
 
@@ -47,10 +49,12 @@ namespace TinyUpdate.Core.Utils
         
         private static bool CheckValidation(IEnumerable<string> chars, string s, out char? invalidChar)
         {
+            Logger.Debug("Checking {0}", s);
             //Check that the string even has anything
             invalidChar = null;
             if (string.IsNullOrWhiteSpace(s))
             {
+                Logger.Debug("{0} is not useable", s);
                 return false;
             }
 
@@ -60,10 +64,12 @@ namespace TinyUpdate.Core.Utils
                 if (s.Contains(charToCheck))
                 {
                     invalidChar = charToCheck[0];
+                    Logger.Debug("{0} is not useable", s);
                     return false;
                 }
             }
 
+            Logger.Debug("{0} is useable", s);
             return true;
         }
     }

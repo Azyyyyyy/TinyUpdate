@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -8,11 +7,12 @@ using System.Threading.Tasks;
 using DeltaCompressionDotNet.MsDelta;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Helper;
+using TinyUpdate.Core.Logger;
+using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Create logging
     //TODO: Report back the progress
     //TODO: Create ApplyUpdate(UpdateInfo, Action<decimal>?)
     /// <summary>
@@ -20,6 +20,7 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryApplier : IUpdateApplier
     {
+        private static readonly ILogging Logger = Logging.CreateLogger("BinaryApplier");
         private static readonly Dictionary<string, PatchType> PatchExtensions = new()
         {
             { ".bsdiff", PatchType.BSDiff },
@@ -60,7 +61,7 @@ namespace TinyUpdate.Binary
         {
             if (!File.Exists(entry.FileLocation))
             {
-                Trace.WriteLine("Update file doesn't exist...");
+                Logger.Error("Update file doesn't exist...");
                 return false;
             }
 
@@ -74,7 +75,7 @@ namespace TinyUpdate.Binary
 
             if (!entry.IsValidReleaseEntry(true))
             {
-                Trace.WriteLine("Update file doesn't match what we expect... Deleting update file and bailing");
+                Logger.Error("Update file doesn't match what we expect... Deleting update file and bailing");
                 File.Delete(entry.FileLocation);
                 return false;
             }
@@ -84,7 +85,7 @@ namespace TinyUpdate.Binary
             var files = await GetFilesFromPackage(zip);
             if (files == null)
             {
-                Trace.WriteLine("Something happened while grabbing files in update file");
+                Logger.Error("Something happened while grabbing files in update file");
                 /*This only happens when something is up with the update file
                   delete and return false*/
                 zip.Dispose();
@@ -94,7 +95,7 @@ namespace TinyUpdate.Binary
 
             foreach (var file in files)
             {
-                Trace.WriteLine($"Processing {file.FileLocation}");
+                Logger.Debug("Processing {0}", file.FileLocation);
                 
                 //If we have a folder path then create it
                 if (!string.IsNullOrWhiteSpace(file.FolderPath))
@@ -181,7 +182,7 @@ namespace TinyUpdate.Binary
              we *should* have, check that is the case*/
             if (!File.Exists(originalFile))
             {
-                Trace.WriteLine("File that we need to copy doesn't exist!");
+                Logger.Error("File that we need to copy doesn't exist!");
                 return false;
             }
             
@@ -198,8 +199,8 @@ namespace TinyUpdate.Binary
             }
             catch (Exception e)
             {
-                Trace.WriteLine("Couldn't hard link or copy file!");
-                Trace.WriteLine(e.Message);
+                Logger.Error("Couldn't hard link or copy file!");
+                Logger.Error(e);
                 return false;
             }
 
@@ -254,8 +255,8 @@ namespace TinyUpdate.Binary
             }
             catch (Exception e)
             {
-                Trace.WriteLine(e);
-                Trace.WriteLine($"File that failed to update: {outputLocation}");
+                Logger.Error(e);
+                Logger.Error("File that failed to update: {0}", outputLocation);
                 return false;
             }
 

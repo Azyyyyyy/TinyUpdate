@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using TinyUpdate.Core.Logger;
 
 namespace TinyUpdate.Core.Utils
 {
@@ -11,6 +11,7 @@ namespace TinyUpdate.Core.Utils
     /// </summary>
     public static class SHA1Util
     {
+        private static readonly ILogging Logger = Logging.CreateLogger("SHA1");
         private static readonly Regex SHA1Regex = new("^[a-fA-F0-9]{40}$");
         
         /// <summary>
@@ -37,10 +38,11 @@ namespace TinyUpdate.Core.Utils
         {
             if (IsValidSHA1(expectedSHA1))
             {
-                var hash = CreateSHA1Hash(byteArray);
-                return hash == expectedSHA1;
+                var sameHash = CreateSHA1Hash(byteArray) == expectedSHA1;
+                Logger.Information("Do we have the expected SHA1 hash?: {0}", sameHash);
+                return sameHash;
             }
-            Trace.WriteLine("We been given an invalid hash, can't check");
+            Logger.Warning("We been given an invalid hash, can't check");
             return false;
         }
 

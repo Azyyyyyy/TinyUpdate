@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using TinyUpdate.Core.Exceptions;
+using TinyUpdate.Core.Logger;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core
@@ -11,6 +11,8 @@ namespace TinyUpdate.Core
     /// </summary>
     public class ReleaseEntry
     {
+        private readonly ILogging _logger;
+
         public ReleaseEntry(string sha1, string filename, long filesize, bool isDelta, Version version, string? filePath = null)
         {
             if (!SHA1Util.IsValidSHA1(sha1))
@@ -21,7 +23,8 @@ namespace TinyUpdate.Core
             {
                 throw new InvalidFilePathException(invalidChar);
             }
-            
+            _logger = Logging.CreateLogger($"ReleaseEntry ({filename})");
+
             SHA1 = sha1;
             Filename = filename;
             Filesize = filesize;
@@ -87,9 +90,7 @@ namespace TinyUpdate.Core
                 }
                 catch (Exception e)
                 {
-                    /*TODO: Add some kind of logging, for now we will just throw it
-                     to the console*/
-                    Trace.WriteLine(e);
+                    _logger.Error(e);
                     return false;
                 }
             }
