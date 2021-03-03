@@ -17,38 +17,78 @@ namespace TinyUpdate.Test.Update
         }
         
         [Test]
-        public async Task ApplyUpdate_ReleaseEntry()
+        [NonParallelizable]
+        public async Task ApplyUpdate_ReleaseEntryDelta()
+        {
+            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\cny2x4pl.3eg-bs.tuup"));
+        }
+        
+        [Test]
+        [NonParallelizable]
+        public async Task ApplyUpdate_ReleaseEntryFull()
+        {
+            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\32gxkyyo.dsi-bs.tuup"));
+        }
+
+        private async Task<bool> ApplyUpdate(string fileLocation)
         {
             Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
             Global.ApplicationVersion = Version.Parse("2021.129.0");
+
+            var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
+            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
+
+            var res = CreateUpdate(fileLocation);
+            var successfulUpdate =
+                await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
             
+            deltaFileProgressStreamText.Dispose();
+            deltaFileProgressStream.Dispose();
+
+            return successfulUpdate;
+        }
+
+        private static ReleaseEntry CreateUpdate(string fileLocation, Version? version = null, Version? oldVersion = null)
+        {
             //Get details about update file
-            var releaseFileLocation = @"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\r0upvlv4.pb3.tuup";
+            var releaseFileLocation = fileLocation;
             var fileStream = File.OpenRead(releaseFileLocation);
             var fileHash = SHA1Util.CreateSHA1Hash(fileStream);
             var fileLength = fileStream.Length;
             fileStream.Dispose();
 
-            var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
-            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
-
-            var res = new ReleaseEntry(
+            return new ReleaseEntry(
                 fileHash, 
                 Path.GetFileName(releaseFileLocation),
                 fileLength,
                 true, 
-                Version.Parse("2021.129.1"),
-                @"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner");
-            await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
+                version ?? Version.Parse("2021.129.1"),
+                Path.GetDirectoryName(fileLocation),
+                oldVersion ?? Version.Parse("2021.129.0"));
+        }
+        
+        [Test]
+        [NonParallelizable]
+        public async Task ApplyUpdate_UpdateInfo()
+        {
+            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            Global.ApplicationVersion = Version.Parse("2021.129.0");
+            
+            var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
+            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
+
+            var res = new UpdateInfo(new []
+            {
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\ao3bgb4d.qoc.tuup", oldVersion: Version.Parse("2021.129.0")),
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\uanyv4z0.lrv.tuup", Version.Parse("2021.129.2"), Version.Parse("2021.129.1")),
+            });
+            var successfulUpdate =
+                await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
+            
             deltaFileProgressStreamText.Dispose();
             deltaFileProgressStream.Dispose();
-        }
 
-        [Test]
-        public Task ApplyUpdate_UpdateInfo()
-        {
-            //UpdateInfo updateInfo, Action<decimal>? progress
-            throw new NotImplementedException();
+            Assert.IsTrue(successfulUpdate);
         }
     }
 }

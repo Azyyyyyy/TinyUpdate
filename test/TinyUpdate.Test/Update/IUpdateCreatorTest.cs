@@ -31,7 +31,7 @@ namespace TinyUpdate.Test.Update
             Global.ApplicationVersion = Version.Parse("2021.129.0");
             await _updateCreator.CreateDeltaPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
-                @"C:\Users\aaron\AppData\Local\osulazer\app-2021.129.0", 
+                @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0", 
                 obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
             deltaFileProgressStreamText.Dispose();
             deltaFileProgressStream.Dispose();
@@ -40,9 +40,18 @@ namespace TinyUpdate.Test.Update
         //TODO: Make test for file created (Checking hash and filesize)
         
         [Test]
-        [Ignore("Not created yet")]
-        public void CreateFullPackage()
+        public async Task CreateFullPackage()
         {
+            var deltaFileProgressStream = File.OpenWrite("create_full.txt");
+            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
+            
+            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            Global.ApplicationVersion = Version.Parse("2021.129.0");
+            await _updateCreator.CreateFullPackage(
+                @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
+                obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
+            deltaFileProgressStreamText.Dispose();
+            deltaFileProgressStream.Dispose();
         }
     }
 }

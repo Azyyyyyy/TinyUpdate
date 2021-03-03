@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -12,9 +12,7 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Make it process files that are the same and then process delta files
     //TODO: Add a DeltaCreation class for allowing multiple deltas to be made at the same time (Warn about CPU + Mem with this)
-    //TODO: Create CreateFullPackage
     /// <summary>
     /// Creates update files in a binary format 
     /// </summary>
@@ -49,19 +47,11 @@ namespace TinyUpdate.Binary
                 return false;
             }
             
-            //Create the Temp folder in case it doesn't exist
-            Directory.CreateDirectory(Global.TempFolder);
-
-            //Create the delta file that will contain all our data
-            Logger.Debug("Creating delta file");
-            var deltaFileLocation = Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Global.TinyUpdateExtension);
-            var deltaFileStream = File.OpenWrite(deltaFileLocation);
-            var zipArchive = new ZipArchive(deltaFileStream, ZipArchiveMode.Create);
+            var zipArchive = CreateZipArchive();
 
             void Cleanup()
             {
                 zipArchive.Dispose();
-                deltaFileStream.Dispose();
                 progress?.Invoke(1);
             }
             
@@ -143,9 +133,60 @@ namespace TinyUpdate.Binary
         }
 
         /// <inheritdoc cref="IUpdateCreator.CreateFullPackage"/>
-        public Task<bool> CreateFullPackage(string applicationLocation, Action<decimal>? progress = null)
+        public async Task<bool> CreateFullPackage(string applicationLocation, Action<decimal>? progress = null)
         {
-            throw new NotImplementedException();
+            if (!Directory.Exists(applicationLocation))
+            {
+                Logger.Error("{0} doesn't exist, can't create update", applicationLocation);
+                return false;
+            }
+
+            var fileCount = 0m;
+            var zipArchive = CreateZipArchive();
+            
+            var files = RemovePath(
+                Directory.EnumerateFiles(applicationLocation, "*", SearchOption.AllDirectories), 
+                applicationLocation).ToArray();
+
+            foreach (var file in files)
+            {
+                var fileLocation = Path.Combine(applicationLocation, file);
+                
+                //We will process the file as a "new" file as we always want to copy it over
+                var fileStream = File.OpenRead(fileLocation);
+                if (await AddNewFile(zipArchive, fileStream, file))
+                {
+                    fileCount++;
+                    progress?.Invoke(fileCount / (files.LongLength + 1));
+                    continue;
+                }
+                
+                //if we can't add it then hard fail, can't do anything to save this
+                Logger.Error("Wasn't able to process new file, bailing");
+                zipArchive.Dispose();
+                progress?.Invoke(100);
+                return false;
+            }
+
+            zipArchive.Dispose();
+            progress?.Invoke(100);
+            return true;
+        }
+
+        /// <summary>
+        /// Creates a <see cref="ZipArchive"/> to store the update
+        /// </summary>
+        /// <returns></returns>
+        private static ZipArchive CreateZipArchive()
+        {
+            //Create the Temp folder in case it doesn't exist
+            Directory.CreateDirectory(Global.TempFolder);
+            
+            //Create the delta file that will contain all our data
+            Logger.Debug("Creating delta file");
+            var deltaFileLocation = Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Global.TinyUpdateExtension);
+            var deltaFileStream = File.OpenWrite(deltaFileLocation);
+            return new ZipArchive(deltaFileStream, ZipArchiveMode.Create);
         }
 
         /// <summary>
@@ -235,7 +276,13 @@ namespace TinyUpdate.Binary
         /// <param name="deltaFileStream">Stream with the </param>
         /// <param name="progress">Reports back progress</param>
         /// <returns>If we was able to create the delta file</returns>
-        private static bool CreateBSDiffFile(string baseFileLocation, string newFileLocation, string deltaFileLocation, out string extension, out Stream? deltaFileStream, Action<decimal>? progress = null)
+        private static bool CreateBSDiffFile(
+            string baseFileLocation, 
+            string newFileLocation, 
+            string deltaFileLocation, 
+            out string extension, 
+            out Stream? deltaFileStream, 
+            Action<decimal>? progress = null)
         {
             extension = ".bsdiff";
             deltaFileStream = new MemoryStream();
@@ -253,25 +300,6 @@ namespace TinyUpdate.Binary
             return success;
         }
 
-        /// <summary>
-        /// Gets the contents of a file in a <see cref="byte"/>[]
-        /// </summary>
-        /// <param name="fileLocation">Where the file is located</param>
-        /// <returns>The files contents</returns>
-        private static byte[] GetBytesFromFile(string fileLocation)
-        {
-            //Get stream and then make byte[] to fill
-            var stream = File.OpenRead(fileLocation);
-
-            //Fill byte[] and dispose stream
-            var data = new byte[stream.Length];
-            stream.Read(data, 0, (int)stream.Length);
-            stream.Dispose();
-
-            //Return contents
-            return data;
-        }
-        
         /// <summary>
         /// Creates a delta file using <see cref="BinaryPatchUtility.Create"/>
         /// </summary>
@@ -295,6 +323,25 @@ namespace TinyUpdate.Binary
             }
 
             return true;
+        }
+        
+        /// <summary>
+        /// Gets the contents of a file in a <see cref="byte"/>[]
+        /// </summary>
+        /// <param name="fileLocation">Where the file is located</param>
+        /// <returns>The files contents</returns>
+        private static byte[] GetBytesFromFile(string fileLocation)
+        {
+            //Get stream and then make byte[] to fill
+            var stream = File.OpenRead(fileLocation);
+
+            //Fill byte[] and dispose stream
+            var data = new byte[stream.Length];
+            stream.Read(data, 0, (int)stream.Length);
+            stream.Dispose();
+
+            //Return contents
+            return data;
         }
         
         /// <summary>
@@ -325,7 +372,13 @@ namespace TinyUpdate.Binary
         /// <param name="keepFileStreamOpen">If we should keep <see cref="fileStream"/> open once done with it</param>
         /// <param name="filesize">The size that the final file should be</param>
         /// <param name="sha1Hash">The hash that the final file should be</param>
-        private static async Task<bool> AddFile(ZipArchive zipArchive, Stream fileStream, string filepath, bool keepFileStreamOpen = true, long? filesize = null, string? sha1Hash = null)
+        private static async Task<bool> AddFile(
+            ZipArchive zipArchive, 
+            Stream fileStream, 
+            string filepath, 
+            bool keepFileStreamOpen = true, 
+            long? filesize = null, 
+            string? sha1Hash = null)
         {
             filesize ??= fileStream.Length;
             //Create and add the file contents to the zip

@@ -33,7 +33,7 @@ namespace TinyUpdate.Binary
             //Check that we was the one who made the update (as shown with the file extension)
             if (Path.GetExtension(entry.Filename) != Global.TinyUpdateExtension)
             {
-                Logger.Error("{0} is not a update made by BinaryCreator, bail...", entry.FileLocation);
+                Logger.Error("{0} is not a update made by {1}, bail...", entry.FileLocation, GetType().Name);
                 return false;
             }
             
@@ -50,13 +50,20 @@ namespace TinyUpdate.Binary
             }
             
             //Do the update!
-            return await ApplyDeltaUpdate(basePath, newPath, entry, progress);
+            return await ApplyUpdate(basePath, newPath, entry, progress);
         }
 
         /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(UpdateInfo, Action{decimal})"/>
-        public Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress = null)
+        public async Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress = null)
         {
-            throw new NotImplementedException();
+            var updateCounter = 0;
+            var updateCount = updateInfo.Updates.Count();
+            foreach (var updateEntry in updateInfo.Updates)
+            {
+                //TODO: Work on "Multi Update"
+            }
+            
+            return true;
         }
 
         /// <inheritdoc cref="ApplyUpdate(ReleaseEntry, Action{decimal})"/>
@@ -64,7 +71,7 @@ namespace TinyUpdate.Binary
         /// <param name="newPath">Where to put the new version of the application into</param>
         /// <param name="entry"></param>
         /// <param name="progress"></param>
-        private static async Task<bool> ApplyDeltaUpdate(string basePath, string newPath, ReleaseEntry entry, Action<decimal>? progress = null)
+        private static async Task<bool> ApplyUpdate(string basePath, string newPath, ReleaseEntry entry, Action<decimal>? progress = null)
         {
             if (!File.Exists(entry.FileLocation))
             {
@@ -103,11 +110,11 @@ namespace TinyUpdate.Binary
             var fileCounter = 0L;
             var filesCount = files.LongCount();
 
+            //We want to do new and delta files last
+            var deltaFiles = new List<FileEntry>();
+            var newFiles = new List<FileEntry>();
             foreach (var file in files)
             {
-                fileCounter++;
-                Logger.Debug("Processing {0}", file.FileLocation);
-                
                 //If we have a folder path then create it
                 if (!string.IsNullOrWhiteSpace(file.FolderPath))
                 {
@@ -115,16 +122,30 @@ namespace TinyUpdate.Binary
                     Logger.Debug("Creating folder {0}", folder);
                     Directory.CreateDirectory(folder);
                 }
+                
+                //See if this file is a delta/new file. If so then do it after
+                if (IsDeltaFile(file))
+                {
+                    deltaFiles.Add(file);
+                    continue;
+                }
+                if (IsNewFile(file))
+                {
+                    newFiles.Add(file);
+                    continue;
+                }
+                
+                //If we get here then it's the same file
+                fileCounter++;
+                Logger.Debug("Processing {0}", file.FileLocation);
 
-                //Get where the old and new file should be
+                //Get where the old and "new" file should be
                 var originalFile = Path.Combine(basePath, file.FileLocation);
                 var newFile = Path.Combine(newPath, file.FileLocation);
 
                 /*Check that the files exists and that we was 
                   able to process file, if not then hard bail!*/
-                var applySuccessful = await ProcessFile(originalFile, newFile, file);
-
-                if (!applySuccessful || !CheckUpdatedFile(newFile, file))
+                if (!ProcessSameFile(originalFile, newFile))
                 {
                     zip.Dispose();
                     file.Stream?.Dispose();
@@ -137,9 +158,72 @@ namespace TinyUpdate.Binary
                 file.Stream?.Dispose();
             }
 
+            //Note that this should be the only loop that is used when doing a full update
+            foreach (var newFile in newFiles)
+            {
+                fileCounter++;
+                Logger.Debug("Processing {0}", newFile.FileLocation);
+
+                var newFileLocation = Path.Combine(newPath, newFile.FileLocation);
+                var applySuccessful = await ProcessNewFile(newFile, newFileLocation);
+                
+                if (!applySuccessful || !CheckUpdatedFile(newFileLocation, newFile))
+                {
+                    zip.Dispose();
+                    newFile.Stream?.Dispose();
+                    progress?.Invoke(1);
+                    return false;
+                }
+
+                //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
+                progress?.Invoke((decimal)fileCounter / (filesCount + 1));
+                newFile.Stream?.Dispose();
+            }
+            
+            foreach (var deltaFile in deltaFiles)
+            {
+                fileCounter++;
+                Logger.Debug("Processing {0}", deltaFile.FileLocation);
+
+                var originalFile = Path.Combine(basePath, deltaFile.FileLocation);
+                var newFileLocation = Path.Combine(newPath, deltaFile.FileLocation);
+                var applySuccessful = await ProcessDeltaFile(originalFile, newFileLocation, deltaFile, 
+                    obj => progress?.Invoke((fileCounter + obj) / (filesCount + 1)));
+                
+                if (!applySuccessful || !CheckUpdatedFile(newFileLocation, deltaFile))
+                {
+                    zip.Dispose();
+                    deltaFile.Stream?.Dispose();
+                    progress?.Invoke(1);
+                    return false;
+                }
+
+                //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
+                progress?.Invoke((decimal)fileCounter / (filesCount + 1));
+                deltaFile.Stream?.Dispose();
+            }
+
             zip.Dispose();
             progress?.Invoke(1);
             return true;
+        }
+
+        /// <summary>
+        /// Checks that this file is a delta file 
+        /// </summary>
+        /// <param name="fileEntry">Details about the file</param>
+        private static bool IsDeltaFile(FileEntry fileEntry)
+        {
+            return fileEntry.Filesize != 0 && fileEntry.PatchType != PatchType.New;
+        }
+
+        /// <summary>
+        /// Checks that this file is a new file 
+        /// </summary>
+        /// <param name="fileEntry">Details about the file</param>
+        private static bool IsNewFile(FileEntry fileEntry)
+        {
+            return fileEntry.Filesize != 0 && fileEntry.PatchType == PatchType.New;
         }
 
         /// <summary>
@@ -175,27 +259,32 @@ namespace TinyUpdate.Binary
         }
 
         /// <summary>
-        /// Processes a file that needs to be in the new version
+        /// Processes a file that has a delta update
         /// </summary>
         /// <param name="originalFile">Where the original file is</param>
         /// <param name="newFile">Where the file file needs to be</param>
         /// <param name="file">Details about how we the update was made</param>
         /// <returns>If we was able to process the file</returns>
-        private static async Task<bool> ProcessFile(string originalFile, string newFile, FileEntry file)
+        private static async Task<bool> ProcessDeltaFile(string originalFile, string newFile, FileEntry file, Action<decimal>? progress = null)
         {
             //If the filesize isn't 0 then it means that the file was updated
-            if (file.Filesize != 0)
+            Logger.Debug("File was updated, apply delta update");
+            return await (file.PatchType switch
             {
-                Logger.Debug("File was updated, apply delta update");
-                return await (file.PatchType switch
-                {
-                    PatchType.MSDiff => ApplyMSDiffUpdate(file, newFile, originalFile),
-                    PatchType.BSDiff => ApplyBSDiffUpdate(file, newFile, originalFile),
-                    PatchType.New => CopyFile(file, newFile),
-                    _ => Task.FromResult(false)
-                });
-            }
+                PatchType.MSDiff => ApplyMSDiffUpdate(file, newFile, originalFile),
+                PatchType.BSDiff => ApplyBSDiffUpdate(file, newFile, originalFile),
+                _ => Task.FromResult(false)
+            });
+        }
 
+        /// <summary>
+        /// Processes a file that is the same in both versions
+        /// </summary>
+        /// <param name="originalFile">Where the original file is located</param>
+        /// <param name="newFile">Where the "new" file will be</param>
+        /// <returns>If we was able to process the file</returns>
+        private static bool ProcessSameFile(string originalFile, string newFile)
+        {
             /*If we got here then it means that we are working on a file that
              we *should* have, check that is the case*/
             Logger.Debug("File wasn't updated, making sure file exists and then making hard link");
@@ -216,6 +305,7 @@ namespace TinyUpdate.Binary
             try
             {
                 File.Copy(originalFile, newFile);
+                return true;
             }
             catch (Exception e)
             {
@@ -223,17 +313,15 @@ namespace TinyUpdate.Binary
                 Logger.Error(e);
                 return false;
             }
-
-            return true;
         }
-
+        
         /// <summary>
         /// Copies the file that was in the update file
         /// </summary>
         /// <param name="fileEntry">Entry with the file that needs to be copied</param>
         /// <param name="fileLocation">Where the file should go</param>
         /// <returns>If we was able to process the file</returns>
-        private static async Task<bool> CopyFile(FileEntry fileEntry, string fileLocation)
+        private static async Task<bool> ProcessNewFile(FileEntry fileEntry, string fileLocation)
         {
             if (fileEntry.Stream == null)
             {

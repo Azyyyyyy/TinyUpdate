@@ -16,7 +16,7 @@ namespace TinyUpdate.Core.Update
             //Get the new version if it exists
             if (HasUpdate = updates.Any())
             {
-                NewVersion = updates.OrderBy(x => x.Version).FirstOrDefault().Version;
+                NewVersion = updates.OrderByDescending(x => x.Version).FirstOrDefault().Version;
             }
         }
 

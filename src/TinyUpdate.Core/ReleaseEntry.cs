@@ -13,8 +13,17 @@ namespace TinyUpdate.Core
     {
         private readonly ILogging _logger;
 
-        public ReleaseEntry(string sha1, string filename, long filesize, bool isDelta, Version version, string? filePath = null)
+        public ReleaseEntry(string sha1, string filename, long filesize, bool isDelta, Version version, string? filePath = null, Version? oldVersion = null)
         {
+            if (isDelta)
+            {
+                if (oldVersion == null)
+                {
+                    throw new Exception("We need the old version in a delta update");
+                }
+                OldVersion = oldVersion;
+            }
+            
             if (!SHA1Util.IsValidSHA1(sha1))
             {
                 throw new Exception("SHA1 hash given is not a valid SHA1 hash");
@@ -58,6 +67,11 @@ namespace TinyUpdate.Core
         /// What <see cref="Version"/> this release will bump the application too
         /// </summary>
         public Version Version { get; }
+
+        /// <summary>
+        /// The version used to create this <see cref="ReleaseEntry"/> (If this is a delta update)
+        /// </summary>
+        public Version? OldVersion { get; }
 
         /// <summary>
         /// The location of the update file
