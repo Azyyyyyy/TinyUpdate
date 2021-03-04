@@ -12,6 +12,7 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
+    //TODO: Check OS being ran in MSDiff
     //TODO: Add a DeltaCreation class for allowing multiple deltas to be made at the same time (Warn about CPU + Mem with this)
     /// <summary>
     /// Creates update files in a binary format 

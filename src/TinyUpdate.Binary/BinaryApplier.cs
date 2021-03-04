@@ -13,7 +13,7 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Create ApplyUpdate(UpdateInfo, Action<decimal>?)
+    //TODO: Check OS being ran in MSDiff
     /// <summary>
     /// Applies updates that the <see cref="BinaryCreator"/> has created
     /// </summary>
@@ -48,6 +48,10 @@ namespace TinyUpdate.Binary
                 Logger.Error("{0} doesn't exist, can't update", basePath);
                 return false;
             }
+
+            /*Make sure that the folder doesn't exist, likely that application closed
+             down while updating last time*/
+            DeleteFolder(newPath);
             
             //Do the update!
             return await ApplyUpdate(basePath, newPath, entry, progress);
@@ -56,14 +60,52 @@ namespace TinyUpdate.Binary
         /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(UpdateInfo, Action{decimal})"/>
         public async Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress = null)
         {
-            var updateCounter = 0;
+            if (!updateInfo.HasUpdate)
+            {
+                Logger.Error("We don't have a update to apply!!");
+                return false;
+            }
+            
+            var newVersionFolder = updateInfo.NewVersion?.GetApplicationPath();
+            if (string.IsNullOrWhiteSpace(newVersionFolder))
+            {
+                Logger.Error("Can't get folder for the new version");
+                return false;
+            }
+            DeleteFolder(newVersionFolder);
+
+            //TODO: Make it so we don't process any files that aren't in the newest version of the application
+            var updateCounter = 0m;
             var updateCount = updateInfo.Updates.Count();
+            var doneFirstUpdate = false;
             foreach (var updateEntry in updateInfo.Updates)
             {
-                //TODO: Work on "Multi Update"
+                if (!await ApplyUpdate(
+                    doneFirstUpdate ? newVersionFolder : Global.ApplicationVersion.GetApplicationPath(),
+                    newVersionFolder,
+                    updateEntry,
+                    updateProgress => progress?.Invoke((updateProgress + updateCounter) / updateCount)))
+                {
+                    Logger.Error("Applying version {0} failed", updateEntry.Version);
+                    return false;
+                }
+                updateCounter++;
+
+                doneFirstUpdate = true;
             }
             
             return true;
+        }
+
+        private static void DeleteFolder(string folder)
+        {
+            /*Create the folder that's going to contain this update
+             deleting the folder if it already exists*/
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+            Directory.CreateDirectory(folder);
         }
 
         /// <inheritdoc cref="ApplyUpdate(ReleaseEntry, Action{decimal})"/>
@@ -78,15 +120,7 @@ namespace TinyUpdate.Binary
                 Logger.Error("Update file doesn't exist...");
                 return false;
             }
-
-            /*Create the folder that's going to contain this update
-             deleting the folder if it already exists*/
-            if (Directory.Exists(newPath))
-            {
-                Directory.Delete(newPath, true);
-            }
-            Directory.CreateDirectory(newPath);
-
+            
             if (!entry.IsValidReleaseEntry(true))
             {
                 Logger.Error("Update file doesn't match what we expect... deleting update file and bailing");
@@ -264,6 +298,7 @@ namespace TinyUpdate.Binary
         /// <param name="originalFile">Where the original file is</param>
         /// <param name="newFile">Where the file file needs to be</param>
         /// <param name="file">Details about how we the update was made</param>
+        /// <param name="progress">Progress of applying update</param>
         /// <returns>If we was able to process the file</returns>
         private static async Task<bool> ProcessDeltaFile(string originalFile, string newFile, FileEntry file, Action<decimal>? progress = null)
         {
@@ -272,7 +307,7 @@ namespace TinyUpdate.Binary
             return await (file.PatchType switch
             {
                 PatchType.MSDiff => ApplyMSDiffUpdate(file, newFile, originalFile),
-                PatchType.BSDiff => ApplyBSDiffUpdate(file, newFile, originalFile),
+                PatchType.BSDiff => ApplyBSDiffUpdate(file, newFile, originalFile, progress),
                 _ => Task.FromResult(false)
             });
         }
@@ -292,6 +327,17 @@ namespace TinyUpdate.Binary
             {
                 Logger.Error("File that we need to copy doesn't exist!");
                 return false;
+            }
+
+            //We already put the file in place from another update
+            if (newFile == originalFile)
+            {
+                return true;
+            }
+
+            if (File.Exists(newFile))
+            {
+                File.Delete(newFile);                
             }
             
             //Try to create the hard link
@@ -366,6 +412,15 @@ namespace TinyUpdate.Binary
             await fileEntry.Stream.CopyToAsync(tmpFileStream);
             tmpFileStream.Dispose();
             
+            //If baseFile + outputLocation are the same, copy it to a tmp file
+            //and then give it that (deleting it after)
+            if (baseFile == outputLocation)
+            {
+                var tmpBaseFile = Path.Combine(Global.TempFolder, Path.GetRandomFileName());
+                File.Copy(baseFile, tmpBaseFile);
+                baseFile = tmpBaseFile;
+            }
+            
             //Make the updated file!
             var msDelta = new MsDeltaCompression();
             try
@@ -387,12 +442,35 @@ namespace TinyUpdate.Binary
         /// Applies a patch that was created using <see cref="BinaryPatchUtility"/>
         /// </summary>
         /// <inheritdoc cref="ApplyMSDiffUpdate(FileEntry, string, string)"/>
-        private static async Task<bool> ApplyBSDiffUpdate(FileEntry fileEntry, string outputLocation, string baseFile)
+        /// <param name="progress">Progress of applying update</param>
+        /// <param name="fileEntry"></param>
+        /// <param name="outputLocation"></param>
+        /// <param name="baseFile"></param>
+        private static async Task<bool> ApplyBSDiffUpdate(FileEntry fileEntry, string outputLocation, string baseFile, Action<decimal> progress)
         {
+            Stream? inputStream = null;
+            /*If this is the same file then we want to copy it to mem and not
+             read from disk*/
+            if (outputLocation == baseFile)
+            {
+                inputStream = new MemoryStream();
+                var fileStream = StreamUtil.GetFileStreamRead(baseFile);
+                if (fileStream == null)
+                {
+                    Logger.Error("Wasn't able to grab {0} for applying a BSDiff update", baseFile);
+                    return false;
+                }
+                await fileStream.CopyToAsync(inputStream);
+                fileStream.Dispose();
+                inputStream.Seek(0, SeekOrigin.Begin);
+            }
+            
+            //and put it into a memorystream so when we override, we still have data
+            inputStream ??= StreamUtil.GetFileStreamRead(baseFile);
+
             //Create streams for old file and where the new file will be
             var outputStream = File.OpenWrite(outputLocation);
-            var inputStream = StreamUtil.GetFileStreamRead(baseFile);
-
+            
             //Check streams that can be null
             if (inputStream == null)
             {
