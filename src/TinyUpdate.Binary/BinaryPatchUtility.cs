@@ -265,7 +265,8 @@ namespace TinyUpdate.Binary
         /// This stream must support reading and seeking, and <paramref name="openPatchStream"/> must allow multiple streams on
         /// the patch to be opened concurrently.</param>
         /// <param name="output">A <see cref="Stream"/> to which the patched data is written.</param>
-        public static async Task<bool> Apply(Stream input, Func<Stream> openPatchStream, Stream output)
+        /// <param name="progress">Reports back progress</param>
+        public static async Task<bool> Apply(Stream input, Func<Stream> openPatchStream, Stream output, Action<decimal>? progress)
         {
             /*
             File format:
@@ -341,9 +342,10 @@ namespace TinyUpdate.Binary
                 var buffer = new byte[8];
 
                 int oldPosition = 0;
-                int newPosition = 0;
+                var newPosition = 0m;
                 while (newPosition < newSize)
                 {
+                    progress?.Invoke(newSize / newPosition);
                     // read control data
                     for (int i = 0; i < 3; i++)
                     {

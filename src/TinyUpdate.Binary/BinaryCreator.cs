@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using DeltaCompressionDotNet.MsDelta;
 using TinyUpdate.Core;
@@ -12,7 +13,7 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary
 {
-    //TODO: Check OS being ran in MSDiff
+    //TODO: Add a intended OS opt to allow us to not do stuff like MSDiff if making patch for another OS
     //TODO: Add a DeltaCreation class for allowing multiple deltas to be made at the same time (Warn about CPU + Mem with this)
     /// <summary>
     /// Creates update files in a binary format 
@@ -242,6 +243,10 @@ namespace TinyUpdate.Binary
             {
                 //Wasn't able to, report back as fail
                 Logger.Error("Wasn't able to create delta file");
+                if (File.Exists(tmpDeltaFile))
+                {
+                    File.Delete(tmpDeltaFile);
+                }
                 return false;
             }
 
@@ -264,6 +269,7 @@ namespace TinyUpdate.Binary
                 
             //Dispose stream and report back if we was able to add file
             deltaFileStream.Dispose();
+            File.Delete(tmpDeltaFile);
             return addSuccessful;
         }
 
@@ -312,6 +318,12 @@ namespace TinyUpdate.Binary
         private static bool CreateMSDiffFile(string baseFileLocation, string newFileLocation, string deltaFileLocation, out string extension)
         {
             extension = ".diff";
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Logger.Error("We aren't on Windows so can't apply MSDiff update");
+                return false;
+            }
+
             var msDelta = new MsDeltaCompression();
             try
             {
