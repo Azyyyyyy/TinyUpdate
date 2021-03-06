@@ -18,7 +18,7 @@ namespace TinyUpdate.Core.Helper
             //Invokes the correct logic based on OS
             return TaskHelper.RunTaskBasedOnOS(
                 () => Native.Windows.Invoke.CreateHardLink(originalFile, linkLocation),
-                () => throw new NotImplementedException(),
+                () => Native.Linux.Invokes.CreateHardLink(originalFile, linkLocation),
                 () => throw new NotImplementedException());
         }
     }

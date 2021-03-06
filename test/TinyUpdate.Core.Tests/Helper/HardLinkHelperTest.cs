@@ -16,7 +16,7 @@ namespace TinyUpdate.Core.Tests.Helper
         [Test]
         public async Task HardLink()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 Assert.Inconclusive("Not running on Windows, can't yet run test on this device");
             }
