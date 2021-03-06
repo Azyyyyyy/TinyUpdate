@@ -16,7 +16,7 @@ namespace TinyUpdate.Test
             //Create everything that is needed for having a ReleaseEntry
             filename ??= $"dummy{Global.TinyUpdateExtension}";
             long filesize;
-            string sha1;
+            string sha256;
             var isDelta = false;
             var version = new Version(
                 Global.ApplicationVersion.Major + 1,
@@ -24,10 +24,10 @@ namespace TinyUpdate.Test
                 Global.ApplicationVersion.Build >= 0 ? Global.ApplicationVersion.Build : 0,
                 Global.ApplicationVersion.Revision >= 0 ? Global.ApplicationVersion.Revision : 0);
 
-            //Create some dummy content so we can make a sha1 hash to work with
+            //Create some dummy content so we can make a SHA256 hash to work with
             var dummyContent = new byte[10000];
             _rnd.NextBytes(dummyContent);
-            sha1 = SHA1Util.CreateSHA1Hash(dummyContent);
+            sha256 = SHA256Util.CreateSHA256Hash(dummyContent);
             filesize = dummyContent.Length;
 
             var dummyReleaseFileLocation = Path.Combine(Global.TempFolder, filename);
@@ -50,7 +50,7 @@ namespace TinyUpdate.Test
             {
                 switch (invalidReleaseOption)
                 {
-                    case InvalidReleaseEntry.SHA1:
+                    case InvalidReleaseEntry.SHA256:
                         break;
                     case InvalidReleaseEntry.Filename:
                         break;
@@ -65,7 +65,7 @@ namespace TinyUpdate.Test
                 }
             }
 
-            return new ReleaseEntry(sha1, filename, filesize, isDelta, version);
+            return new ReleaseEntry(sha256, filename, filesize, isDelta, version);
         }
     }
 }

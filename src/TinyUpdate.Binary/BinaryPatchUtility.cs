@@ -345,7 +345,10 @@ namespace TinyUpdate.Binary
                 var newPosition = 0m;
                 while (newPosition < newSize)
                 {
-                    progress?.Invoke(newSize / newPosition);
+                    if (newPosition != 0)
+                    {
+                        progress?.Invoke(newSize / newPosition);
+                    }
                     // read control data
                     for (int i = 0; i < 3; i++)
                     {

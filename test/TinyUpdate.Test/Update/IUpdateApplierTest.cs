@@ -20,7 +20,7 @@ namespace TinyUpdate.Test.Update
         [NonParallelizable]
         public async Task ApplyUpdate_ReleaseEntryDelta()
         {
-            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\cny2x4pl.3eg-bs.tuup"));
+            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup"));
         }
         
         [Test]
@@ -53,7 +53,7 @@ namespace TinyUpdate.Test.Update
             //Get details about update file
             var releaseFileLocation = fileLocation;
             var fileStream = File.OpenRead(releaseFileLocation);
-            var fileHash = SHA1Util.CreateSHA1Hash(fileStream);
+            var fileHash = SHA256Util.CreateSHA256Hash(fileStream);
             var fileLength = fileStream.Length;
             fileStream.Dispose();
 
@@ -79,8 +79,8 @@ namespace TinyUpdate.Test.Update
 
             var res = new UpdateInfo(new []
             {
-                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\ao3bgb4d.qoc.tuup", oldVersion: Version.Parse("2021.129.0")),
-                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\uanyv4z0.lrv.tuup", Version.Parse("2021.129.2"), Version.Parse("2021.129.1")),
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup", oldVersion: Version.Parse("2021.129.0")),
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\hwrduj5g.dwf.tuup", Version.Parse("2021.129.2"), Version.Parse("2021.129.1")),
             });
             var successfulUpdate =
                 await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));

@@ -40,7 +40,7 @@ namespace TinyUpdate.Core.Tests
         
         [Test]
         [Ignore("Not added yet")]
-        public async Task IsValidReleaseEntry_SHA1Check()
+        public async Task IsValidReleaseEntry_SHA256Check()
         {
         }
 

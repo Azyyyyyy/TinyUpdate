@@ -2,7 +2,7 @@
 {
     public enum InvalidReleaseEntry
     {
-        SHA1,
+        SHA256,
         Filename,
         Filesize,
         IsDelta,

@@ -13,7 +13,7 @@ namespace TinyUpdate.Core
     {
         private readonly ILogging _logger;
 
-        public ReleaseEntry(string sha1, string filename, long filesize, bool isDelta, Version version, string? filePath = null, Version? oldVersion = null)
+        public ReleaseEntry(string sha256, string filename, long filesize, bool isDelta, Version version, string? filePath = null, Version? oldVersion = null)
         {
             if (isDelta)
             {
@@ -24,9 +24,9 @@ namespace TinyUpdate.Core
                 OldVersion = oldVersion;
             }
             
-            if (!SHA1Util.IsValidSHA1(sha1))
+            if (!SHA256Util.IsValidSHA256(sha256))
             {
-                throw new Exception("SHA1 hash given is not a valid SHA1 hash");
+                throw new Exception("SHA256 hash given is not a valid SHA256 hash");
             }
             if (!filename.IsValidForFileName(out var invalidChar))
             {
@@ -34,7 +34,7 @@ namespace TinyUpdate.Core
             }
             _logger = LoggingCreator.CreateLogger($"ReleaseEntry ({filename})");
 
-            SHA1 = sha1;
+            SHA256 = sha256;
             Filename = filename;
             Filesize = filesize;
             IsDelta = isDelta;
@@ -42,11 +42,10 @@ namespace TinyUpdate.Core
             FileLocation = Path.Combine(filePath ?? Global.TempFolder, Filename);
         }
 
-        //TODO: Replace this with SHA256, just used this so had something workingTM
         /// <summary>
-        /// The SHA1 of the file that contains this release
+        /// The SHA256 of the file that contains this release
         /// </summary>
-        public string SHA1 { get; }
+        public string SHA256 { get; }
 
         /// <summary>
         /// The filename of this release
@@ -91,14 +90,14 @@ namespace TinyUpdate.Core
                 return false;
             }
             
-            //If we want to check the file then we want to check the SHA1 + file size
+            //If we want to check the file then we want to check the SHA256 + file size
             if (checkFile)
             {
                 try
                 {
                     using var file = File.Open(FileLocation, FileMode.Open);
                     if (file.Length != Filesize ||
-                        !SHA1Util.CheckSHA1(file, SHA1))
+                        !SHA256Util.CheckSHA256(file, SHA256))
                     {
                         _logger.Warning("{0} validation failed, this release entry isn't valid", FileLocation);
                         return false;

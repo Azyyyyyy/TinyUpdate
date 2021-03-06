@@ -207,7 +207,7 @@ namespace TinyUpdate.Binary
 
             //See if the filesize or hash is different, if so then the file has changed
             var hasChanged = baseFileStream.Length != newFileStream.Length ||
-                             SHA1Util.CreateSHA1Hash(baseFileStream) != SHA1Util.CreateSHA1Hash(newFileStream);
+                             SHA256Util.CreateSHA256Hash(baseFileStream) != SHA256Util.CreateSHA256Hash(newFileStream);
 
             //Dispose streams and then make delta file if file changed
             baseFileStream.Dispose();
@@ -259,13 +259,17 @@ namespace TinyUpdate.Binary
             //Get hash and filesize to add to file
             var newFileStream = File.OpenRead(newFileLocation);
             var newFilesize = newFileStream.Length;
-            var hash = SHA1Util.CreateSHA1Hash(newFileStream);
+            var hash = SHA256Util.CreateSHA256Hash(newFileStream);
             newFileStream.Dispose();
             
             //Grab file and add it to the set of files
             deltaFileStream ??= File.OpenRead(tmpDeltaFile);
-            var addSuccessful = await AddFile(zipArchive, deltaFileStream,
-                GetRelativePath(baseFileLocation, newFileLocation) + extension, filesize: newFilesize, sha1Hash: hash);
+            var addSuccessful = await AddFile(
+                zipArchive, 
+                deltaFileStream,
+                GetRelativePath(baseFileLocation, newFileLocation) + extension, 
+                filesize: newFilesize, 
+                sha256Hash: hash);
                 
             //Dispose stream and report back if we was able to add file
             deltaFileStream.Dispose();
@@ -384,14 +388,14 @@ namespace TinyUpdate.Binary
         /// <param name="filepath">Path of the file</param>
         /// <param name="keepFileStreamOpen">If we should keep <see cref="fileStream"/> open once done with it</param>
         /// <param name="filesize">The size that the final file should be</param>
-        /// <param name="sha1Hash">The hash that the final file should be</param>
+        /// <param name="sha256Hash">The hash that the final file should be</param>
         private static async Task<bool> AddFile(
             ZipArchive zipArchive, 
             Stream fileStream, 
             string filepath, 
             bool keepFileStreamOpen = true, 
             long? filesize = null, 
-            string? sha1Hash = null)
+            string? sha256Hash = null)
         {
             filesize ??= fileStream.Length;
             //Create and add the file contents to the zip
@@ -410,12 +414,12 @@ namespace TinyUpdate.Binary
                 return true;
             }
 
-            sha1Hash ??= SHA1Util.CreateSHA1Hash(fileStream);
+            sha256Hash ??= SHA256Util.CreateSHA256Hash(fileStream);
             //Create .shasum file if we have some content from the fileStream
             var zipShasumStream = zipArchive.CreateEntry(Path.ChangeExtension(filepath, ".shasum")).Open();
             var textWriter = new StreamWriter(zipShasumStream);
 
-            await textWriter.WriteAsync($"{sha1Hash} {filesize}");
+            await textWriter.WriteAsync($"{sha256Hash} {filesize}");
             textWriter.Dispose();
             zipShasumStream.Dispose();
 

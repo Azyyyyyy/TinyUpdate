@@ -301,7 +301,7 @@ namespace TinyUpdate.Binary
             var fileStream = File.OpenRead(fileLocation);
             var isExpectedFile = 
                 fileStream.Length == fileEntry.Filesize &&
-                SHA1Util.CreateSHA1Hash(fileStream) == fileEntry.SHA1;
+                SHA256Util.CreateSHA256Hash(fileStream) == fileEntry.SHA256;
             fileStream.Dispose();
 
             /*Delete file if it's not expected, it's better for them to 
@@ -595,8 +595,8 @@ namespace TinyUpdate.Binary
                     continue;
                 }
 
-                var (sha1Hash, filesize) = await GetShasumDetails(zipEntry.Open());
-                if (string.IsNullOrWhiteSpace(sha1Hash) || filesize == -1)
+                var (sha256Hash, filesize) = await GetShasumDetails(zipEntry.Open());
+                if (string.IsNullOrWhiteSpace(sha256Hash) || filesize == -1)
                 {
                     /*If this happens then update file is not how it should be, clear all streams and return nothing*/
                     foreach (var fileEntry in fileEntries)
@@ -611,13 +611,13 @@ namespace TinyUpdate.Binary
                 {
                     fileEntries.Add(new FileEntry(filename, filepath)
                     {
-                        SHA1 = sha1Hash,
+                        SHA256 = sha256Hash,
                         Filesize = filesize
                     });
                     continue;
                 }
 
-                fileEntries[entryIndex].SHA1 = sha1Hash;
+                fileEntries[entryIndex].SHA256 = sha256Hash;
                 fileEntries[entryIndex].Filesize = filesize;
             }
 
@@ -634,8 +634,8 @@ namespace TinyUpdate.Binary
         /// Gets the hash and filesize from a file that contains data about a file we need to use for updating
         /// </summary>
         /// <param name="fileStream">Stream of that file</param>
-        /// <returns>SHA1 hash and filesize that is expected</returns>
-        private static async Task<(string? sha1Hash, long filesize)> GetShasumDetails(Stream fileStream)
+        /// <returns>SHA256 hash and filesize that is expected</returns>
+        private static async Task<(string? sha256Hash, long filesize)> GetShasumDetails(Stream fileStream)
         {
             //Grab the text from the file
             var textStream = new StreamReader(fileStream);
@@ -656,7 +656,7 @@ namespace TinyUpdate.Binary
             var hash = textS[0];
             if (textS.Length != 2 ||
                 string.IsNullOrWhiteSpace(hash) ||
-                !SHA1Util.IsValidSHA1(hash) ||
+                !SHA256Util.IsValidSHA256(hash) ||
                 !long.TryParse(textS[1], out var filesize))
             {
                 return (null, -1);
