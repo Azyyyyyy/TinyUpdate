@@ -52,10 +52,14 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <param name="colour">Colour to be used for [TYPE - NAME]</param>
         /// <param name="message">Message to output</param>
         /// <param name="propertyValues">objects that should be formatted into the outputted message</param>
-        private void Write(string type, ConsoleColor colour, string message, params object[] propertyValues)
+        protected virtual void Write(string type, ConsoleColor colour, string message, params object[] propertyValues)
         {
             var oldColour = Console.ForegroundColor;
             Console.ForegroundColor = colour;
+            if (Console.CursorLeft != 0)
+            {
+                Console.Write(Environment.NewLine);
+            }
             Console.Write($"[{type} - {Name}]: ");
 
             Console.ForegroundColor = oldColour;

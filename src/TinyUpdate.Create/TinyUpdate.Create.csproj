@@ -10,6 +10,14 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>tinyupdate</ToolCommandName>
     </PropertyGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="NuGet.Configuration" Version="5.9.0" />
+    </ItemGroup>
     <Import Project="../../Nuget-metadata.csproj" />
 
 </Project>

@@ -27,14 +27,14 @@ namespace TinyUpdate.Binary
         {
             //To keep track of progress
             long fileCount = 0;
-            long sameFilesLength;
+            long deltaFilesLength;
             long newFilesLength;
             decimal lastProgress = 0;
             
             void UpdateProgress(decimal extraProgress = 0)
             {
                 //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
-                var progressValue = (fileCount + extraProgress) / (sameFilesLength + newFilesLength + 1);
+                var progressValue = (fileCount + extraProgress) / (deltaFilesLength + newFilesLength + 1);
                 if (progressValue != lastProgress)
                 {
                     progress?.Invoke(progressValue);
@@ -49,6 +49,7 @@ namespace TinyUpdate.Binary
                 return false;
             }
             
+            Logger.Debug("Creating delta file");
             var zipArchive = CreateZipArchive();
 
             void Cleanup()
@@ -72,48 +73,52 @@ namespace TinyUpdate.Binary
             var sameFiles = newVersionFiles.Where(x => baseVersionFiles.Contains(x)).ToArray();
             var newFiles = newVersionFiles.Where(x => !sameFiles.Contains(x)).ToArray();
 
-            sameFilesLength = sameFiles.LongLength;
             newFilesLength = newFiles.LongLength;
-            
+            var deltaFiles = new List<string>();
+
+            //First process any files that didn't change, don't even count them in the progress as it will be quick af
             foreach (var maybeDeltaFile in sameFiles)
             {
                 Logger.Debug("Processing possible delta file {0}", maybeDeltaFile);
                 var newFileLocation = Path.Combine(newVersionLocation, maybeDeltaFile);
 
-                //Try to create the file as a delta file
-                if (await ProcessMaybeDeltaFile(zipArchive,
+                //See if we got a delta file, if so then we process it after
+                if (IsDeltaFile(
                     Path.Combine(baseVersionLocation, maybeDeltaFile),
-                    newFileLocation, UpdateProgress))
+                    newFileLocation))
                 {
-                    fileCount++;
-                    UpdateProgress();
+                    deltaFiles.Add(maybeDeltaFile);
                     continue;
                 }
 
-                //If we can't make the file as a delta file try to create it as a "new" file
-                Logger.Warning("Wasn't able to make delta file, creating file as \"new\" file");
+                //Add a pointer to the file that hasn't changed
+                if (await AddSameFile(zipArchive, newFileLocation))
+                {
+                    continue;
+                }
+                Logger.Warning("We wasn't able to add {0} that is the same, going to try add it as a \"new\" file", maybeDeltaFile);
+
+                //We wasn't able to add the file as a pointer, try to add it as a new file
                 var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFileLocation));
-                if (await AddNewFile(zipArchive, fileStream, maybeDeltaFile))
+                if (await AddNewFile(zipArchive, fileStream, newFileLocation))
                 {
-                    fileCount++;
-                    UpdateProgress();
-                    continue;
+                    //Hard bail if we can't even do that
+                    Logger.Error("Wasn't able to process file as a new file as well, bailing");
+                    Cleanup();
+                    return false;
                 }
-
-                //Hard bail if we can't even do that
-                Logger.Error("Wasn't able to process file as a new file as well, bailing");
-                Cleanup();
-                return false;
             }
+            
+            deltaFilesLength = sameFiles.LongLength;
 
-            //Process files that was added into the new version
+            //Now process files that was added into the new version
             Logger.Information("Processing files that only exist in the new version");
             foreach (var newFile in newFiles)
             {
                 fileCount++;
                 Logger.Debug("Processing new file {0}", newFile);
 
-                //Process file
+                //Process new file
                 var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFile));
                 if (await AddNewFile(zipArchive, fileStream, newFile))
                 {
@@ -126,6 +131,37 @@ namespace TinyUpdate.Binary
                 Logger.Error("Wasn't able to process new file, bailing");
                 Cleanup();
                 return false;
+            }
+            
+            //Lastly process files that changed
+            foreach (var deltaFile in deltaFiles)
+            {
+                var deltaFileLocation = Path.Combine(newVersionLocation, deltaFile);
+
+                //Try to add the file as a delta file
+                if (await AddDeltaFile(zipArchive,
+                    Path.Combine(baseVersionLocation, deltaFile),
+                    deltaFileLocation, UpdateProgress))
+                {
+                    fileCount++;
+                    UpdateProgress();
+                    continue;
+                }
+                
+                //If we can't make the file as a delta file try to create it as a "new" file
+                Logger.Warning("Wasn't able to make delta file, creating file as \"new\" file");
+                var fileStream = File.OpenRead(Path.Combine(newVersionLocation, deltaFileLocation));
+                if (await AddNewFile(zipArchive, fileStream, deltaFile))
+                {
+                    fileCount++;
+                    UpdateProgress();
+                    continue;
+                }
+
+                //Hard bail if we can't even do that
+                Logger.Error("Wasn't able to process file as a new file as well, bailing");
+                Cleanup();
+                return false;                
             }
 
             //We have created the delta file if we get here, do cleanup and then report as success!
@@ -143,6 +179,7 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
+            Logger.Debug("Creating full update file");
             var fileCount = 0m;
             var zipArchive = CreateZipArchive();
             
@@ -166,12 +203,12 @@ namespace TinyUpdate.Binary
                 //if we can't add it then hard fail, can't do anything to save this
                 Logger.Error("Wasn't able to process new file, bailing");
                 zipArchive.Dispose();
-                progress?.Invoke(100);
+                progress?.Invoke(1);
                 return false;
             }
 
             zipArchive.Dispose();
-            progress?.Invoke(100);
+            progress?.Invoke(1);
             return true;
         }
 
@@ -185,21 +222,12 @@ namespace TinyUpdate.Binary
             Directory.CreateDirectory(Global.TempFolder);
             
             //Create the delta file that will contain all our data
-            Logger.Debug("Creating delta file");
             var deltaFileLocation = Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Global.TinyUpdateExtension);
             var deltaFileStream = File.OpenWrite(deltaFileLocation);
             return new ZipArchive(deltaFileStream, ZipArchiveMode.Create);
         }
-
-        /// <summary>
-        /// Checks a file that might be a delta file and passes it to the correct functions
-        /// </summary>
-        /// <param name="zipArchive">zipArchive to add file to</param>
-        /// <param name="baseFileLocation">File that matches the new file</param>
-        /// <param name="newFileLocation">New file to compare</param>
-        /// <param name="progress">Progress of creating delta file (if file is a delta file)</param>
-        /// <returns>If we was able to create the file needed</returns>
-        private static async Task<bool> ProcessMaybeDeltaFile(ZipArchive zipArchive, string baseFileLocation, string newFileLocation, Action<decimal>? progress = null)
+        
+        private static bool IsDeltaFile(string baseFileLocation, string newFileLocation)
         {
             //Get the two files from disk
             var baseFileStream = File.OpenRead(baseFileLocation);
@@ -212,17 +240,10 @@ namespace TinyUpdate.Binary
             //Dispose streams and then make delta file if file changed
             baseFileStream.Dispose();
             newFileStream.Dispose();
-            if (hasChanged)
-            {
-                Logger.Information("Making Delta file");
-                return await AddDeltaFile(zipArchive, baseFileLocation, newFileLocation, progress);
-            }
 
-            //If both checks return as true then make something that the Applier can point back to
-            Logger.Information("Making same file pointer");
-            return await AddSameFile(zipArchive, GetRelativePath(baseFileLocation, newFileLocation));
+            return hasChanged;
         }
-
+        
         /// <summary>
         /// Creates a delta file and then adds it the <see cref="ZipArchive"/>
         /// </summary>

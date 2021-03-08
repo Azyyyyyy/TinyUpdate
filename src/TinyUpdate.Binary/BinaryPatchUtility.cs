@@ -1,7 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using ICSharpCode.SharpZipLib.BZip2;
+using SharpCompress.Compressors;
+using SharpCompress.Compressors.BZip2;
 using TinyUpdate.Core.Logging;
 
 // Squirrel.Bsdiff: Adapted from https://github.com/LogosBible/bsdiff.net/blob/master/src/bsdiff/BinaryPatchUtility.cs
@@ -109,7 +110,7 @@ namespace TinyUpdate.Binary
             int ebLen = 0;
 
             using (WrappingStream wrappingStream = new(output, Ownership.None))
-            using (BZip2OutputStream bz2Stream = new(wrappingStream))
+            using (BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, true))
             {
                 // compute the differences, writing ctrl as we go
                 int scan = 0;
@@ -231,7 +232,7 @@ namespace TinyUpdate.Binary
             if (dbLen > 0)
             {
                 using WrappingStream wrappingStream = new(output, Ownership.None);
-                using var bz2Stream = new BZip2OutputStream(wrappingStream);
+                using var bz2Stream = new BZip2Stream(wrappingStream, CompressionMode.Compress, true);
                 bz2Stream.Write(db, 0, dbLen);
             }
 
@@ -243,7 +244,7 @@ namespace TinyUpdate.Binary
             if (ebLen > 0)
             {
                 using WrappingStream wrappingStream = new(output, Ownership.None);
-                using BZip2OutputStream bz2Stream = new(wrappingStream);
+                using BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, true);
                 bz2Stream.Write(eb, 0, ebLen);
             }
 
@@ -335,9 +336,9 @@ namespace TinyUpdate.Binary
                 compressedExtraStream.Seek(CHeaderSize + controlLength + diffLength, SeekOrigin.Current);
 
                 // decompress each part (to read it)
-                using var controlStream = new BZip2InputStream(compressedControlStream);
-                using var diffStream = new BZip2InputStream(compressedDiffStream);
-                using var extraStream = new BZip2InputStream(compressedExtraStream);
+                using var controlStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, true);
+                using var diffStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, true);
+                using var extraStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, true);
                 var control = new long[3];
                 var buffer = new byte[8];
 

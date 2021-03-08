@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 
 namespace TinyUpdate.Core.Native.Linux
