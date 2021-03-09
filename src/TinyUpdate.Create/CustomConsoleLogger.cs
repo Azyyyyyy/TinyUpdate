@@ -4,17 +4,22 @@ using TinyUpdate.Core.Logging.Loggers;
 
 namespace TinyUpdate.Create
 {
+    /// <summary>
+    /// Custom console logger that only shows warnings + errors
+    /// </summary>
     public class CustomConsoleLogger : ConsoleLogger
     {
         public CustomConsoleLogger(string name) : base(name)
         {
         }
 
+        /// <inheritdoc cref="Console.WriteLine(string, object[])"/>
         public void WriteLine(string message, params object[] propertyValues)
         {
             Console.WriteLine(message, propertyValues);
         }
 
+        /// <inheritdoc cref="Console.Write(string, object[])"/>
         public void Write(string message, params object[] propertyValues)
         {
             Console.Write(message, propertyValues);
@@ -30,7 +35,7 @@ namespace TinyUpdate.Create
     }
     
     /// <summary>
-    /// Builder to create <see cref="LoggingBuilder"/>
+    /// Builder to create <see cref="CustomLoggerBuilder"/>
     /// </summary>
     public class CustomLoggerBuilder : LoggingBuilder
     {

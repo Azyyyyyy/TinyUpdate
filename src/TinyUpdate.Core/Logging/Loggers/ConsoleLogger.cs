@@ -46,7 +46,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         }
         
         /// <summary>
-        /// Writes data to the <see cref="Console"/>
+        /// Writes data to <see cref="Console"/>
         /// </summary>
         /// <param name="type">What type of log this is (Debug, Info, Error etc...)</param>
         /// <param name="colour">Colour to be used for [TYPE - NAME]</param>

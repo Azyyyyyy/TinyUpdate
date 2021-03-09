@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Text;
 using System.Threading;
 
 //Adapted from https://gist.github.com/DanielSWolf/0ab6a96899cc5377bf54
@@ -11,7 +9,6 @@ namespace TinyUpdate.Create
     /// </summary>
     public class ProgressBar : IDisposable, IProgress<double>
     {
-        private const int BlockCount = 10;
         private readonly TimeSpan _animationInterval = TimeSpan.FromSeconds(1.0 / 8);
         private const string Animation = @"|/-\";
 
@@ -20,6 +17,7 @@ namespace TinyUpdate.Create
         private double _currentProgress;
         private bool _disposed;
         private int _animationIndex;
+        private string _currentText = "";
 
         public ProgressBar()
         {
@@ -50,16 +48,12 @@ namespace TinyUpdate.Create
                     return;
                 }
 
-                int progressBlockCount = (int) (_currentProgress * BlockCount);
+                var blockCount = Console.WindowWidth / 2;
+                int progressBlockCount = (int) (_currentProgress * blockCount);
 
-                if (progressBlockCount < 0)
-                {
-                    Debugger.Break();
-                }
-                
                 int percent = (int) (_currentProgress * 100);
                 string text =
-                    $"[{new string('#', progressBlockCount)}{new string('-', BlockCount - progressBlockCount)}] {percent,3}% {Animation[_animationIndex++ % Animation.Length]}";
+                    $"[{new string('#', progressBlockCount)}{new string('-', blockCount - progressBlockCount)}] {percent,3}% {Animation[_animationIndex++ % Animation.Length]}";
                 UpdateText(text);
 
                 ResetTimer();
@@ -68,19 +62,16 @@ namespace TinyUpdate.Create
 
         private void UpdateText(string text)
         {
-            // Backtrack to the first differing character
-            StringBuilder outputBuilder = new StringBuilder();
-
             // If the new text is shorter than the old one: delete overlapping characters
-            int overlapCount = Console.CursorLeft - text.Length;
-            if (overlapCount > 0)
-            {
-                outputBuilder.Append(' ', overlapCount);
-                outputBuilder.Append('\b', overlapCount);
+            int overlapCount = _currentText.Length - text.Length;
+            if (overlapCount > 0) {
+                Console.Write(new string(' ', overlapCount));
+                Console.Write(new string('\b', overlapCount));
             }
 
             Console.CursorLeft = 0;
             Console.Write(text);
+            _currentText = text;
         }
 
         private void ResetTimer()

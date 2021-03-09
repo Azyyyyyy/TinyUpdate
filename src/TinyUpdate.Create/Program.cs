@@ -10,14 +10,22 @@ using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Create
 {
+    //TODO: See if more checks can be added
+    //TODO: Command line args to skip grabbing information
     internal static class Program
     {
         private static readonly CustomConsoleLogger Logging = new("Tiny Update Creator");
+        private static bool _createDeltaUpdate;
+        private static string _newVersionLocation = "";
         
+        private static bool _createFullUpdate;
+        private static string _oldVersionLocation = "";
+
         private static async Task Main(string[] args)
         {
             LoggingCreator.AddLogBuilder(new CustomLoggerBuilder());
             
+            //Get what kind of update we are doing
             ShowHeader();
             GetUpdateType();
             var creator = GetUpdateCreator();
@@ -26,7 +34,10 @@ namespace TinyUpdate.Create
                 Logging.Error("Unable to create update creator, can't continue....");
                 return;
             }
+            //TODO: Have a output location op?
+            //TODO: Have a verify opt for updates (that they do update and bit-by-bit the same)?
 
+            //Create the updates
             if (_createFullUpdate)
             {
                 await CreateFullUpdate(creator);
@@ -37,24 +48,10 @@ namespace TinyUpdate.Create
             }
         }
 
-        private static async Task CreateDeltaUpdate(IUpdateCreator updateCreator)
-        {
-            Logging.WriteLine("Creating Delta update");
-            using var progressBar = new ProgressBar();
-            var updateCreated = await updateCreator.CreateDeltaPackage(_newVersionLocation, _oldVersionLocation, progress => progressBar.Report((double)progress));
-        }
-
-        private static async Task CreateFullUpdate(IUpdateCreator updateCreator)
-        {
-            Logging.WriteLine("Creating Full update");
-            using var progressBar = new ProgressBar();
-            var updateCreated = await updateCreator.CreateFullPackage(_newVersionLocation, progress => progressBar.Report((double)progress));
-        }
-        
         private static void ShowHeader()
         {
             Logging.WriteLine(
-@"
+                @"
   _____  _                _   _             _         _        
  |_   _|(_) _ __   _   _ | | | | _ __    __| |  __ _ | |_  ___ 
    | |  | || '_ \ | | | || | | || '_ \  / _` | / _` || __|/ _ \
@@ -65,11 +62,53 @@ namespace TinyUpdate.Create
 ");
         }
 
-        private static bool _createDeltaUpdate;
-        private static string _newVersionLocation = "";
-        
-        private static bool _createFullUpdate;
-        private static string _oldVersionLocation = "";
+        private static async Task CreateDeltaUpdate(IUpdateCreator updateCreator)
+        {
+            Logging.WriteLine("Creating Delta update");
+            using var progressBar = new ProgressBar();
+            var updateCreated = 
+                await updateCreator.CreateDeltaPackage(_newVersionLocation, _oldVersionLocation, progress => progressBar.Report((double)progress));
+            Logging.Write(updateCreated ? "Success ✓" : "Failed ✖");
+        }
+
+        private static async Task CreateFullUpdate(IUpdateCreator updateCreator)
+        {
+            Logging.WriteLine("Creating Full update");
+            using var progressBar = new ProgressBar();
+            var updateCreated = 
+                await updateCreator.CreateFullPackage(_newVersionLocation, progress => progressBar.Report((double)progress));
+            Logging.Write(updateCreated ? " Success ✓" : " Failed ✖");
+        }
+
+        private static int RequestNumber(int min, int max)
+        {
+            int number;
+            while (true)
+            {
+                if (!int.TryParse(Console.ReadLine(), out number))
+                {
+                    Logging.Error("You need to give a valid number!!");
+                    continue;
+                }
+                
+                //Check that it's not higher then what we have
+                if (number < min)
+                {
+                    Logging.Error("{0} is too low! We need a number in the range of {1} - {2}", number, min, max);
+                    continue;
+                }
+
+                //Check that it's not higher then what we have
+                if (number > max)
+                {
+                    Logging.Error("{0} is too high! We need a number in the range of {1} - {2}", number, min, max);
+                    continue;
+                }
+                break;
+            }
+
+            return number;
+        }
         
         private static void GetUpdateType()
         {
@@ -77,52 +116,32 @@ namespace TinyUpdate.Create
             _createFullUpdate = true;
             _oldVersionLocation = @"C:\Users\aaron\AppData\Local\osulazer\app-2021.129.0";
             _newVersionLocation = @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0";
-            return;
+            //return;
             
-            Logging.WriteLine("What kind of update do you want create?");
+            Logging.WriteLine("What kind of update do you want to create?");
             Logging.WriteLine("1) Full update");
             Logging.WriteLine("2) Delta update");
             Logging.WriteLine("3) Both");
 
             //Grab the kind of update they want to do
-            int selectedUpdate;
-            while (true)
-            {
-                if (!int.TryParse(Console.ReadLine(), out selectedUpdate))
-                {
-                    Logging.Error("You need to give a valid number!!");
-                    continue;
-                }
-                
-                //Check that it's not higher then what we have
-                if (selectedUpdate > 3)
-                {
-                    Logging.Error("{0} is too high! We need a number in the range of 1 - 3", selectedUpdate);
-                    continue;
-                }
-                break;
-            }
+            var selectedUpdate = RequestNumber(1, 3);
 
             //Get folders if needed
             _createDeltaUpdate = selectedUpdate != 1;
             _createFullUpdate = selectedUpdate != 2;
-            var oldVersion = "";
-            var newVersion = "";
             if (_createFullUpdate)
             {
-                GetFolder($"Type in where the{(_createDeltaUpdate ? " new version of the" : "")} application is: ", ref oldVersion);
+                _newVersionLocation = RequestFolder($"Type in where the{(_createDeltaUpdate ? " new version of the" : "")} application is: ");
             }
             if (_createDeltaUpdate)
             {
-                GetFolder("Type in where the old version of the application is: ", ref newVersion);
+                _oldVersionLocation = RequestFolder("Type in where the old version of the application is: ");
             }
-
-            _oldVersionLocation = oldVersion;
-            _newVersionLocation = newVersion;
         }
 
-        private static void GetFolder(string message, ref string folder)
+        private static string RequestFolder(string message)
         {
+            string folder;
             while (true)
             {
                 Logging.Write(message);
@@ -142,38 +161,41 @@ namespace TinyUpdate.Create
                 folder = line;
                 break;
             }
+            return folder;
         }
         
         //TODO: Make it filter what OS this creator is made for
         private static IUpdateCreator? GetUpdateCreator()
         {
-            //Get any creators that we have in the program
+            //Get any creators that we have in the program we are going to update
+            //TODO: Make this use new application folder, for now this works....
             Logging.WriteLine("Finding update creators...");
-            var creators = GetAssembliesWithCreators(@"C:\Users\aaron\source\repos\TinyUpdate\src\TinyUpdate.Binary\bin\Debug\netstandard2.1");
+            var creators = GetAssembliesWithCreators(@"C:\Users\aaron\source\TinyUpdate\src\TinyUpdate.Binary\bin\Debug\netstandard2.1");
             if (!(creators?.Any() ?? false))
             {
                 return null;
             }
 
-            //Show any updaters that we found
+            //Show any updaters that we have found
             var counter = 0;
             foreach (var (creatorAssembly, creatorTypes) in creators)
             {
                 //Shows the assembly that contains a update creator(s)
-                var creatorMessage = $"Creator{(creatorTypes.Count > 1 ? "s" : "")} found in {creatorAssembly.GetName().Name}";
-                Logging.WriteLine(creatorMessage);
+                var creatorMessage = $"Creator{(creatorTypes.Count > 1 ? "s" : "")} found in {{0}}";
+                Logging.WriteLine(creatorMessage, creatorAssembly.GetName().Name);
                 Logging.WriteLine(new string('=', creatorMessage.Length));
+
+                /*Show the creator types with the number that will be
+                  used to select if they got multiple creators*/
                 foreach (var creatorType in creatorTypes)
                 {
-                    /*Show the creator Type with the number that will be
-                      used to select if they got multiple creators*/
                     counter++;
                     Logging.WriteLine($"{counter}) {creatorType.FullName}");
                 }
                 Logging.WriteLine("");
             }
 
-            //Auto select the creator if we only got one
+            //Auto select the first creator if we only got one anyway
             Type? ty = null;
             if (creators.Values.Select(x => x.Count).Sum(x => x) == 1)
             {
@@ -183,37 +205,20 @@ namespace TinyUpdate.Create
             {
                 Logging.WriteLine("Select the creator that you want to use (1 - {0})", counter);
             }
-            
-            while (ty == null)
+            var selectedInt = RequestNumber(1, counter);
+
+            //Loop though all the updaters we got 
+            foreach (var creatorTypes in creators.Values)
             {
-                //Get what creator they want to use
-                if (!int.TryParse(Console.ReadLine(), out var selectedInt))
+                //If this is the case then the creator they want isn't from this assembly
+                if (creatorTypes.Count < selectedInt)
                 {
-                    Logging.Error("You need to give a valid number!!");
-                    continue;
-                }
-                
-                //Check that it's not higher then what we have
-                if (selectedInt > counter)
-                {
-                    Logging.Error("{0} is too high! We need a number in the range of 1 - {1}", selectedInt, counter);
+                    selectedInt -= creatorTypes.Count;
                     continue;
                 }
 
-                //Loop though all the updaters we got 
-                foreach (var creatorTypes in creators.Values)
-                {
-                    //If this is the case then the creator they want isn't from this assembly
-                    if (creatorTypes.Count < selectedInt)
-                    {
-                        selectedInt -= creatorTypes.Count;
-                        continue;
-                    }
-
-                    //Grab the creator type
-                    ty = creatorTypes[selectedInt - 1];
-                    break;
-                }
+                //Grab the creator type
+                ty = creatorTypes[selectedInt - 1];
                 break;
             }
 
@@ -221,6 +226,7 @@ namespace TinyUpdate.Create
             return Activator.CreateInstance(ty) as IUpdateCreator;
         }
         
+        //TODO: Cleanup this because this is *bad*
         /// <summary>
         /// This goes through every assembly and looks for any that contains a <see cref="IUpdateCreator"/> that we can use
         /// </summary>
