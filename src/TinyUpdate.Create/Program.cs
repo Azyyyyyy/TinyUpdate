@@ -6,6 +6,7 @@ using NuGet.Configuration;
 using System.Threading.Tasks;
 using TinyUpdate.Core.Update;
 using System.Collections.Generic;
+using System.Runtime.Loader;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
@@ -22,11 +23,11 @@ namespace TinyUpdate.Create
         private static string _newVersionLocation = "";
         
         private static bool _createFullUpdate;
-        private static string _oldVersionLocation = "";
+        private static string? _oldVersionLocation;
 
         private static string _outputLocation = "";
-        private static Version _applicationNewVersion = null;
-        private static Version _applicationOldVersion = null;
+        private static Version _applicationNewVersion;
+        private static Version? _applicationOldVersion;
         private static string _mainApplicationName = "";
 
         private static async Task Main(string[] args)
@@ -84,7 +85,10 @@ namespace TinyUpdate.Create
                 var assemName = Assembly.LoadFile(Path.Combine(_newVersionLocation, _mainApplicationName)).GetName();
                 _applicationNewVersion = assemName.Version;
                 _mainApplicationName = assemName.Name;
-                _applicationOldVersion = Assembly.LoadFile(Path.Combine(_oldVersionLocation, _mainApplicationName)).GetName().Version;
+                if (_createDeltaUpdate)
+                {
+                    _applicationOldVersion = Assembly.LoadFile(Path.Combine(_oldVersionLocation, _mainApplicationName)).GetName().Version;
+                }
 
                 Logging.WriteLine("Application Name: {0}", _mainApplicationName);
                 Logging.WriteLine("Application new version: {0}", _applicationNewVersion);
@@ -100,9 +104,9 @@ namespace TinyUpdate.Create
             {
                 _applicationNewVersion = RequestVersion("Couldn't get application version, what is the new version of the application");
             }
-            if (_applicationOldVersion == null)
+            if (_createDeltaUpdate && _applicationOldVersion == null)
             {
-                _applicationOldVersion = RequestVersion("Couldn't get application version, what is the new version of the application");
+                _applicationOldVersion = RequestVersion("Couldn't get application version, what is the old version of the application");
             }
             if (string.IsNullOrWhiteSpace(_mainApplicationName))
             {
@@ -142,9 +146,10 @@ namespace TinyUpdate.Create
             Directory.CreateDirectory(oldVersionLocation);
 
             //Copy the old version files into it's temp folder
-            foreach (var file in Directory.EnumerateFiles(_oldVersionLocation, "*", SearchOption.AllDirectories))
+            var folderToCopy = _oldVersionLocation ?? _newVersionLocation;
+            foreach (var file in Directory.EnumerateFiles(folderToCopy, "*", SearchOption.AllDirectories))
             {
-                var fileLocation = Path.Combine(oldVersionLocation, file.Remove(0, _oldVersionLocation.Length + 1));
+                var fileLocation = Path.Combine(oldVersionLocation, file.Remove(0, folderToCopy.Length + 1));
                 var folder = Path.GetDirectoryName(fileLocation);
                 Directory.CreateDirectory(folder);
                 
@@ -153,14 +158,14 @@ namespace TinyUpdate.Create
 
             //Now verify the updates
             var fullFileLocation = GetOutputLocation(false, extension);
-            if (File.Exists(fullFileLocation))
+            if (_createFullUpdate && File.Exists(fullFileLocation))
             {
                 await VerifyUpdate(fullFileLocation, false, _applicationOldVersion, _applicationNewVersion, applier);
                 Logging.WriteLine("");
             }
             
             var deltaFileLocation = GetOutputLocation(true, extension);
-            if (File.Exists(deltaFileLocation))
+            if (_createDeltaUpdate && File.Exists(deltaFileLocation))
             {
                 await VerifyUpdate(deltaFileLocation, true, _applicationOldVersion, _applicationNewVersion, applier);
             }
@@ -178,17 +183,16 @@ namespace TinyUpdate.Create
             //Create the release entry and try to do a update
             var entry = new ReleaseEntry(shaHash, Path.GetFileName(updateFile), filesize, isDelta, newVersion,
                 Path.GetDirectoryName(updateFile), oldVersion);
-            using var progressBar = new ProgressBar();
-            var successful = await updateApplier.ApplyUpdate(entry, progress => progressBar.Report((double)progress));
+            using var applyProgressBar = new ProgressBar();
+            var successful = await updateApplier.ApplyUpdate(entry, progress => applyProgressBar.Report((double)progress));
+            applyProgressBar.Dispose();
+            ShowSuccess(successful);
 
             //Error out if we wasn't able to apply update
             if (!successful)
             {
-                Logging.Error("Unable to apply update {0}", updateFile);
                 return false;
             }
-            progressBar.Dispose();
-            Logging.WriteLine("Was able to apply update, going to cross check files");
             
             //Grab files that we have
             var newVersionFiles = Directory.GetFiles(_newVersionLocation,"*", SearchOption.AllDirectories);
@@ -203,6 +207,10 @@ namespace TinyUpdate.Create
                     hasMoreFiles ? $", files that exist that shouldn't exist:\r\n* {string.Join("\r\n* ", appliedVersionFiles.Except(newVersionFiles))}" : $", files that should exist:\r\n* {string.Join("\r\n* ", newVersionFiles.Except(appliedVersionFiles))}");
                 return false;
             }
+            
+            Logging.WriteLine("Cross checking files");
+            double filesCheckedCount = 0;
+            var checkProgressBar = new ProgressBar();
 
             //Check that the files are bit-for-bit and that the folder structure is the same
             foreach (var file in newVersionFiles)
@@ -229,6 +237,8 @@ namespace TinyUpdate.Create
                     if (applBit != newVersionBit)
                     {
                         Logging.Error("File contents of {0} is not the same", ret);
+                        checkProgressBar.Dispose();
+                        ShowSuccess(true);
                         return false;
                     }
 
@@ -238,7 +248,12 @@ namespace TinyUpdate.Create
                         break;
                     }
                 }
+
+                filesCheckedCount++;
+                checkProgressBar.Report(filesCheckedCount / newVersionFiles.LongLength);
             }
+            checkProgressBar.Dispose();
+            ShowSuccess(true);
             
             Logging.WriteLine("No issues with update file and updating");
             return true;
@@ -263,13 +278,14 @@ namespace TinyUpdate.Create
         private static async Task CreateDeltaUpdate(IUpdateCreator updateCreator)
         {
             Logging.WriteLine("Creating Delta update");
-            using var progressBar = new ProgressBar();
+            var progressBar = new ProgressBar();
             var wasUpdateCreated = 
                 await updateCreator.CreateDeltaPackage(
                     _newVersionLocation,
                     _oldVersionLocation,
                     GetOutputLocation(true, updateCreator.Extension),
                     progress => progressBar.Report((double)progress));
+            progressBar.Dispose();
 
             ShowSuccess(wasUpdateCreated);
         }
@@ -277,12 +293,13 @@ namespace TinyUpdate.Create
         private static async Task CreateFullUpdate(IUpdateCreator updateCreator)
         {
             Logging.WriteLine("Creating Full update");
-            using var progressBar = new ProgressBar();
+            var progressBar = new ProgressBar();
             var wasUpdateCreated = 
                 await updateCreator.CreateFullPackage(
                     _newVersionLocation,
                     GetOutputLocation(false, updateCreator.Extension),
                     progress => progressBar.Report((double)progress));
+            progressBar.Dispose();
 
             ShowSuccess(wasUpdateCreated);
         }
@@ -376,6 +393,7 @@ namespace TinyUpdate.Create
         {
             while (true)
             {
+                Logging.WriteLine("");
                 Logging.Write(message + (booleanPreferred ? " [Y/n]" : " [N/y]") + ": ");
                 var line = Console.ReadLine()?.ToLower();
 
@@ -483,8 +501,9 @@ namespace TinyUpdate.Create
             {
                 //Shows the assembly that contains the type
                 var creatorMessage = $"{frendlyName}{(creatorTypes.Count > 1 ? "s" : "")} found in {{0}}";
-                Logging.WriteLine(creatorMessage, creatorAssembly?.GetName().Name);
-                Logging.WriteLine(new string('=', creatorMessage.Length));
+                var creatorAssemblyName = creatorAssembly?.GetName().Name;
+                Logging.WriteLine(creatorMessage, creatorAssemblyName);
+                Logging.WriteLine(new string('=', creatorMessage.Length + creatorAssemblyName.Length - 3));
 
                 /*Show the types with the number that will be
                   used to select if they got multiple types to choose from*/
@@ -527,6 +546,21 @@ namespace TinyUpdate.Create
             }
             return default;
         }
+
+        private static Assembly FindOrCreateAssembly(string[] sharedAssemblies, string[] probingDirectories, string file)
+        {
+            foreach (var assemblyLoadContext in AssemblyLoadContext.All)
+            {
+                var knownAssem = assemblyLoadContext.Assemblies.FirstOrDefault(x => x.Location == file);
+                if (knownAssem != null)
+                {
+                    return knownAssem;
+                }
+            }
+            
+            var assemLoader = new SharedAssemblyLoadContext(sharedAssemblies, probingDirectories, AssemblyName.GetAssemblyName(file).Name);
+            return assemLoader.LoadFromAssemblyName(AssemblyName.GetAssemblyName(file));
+        }
         
         /// <summary>
         /// This goes through every assembly and looks for any that contains the type that we are looking for
@@ -540,7 +574,7 @@ namespace TinyUpdate.Create
                 Logging.Error("Type asked for isn't a interface, can't check for it");
                 return null;
             }
-            
+
             //Get what our core assembly is 
             var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator))?.GetName().Name;
             if (string.IsNullOrWhiteSpace(coreAssembly))
@@ -561,10 +595,15 @@ namespace TinyUpdate.Create
             //Now lets try to find the types
             foreach (var file in Directory.EnumerateFiles(applicationLocation, "*.dll"))
             {
+                //We don't want to load this again, don't even try to
+                if (Path.GetFileName(file) == "TinyUpdate.Core.dll")
+                {
+                    continue;
+                }
+                
                 //TODO: See if the assembly is already loaded in and grab that inserted
                 //Load in the assembly
-                var assemLoader = new SharedAssemblyLoadContext(sharedAssemblies, probingDirectories, AssemblyName.GetAssemblyName(file).Name);
-                var assem = assemLoader.LoadFromAssemblyName(AssemblyName.GetAssemblyName(file));
+                var assem = FindOrCreateAssembly(sharedAssemblies, probingDirectories, file);
 
                 //Look at the types this assembly has 
                 foreach (var im in assem.DefinedTypes)

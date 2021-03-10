@@ -16,6 +16,10 @@ namespace TinyUpdate.Create
         /// <inheritdoc cref="Console.WriteLine(string, object[])"/>
         public void WriteLine(string message, params object[] propertyValues)
         {
+            if (Console.CursorLeft != 0)
+            {
+                Console.WriteLine();
+            }
             Console.WriteLine(message, propertyValues);
         }
 

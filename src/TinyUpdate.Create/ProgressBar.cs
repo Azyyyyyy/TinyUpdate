@@ -83,8 +83,8 @@ namespace TinyUpdate.Create
         {
             lock (_timer)
             {
+                TimerHandler(null);
                 _disposed = true;
-                UpdateText(string.Empty);
             }
         }
     }
