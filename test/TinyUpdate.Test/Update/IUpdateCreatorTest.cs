@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -31,7 +31,8 @@ namespace TinyUpdate.Test.Update
             Global.ApplicationVersion = Version.Parse("2021.129.0");
             await _updateCreator.CreateDeltaPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
-                @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0", 
+                @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0",
+                null,
                 obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
             deltaFileProgressStreamText.Dispose();
             deltaFileProgressStream.Dispose();
@@ -49,6 +50,7 @@ namespace TinyUpdate.Test.Update
             Global.ApplicationVersion = Version.Parse("2021.129.0");
             await _updateCreator.CreateFullPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
+                null,
                 obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
             deltaFileProgressStreamText.Dispose();
             deltaFileProgressStream.Dispose();

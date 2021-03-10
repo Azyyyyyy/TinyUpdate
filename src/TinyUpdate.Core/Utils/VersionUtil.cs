@@ -3,6 +3,7 @@ using System.IO;
 
 namespace TinyUpdate.Core.Utils
 {
+    //TODO: Maybe move to Binary as will be different based on what was used to create the update
     /// <summary>
     /// Allows us to easily use <see cref="Version"/>'s for finding where a version of the application would be located
     /// </summary>

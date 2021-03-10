@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -27,11 +27,14 @@ namespace TinyUpdate.Binary
             { ".new", PatchType.New }
         };
         
+        /// <inheritdoc cref="IUpdateApplier.Extension"/>
+        public string Extension { get; } = ".tuup";
+
         /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ReleaseEntry, Action{decimal})"/>
         public async Task<bool> ApplyUpdate(ReleaseEntry entry, Action<decimal>? progress = null)
         {
             //Check that we was the one who made the update (as shown with the file extension)
-            if (Path.GetExtension(entry.Filename) != Global.TinyUpdateExtension)
+            if (Path.GetExtension(entry.Filename) != Extension)
             {
                 Logger.Error("{0} is not a update made by {1}, bail...", entry.FileLocation, GetType().Name);
                 return false;

@@ -4,6 +4,7 @@ using TinyUpdate.Core.Logging.Loggers;
 
 namespace TinyUpdate.Core.Logging
 {
+    //TODO: Have a LogLevel enum to control what gets shown
     /// <summary>
     /// Provides easy access to <see cref="ILogging"/>'s 
     /// </summary>

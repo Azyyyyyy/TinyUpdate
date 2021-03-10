@@ -22,8 +22,11 @@ namespace TinyUpdate.Binary
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryCreator");
 
+        /// <inheritdoc cref="IUpdateCreator.Extension"/>
+        public string Extension { get; } = ".tuup";
+        
         /// <inheritdoc cref="IUpdateCreator.CreateDeltaPackage"/>
-        public async Task<bool> CreateDeltaPackage(string newVersionLocation, string baseVersionLocation, Action<decimal>? progress = null)
+        public async Task<bool> CreateDeltaPackage(string newVersionLocation, string baseVersionLocation, string? deltaUpdateLocation = null, Action<decimal>? progress = null)
         {
             //To keep track of progress
             long fileCount = 0;
@@ -50,7 +53,7 @@ namespace TinyUpdate.Binary
             }
             
             Logger.Debug("Creating delta file");
-            var zipArchive = CreateZipArchive();
+            var zipArchive = CreateZipArchive(deltaUpdateLocation);
 
             void Cleanup()
             {
@@ -92,7 +95,7 @@ namespace TinyUpdate.Binary
                 }
 
                 //Add a pointer to the file that hasn't changed
-                if (await AddSameFile(zipArchive, newFileLocation))
+                if (await AddSameFile(zipArchive, maybeDeltaFile))
                 {
                     continue;
                 }
@@ -100,7 +103,7 @@ namespace TinyUpdate.Binary
 
                 //We wasn't able to add the file as a pointer, try to add it as a new file
                 var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFileLocation));
-                if (await AddNewFile(zipArchive, fileStream, newFileLocation))
+                if (await AddNewFile(zipArchive, fileStream, maybeDeltaFile))
                 {
                     //Hard bail if we can't even do that
                     Logger.Error("Wasn't able to process file as a new file as well, bailing");
@@ -171,7 +174,7 @@ namespace TinyUpdate.Binary
         }
 
         /// <inheritdoc cref="IUpdateCreator.CreateFullPackage"/>
-        public async Task<bool> CreateFullPackage(string applicationLocation, Action<decimal>? progress = null)
+        public async Task<bool> CreateFullPackage(string applicationLocation, string? fullUpdateLocation = null, Action<decimal>? progress = null)
         {
             if (!Directory.Exists(applicationLocation))
             {
@@ -181,7 +184,7 @@ namespace TinyUpdate.Binary
 
             Logger.Debug("Creating full update file");
             var fileCount = 0m;
-            var zipArchive = CreateZipArchive();
+            var zipArchive = CreateZipArchive(fullUpdateLocation);
             
             var files = RemovePath(
                 Directory.EnumerateFiles(applicationLocation, "*", SearchOption.AllDirectories), 
@@ -216,15 +219,16 @@ namespace TinyUpdate.Binary
         /// Creates a <see cref="ZipArchive"/> to store the update
         /// </summary>
         /// <returns></returns>
-        private static ZipArchive CreateZipArchive()
+        private ZipArchive CreateZipArchive(string? updateFileLocation = null)
         {
+            //TODO: Make it clear out stream if content is already there
             //Create the Temp folder in case it doesn't exist
             Directory.CreateDirectory(Global.TempFolder);
             
             //Create the delta file that will contain all our data
-            var deltaFileLocation = Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Global.TinyUpdateExtension);
-            var deltaFileStream = File.OpenWrite(deltaFileLocation);
-            return new ZipArchive(deltaFileStream, ZipArchiveMode.Create);
+            updateFileLocation ??= Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Extension);
+            var updateFileStream = File.OpenWrite(updateFileLocation);
+            return new ZipArchive(updateFileStream, ZipArchiveMode.Create);
         }
         
         private static bool IsDeltaFile(string baseFileLocation, string newFileLocation)

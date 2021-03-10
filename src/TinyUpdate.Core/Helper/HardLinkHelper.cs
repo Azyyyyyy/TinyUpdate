@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace TinyUpdate.Core.Helper
+﻿namespace TinyUpdate.Core.Helper
 {
     /// <summary>
     /// Helper for creating Hard links
@@ -19,7 +17,7 @@ namespace TinyUpdate.Core.Helper
             return TaskHelper.RunTaskBasedOnOS(
                 () => Native.Windows.Invoke.CreateHardLink(originalFile, linkLocation),
                 () => Native.Linux.Invokes.CreateHardLink(originalFile, linkLocation),
-                () => throw new NotImplementedException());
+                () => false); //Apple doesn't like people doing hard links, no point in even trying :KEK:
         }
     }
 }

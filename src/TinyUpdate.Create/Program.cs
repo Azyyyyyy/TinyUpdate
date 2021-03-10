@@ -2,11 +2,14 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using NuGet.Configuration;
+using System.Threading.Tasks;
 using TinyUpdate.Core.Update;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using NuGet.Configuration;
+using TinyUpdate.Core;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Create
 {
@@ -21,21 +24,44 @@ namespace TinyUpdate.Create
         private static bool _createFullUpdate;
         private static string _oldVersionLocation = "";
 
+        private static string _outputLocation = "";
+        private static Version _applicationNewVersion = null;
+        private static Version _applicationOldVersion = null;
+        private static string _mainApplicationName = "";
+
         private static async Task Main(string[] args)
         {
+            //Add logging
             LoggingCreator.AddLogBuilder(new CustomLoggerBuilder());
+            TaskScheduler.UnobservedTaskException += (sender, eventArgs) =>
+            {
+                Logging.Error("Unhandled task exception has happened");
+                Logging.Error(eventArgs.Exception);
+            };
+            AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+            {
+                Logging.Error("Unhandled exception has happened");
+                Logging.Error("{0}", eventArgs.ExceptionObject);
+                Logging.Error("Is terminating due to error?: {0}", eventArgs.IsTerminating);
+            };
             
-            //Get what kind of update we are doing
+            //Get what kind of update we are doing 
             ShowHeader();
             GetUpdateType();
-            var creator = GetUpdateCreator();
+
+            //Grab the update creator
+            var creator = GetType<IUpdateCreator>("creator");
             if (creator == null)
             {
                 Logging.Error("Unable to create update creator, can't continue....");
                 return;
             }
-            //TODO: Have a output location op?
-            //TODO: Have a verify opt for updates (that they do update and bit-by-bit the same)?
+
+            //Get where we are storing the update files created and what is the main .dll
+            _outputLocation = RequestFolder($"Where do you want to store the update file{(_createDeltaUpdate && _createFullUpdate ? "s" : "")}?");
+            _mainApplicationName = RequestFile("What is the main application file? (.dll file, not what executes the application)", _newVersionLocation);
+
+            GetApplicationMetadata();
 
             //Create the updates
             if (_createFullUpdate)
@@ -46,8 +72,178 @@ namespace TinyUpdate.Create
             {
                 await CreateDeltaUpdate(creator);
             }
+
+            await VerifyUpdateFiles(creator.Extension);
         }
 
+        private static void GetApplicationMetadata()
+        {
+            //Try to grab data about the application we are going to creator the update for
+            try
+            {
+                var assemName = Assembly.LoadFile(Path.Combine(_newVersionLocation, _mainApplicationName)).GetName();
+                _applicationNewVersion = assemName.Version;
+                _mainApplicationName = assemName.Name;
+                _applicationOldVersion = Assembly.LoadFile(Path.Combine(_oldVersionLocation, _mainApplicationName)).GetName().Version;
+
+                Logging.WriteLine("Application Name: {0}", _mainApplicationName);
+                Logging.WriteLine("Application new version: {0}", _applicationNewVersion);
+                Logging.WriteLine("Application old version: {0}", _applicationOldVersion);
+            }
+            catch (Exception e)
+            {
+                Logging.Error(e);
+            }
+
+            //Check that they got filled in
+            if (_applicationNewVersion == null)
+            {
+                _applicationNewVersion = RequestVersion("Couldn't get application version, what is the new version of the application");
+            }
+            if (_applicationOldVersion == null)
+            {
+                _applicationOldVersion = RequestVersion("Couldn't get application version, what is the new version of the application");
+            }
+            if (string.IsNullOrWhiteSpace(_mainApplicationName))
+            {
+                _mainApplicationName = RequestString("Couldn't get application name, what is the application name");
+            }
+            Logging.WriteLine("");
+        }
+        
+        private static async Task VerifyUpdateFiles(string extension)
+        {
+            //Ask if they want to verify files
+            if (!RequestYesOrNo("Do you want us to verify any created updates?", true))
+            {
+                return;
+            }
+            Logging.WriteLine("");
+
+            //Grab the applier that we will be using
+            var applier = GetType<IUpdateApplier>("applier");
+            if (applier == null)
+            {
+                Logging.Error("Can't get applier, can't verify update...");
+                return;
+            }
+            Logging.WriteLine("Setting up for verifying update files");
+
+            //Get where the old version should be
+            Global.ApplicationFolder = Path.Combine(Global.TempFolder, _mainApplicationName);
+            Global.ApplicationVersion = _applicationOldVersion;
+            var oldVersionLocation = _applicationOldVersion.GetApplicationPath();
+
+            //Delete the old version if it exists, likely here from checking update last time
+            if (Directory.Exists(oldVersionLocation))
+            {
+                Directory.Delete(oldVersionLocation, true);
+            }
+            Directory.CreateDirectory(oldVersionLocation);
+
+            //Copy the old version files into it's temp folder
+            foreach (var file in Directory.EnumerateFiles(_oldVersionLocation, "*", SearchOption.AllDirectories))
+            {
+                var fileLocation = Path.Combine(oldVersionLocation, file.Remove(0, _oldVersionLocation.Length + 1));
+                var folder = Path.GetDirectoryName(fileLocation);
+                Directory.CreateDirectory(folder);
+                
+                File.Copy(file, fileLocation);
+            }
+
+            //Now verify the updates
+            var fullFileLocation = GetOutputLocation(false, extension);
+            if (File.Exists(fullFileLocation))
+            {
+                await VerifyUpdate(fullFileLocation, false, _applicationOldVersion, _applicationNewVersion, applier);
+                Logging.WriteLine("");
+            }
+            
+            var deltaFileLocation = GetOutputLocation(true, extension);
+            if (File.Exists(deltaFileLocation))
+            {
+                await VerifyUpdate(deltaFileLocation, true, _applicationOldVersion, _applicationNewVersion, applier);
+            }
+        }
+
+        private static async Task<bool> VerifyUpdate(string updateFile, bool isDelta, Version oldVersion, Version newVersion, IUpdateApplier updateApplier)
+        {
+            //Grab the hash and size of this update file
+            Logging.WriteLine("Applying update file {0} to test applying and to be able to cross check files", updateFile);
+            var fileStream = File.OpenRead(updateFile);
+            var shaHash = SHA256Util.CreateSHA256Hash(fileStream);
+            var filesize = fileStream.Length;
+            await fileStream.DisposeAsync();
+
+            //Create the release entry and try to do a update
+            var entry = new ReleaseEntry(shaHash, Path.GetFileName(updateFile), filesize, isDelta, newVersion,
+                Path.GetDirectoryName(updateFile), oldVersion);
+            using var progressBar = new ProgressBar();
+            var successful = await updateApplier.ApplyUpdate(entry, progress => progressBar.Report((double)progress));
+
+            //Error out if we wasn't able to apply update
+            if (!successful)
+            {
+                Logging.Error("Unable to apply update {0}", updateFile);
+                return false;
+            }
+            progressBar.Dispose();
+            Logging.WriteLine("Was able to apply update, going to cross check files");
+            
+            //Grab files that we have
+            var newVersionFiles = Directory.GetFiles(_newVersionLocation,"*", SearchOption.AllDirectories);
+            var appliedVersionFiles = Directory.GetFiles(newVersion.GetApplicationPath(),"*", SearchOption.AllDirectories);
+
+            //Check that we got every file that we need/expect
+            if (newVersionFiles.LongLength != appliedVersionFiles.LongLength)
+            {
+                var hasMoreFiles = appliedVersionFiles.LongLength > newVersionFiles.LongLength;
+                Logging.Error("There are {0} files in the applied version {1}", 
+                    hasMoreFiles ? "more" : "less",
+                    hasMoreFiles ? $", files that exist that shouldn't exist:\r\n* {string.Join("\r\n* ", appliedVersionFiles.Except(newVersionFiles))}" : $", files that should exist:\r\n* {string.Join("\r\n* ", newVersionFiles.Except(appliedVersionFiles))}");
+                return false;
+            }
+
+            //Check that the files are bit-for-bit and that the folder structure is the same
+            foreach (var file in newVersionFiles)
+            {
+                var ret = file.Remove(0, _newVersionLocation.Length);
+                var applIndex = appliedVersionFiles.IndexOf(x => x.EndsWith(ret));
+
+                await using var applStream = File.OpenRead(appliedVersionFiles[applIndex]);
+                await using var newVersionStream = File.OpenRead(file);
+
+                //See if the file lengths are the same
+                if (applStream.Length != newVersionStream.Length)
+                {
+                    Logging.Error("File contents of {0} is not the same", ret);
+                    return false;
+                }
+
+                //Check files bit-for-bit
+                while (true)
+                {
+                    var applBit = applStream.ReadByte();
+                    var newVersionBit = newVersionStream.ReadByte();
+
+                    if (applBit != newVersionBit)
+                    {
+                        Logging.Error("File contents of {0} is not the same", ret);
+                        return false;
+                    }
+
+                    //We hit the end of the file, break out
+                    if (applBit == -1)
+                    {
+                        break;
+                    }
+                }
+            }
+            
+            Logging.WriteLine("No issues with update file and updating");
+            return true;
+        }
+        
         private static void ShowHeader()
         {
             Logging.WriteLine(
@@ -62,30 +258,54 @@ namespace TinyUpdate.Create
 ");
         }
 
+        private static void ShowSuccess(bool wasSuccessful) => Logging.Write(wasSuccessful ? " Success ✓" : " Failed ✖");
+        
         private static async Task CreateDeltaUpdate(IUpdateCreator updateCreator)
         {
             Logging.WriteLine("Creating Delta update");
             using var progressBar = new ProgressBar();
-            var updateCreated = 
-                await updateCreator.CreateDeltaPackage(_newVersionLocation, _oldVersionLocation, progress => progressBar.Report((double)progress));
-            Logging.Write(updateCreated ? "Success ✓" : "Failed ✖");
-        }
+            var wasUpdateCreated = 
+                await updateCreator.CreateDeltaPackage(
+                    _newVersionLocation,
+                    _oldVersionLocation,
+                    GetOutputLocation(true, updateCreator.Extension),
+                    progress => progressBar.Report((double)progress));
 
+            ShowSuccess(wasUpdateCreated);
+        }
+        
         private static async Task CreateFullUpdate(IUpdateCreator updateCreator)
         {
             Logging.WriteLine("Creating Full update");
             using var progressBar = new ProgressBar();
-            var updateCreated = 
-                await updateCreator.CreateFullPackage(_newVersionLocation, progress => progressBar.Report((double)progress));
-            Logging.Write(updateCreated ? " Success ✓" : " Failed ✖");
-        }
+            var wasUpdateCreated = 
+                await updateCreator.CreateFullPackage(
+                    _newVersionLocation,
+                    GetOutputLocation(false, updateCreator.Extension),
+                    progress => progressBar.Report((double)progress));
 
+            ShowSuccess(wasUpdateCreated);
+        }
+        
+        private static string GetOutputLocation(bool deltaFile, string extension) => Path.Combine(_outputLocation, $"{_mainApplicationName}.{_applicationNewVersion}-{(deltaFile ? "delta" : "full")}{extension}");
+
+        private static readonly string[] noStrings =
+        {
+            "no",
+            "n"
+        };
+
+        private static readonly string[] yesStrings =
+        {
+            "yes",
+            "y"
+        };
+        
         private static int RequestNumber(int min, int max)
         {
-            int number;
             while (true)
             {
-                if (!int.TryParse(Console.ReadLine(), out number))
+                if (!int.TryParse(Console.ReadLine(), out var number))
                 {
                     Logging.Error("You need to give a valid number!!");
                     continue;
@@ -104,20 +324,125 @@ namespace TinyUpdate.Create
                     Logging.Error("{0} is too high! We need a number in the range of {1} - {2}", number, min, max);
                     continue;
                 }
-                break;
-            }
 
-            return number;
+                return number;
+            }
+        }
+
+        private static Version RequestVersion(string message)
+        {
+            while (true)
+            {
+                Logging.Write(message + ": ");
+                var line = Console.ReadLine();
+
+                //If they put in nothing then error
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    //They didn't put in something we know, tell them
+                    Logging.Error("You need to put in something!!");
+                    continue;
+                }
+
+                //Give version if we can
+                if (Version.TryParse(line, out var version))
+                {
+                    return version;
+                }
+
+                Logging.Error("Can't create a version from {0}", line);
+            }
         }
         
+        private static string RequestString(string message)
+        {
+            while (true)
+            {
+                Logging.Write(message + ": ");
+                var line = Console.ReadLine();
+
+                //If they put in nothing then they want the preferred op
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    return line;
+                }
+
+                //They didn't put in something we know, tell them
+                Logging.Error("You need to put in something!!");
+            }
+        }
+        
+        private static bool RequestYesOrNo(string message, bool booleanPreferred)
+        {
+            while (true)
+            {
+                Logging.Write(message + (booleanPreferred ? " [Y/n]" : " [N/y]") + ": ");
+                var line = Console.ReadLine()?.ToLower();
+
+                //If they put in nothing then they want the preferred op
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    return booleanPreferred;
+                }
+                
+                //See if what they put in something to show yes or no
+                if (yesStrings.Contains(line))
+                {
+                    return true;
+                }
+                if (noStrings.Contains(line))
+                {
+                    return false;
+                }
+                
+                //They didn't put in something we know, tell them
+                Logging.Error("You need to put in 'y' for yes or 'n' for no");
+            }
+        }
+
+        private static string RequestFile(string message, string? folder = null)
+        {
+            while (true)
+            {
+                Logging.Write(message + ": ");
+                var line = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    Logging.Error("You need to put something in!!!");
+                    continue;
+                }
+                line = string.IsNullOrWhiteSpace(folder) ? line : Path.Combine(folder, line);
+
+                if (File.Exists(line))
+                {
+                    return line;
+                }
+                Logging.Error("File doesn't exist");
+            }
+        }
+        
+        private static string RequestFolder(string message)
+        {
+            while (true)
+            {
+                Logging.Write(message + ": ");
+                var line = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    Logging.Error("You need to put something in!!!");
+                    continue;
+                }
+                
+                if (Directory.Exists(line))
+                {
+                    return line;
+                }
+                Logging.Error("Directory doesn't exist");
+            }
+        }
+
         private static void GetUpdateType()
         {
-            _createDeltaUpdate = true;
-            _createFullUpdate = true;
-            _oldVersionLocation = @"C:\Users\aaron\AppData\Local\osulazer\app-2021.129.0";
-            _newVersionLocation = @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0";
-            //return;
-            
             Logging.WriteLine("What kind of update do you want to create?");
             Logging.WriteLine("1) Full update");
             Logging.WriteLine("2) Delta update");
@@ -126,67 +451,43 @@ namespace TinyUpdate.Create
             //Grab the kind of update they want to do
             var selectedUpdate = RequestNumber(1, 3);
 
-            //Get folders if needed
+            //Get folders
             _createDeltaUpdate = selectedUpdate != 1;
             _createFullUpdate = selectedUpdate != 2;
-            if (_createFullUpdate)
+            if (_createFullUpdate || _createDeltaUpdate)
             {
-                _newVersionLocation = RequestFolder($"Type in where the{(_createDeltaUpdate ? " new version of the" : "")} application is: ");
+                _newVersionLocation = RequestFolder($"Type in where the{(_createDeltaUpdate ? " new version of the" : "")} application is");
             }
             if (_createDeltaUpdate)
             {
-                _oldVersionLocation = RequestFolder("Type in where the old version of the application is: ");
+                _oldVersionLocation = RequestFolder("Type in where the old version of the application is");
             }
+            Logging.WriteLine("");
         }
 
-        private static string RequestFolder(string message)
-        {
-            string folder;
-            while (true)
-            {
-                Logging.Write(message);
-                var line = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    Logging.Error("You need to put something in!!!");
-                    continue;
-                }
-                
-                if (!Directory.Exists(line))
-                {
-                    Logging.Error("Directory doesn't exist");
-                    continue;
-                }
-
-                folder = line;
-                break;
-            }
-            return folder;
-        }
-        
         //TODO: Make it filter what OS this creator is made for
-        private static IUpdateCreator? GetUpdateCreator()
+        private static T? GetType<T>(string frendlyName)
         {
-            //Get any creators that we have in the program we are going to update
-            //TODO: Make this use new application folder, for now this works....
-            Logging.WriteLine("Finding update creators...");
-            var creators = GetAssembliesWithCreators(@"C:\Users\aaron\source\TinyUpdate\src\TinyUpdate.Binary\bin\Debug\netstandard2.1");
+            //Get any the type from any assembly that we know
+            //TODO: Make this use new application folder, for now this works just for testing
+            Logging.WriteLine($"Finding update {frendlyName}...");
+            var creators = GetAssembliesWithType(@"C:\Users\aaron\source\repos\TinyUpdate\src\TinyUpdate.Binary\bin\Debug\netstandard2.1", typeof(T));
             if (!(creators?.Any() ?? false))
             {
-                return null;
+                return default;
             }
 
-            //Show any updaters that we have found
+            //Show any types that we have found
             var counter = 0;
             foreach (var (creatorAssembly, creatorTypes) in creators)
             {
-                //Shows the assembly that contains a update creator(s)
-                var creatorMessage = $"Creator{(creatorTypes.Count > 1 ? "s" : "")} found in {{0}}";
-                Logging.WriteLine(creatorMessage, creatorAssembly.GetName().Name);
+                //Shows the assembly that contains the type
+                var creatorMessage = $"{frendlyName}{(creatorTypes.Count > 1 ? "s" : "")} found in {{0}}";
+                Logging.WriteLine(creatorMessage, creatorAssembly?.GetName().Name);
                 Logging.WriteLine(new string('=', creatorMessage.Length));
 
-                /*Show the creator types with the number that will be
-                  used to select if they got multiple creators*/
+                /*Show the types with the number that will be
+                  used to select if they got multiple types to choose from*/
                 foreach (var creatorType in creatorTypes)
                 {
                     counter++;
@@ -195,77 +496,95 @@ namespace TinyUpdate.Create
                 Logging.WriteLine("");
             }
 
-            //Auto select the first creator if we only got one anyway
+            //Get the type that they want to use (Auto selecting if we only got one)
             Type? ty = null;
-            if (creators.Values.Select(x => x.Count).Sum(x => x) == 1)
+            int selectedInt = 1;
+            if (creators.Values.Select(x => x.Count).Sum(x => x) > 1)
             {
-                ty = creators.Values.First()[0];
+                Logging.WriteLine($"Select the {frendlyName} that you want to use (1 - {0})", counter);
+                selectedInt = RequestNumber(1, counter);
             }
-            else
-            {
-                Logging.WriteLine("Select the creator that you want to use (1 - {0})", counter);
-            }
-            var selectedInt = RequestNumber(1, counter);
 
-            //Loop though all the updaters we got 
+            //Loop though all the types we got (This will skip if selectedInt is 0, meaning that it was auto selected)
             foreach (var creatorTypes in creators.Values)
             {
-                //If this is the case then the creator they want isn't from this assembly
+                //If this is the case then the type they want isn't from this assembly
                 if (creatorTypes.Count < selectedInt)
                 {
                     selectedInt -= creatorTypes.Count;
                     continue;
                 }
 
-                //Grab the creator type
+                //Grab the type
                 ty = creatorTypes[selectedInt - 1];
                 break;
             }
 
-            //Create the update creator!
-            return Activator.CreateInstance(ty) as IUpdateCreator;
+            //Create the type!
+            if (Activator.CreateInstance(ty) is T instance)
+            {
+                return instance;
+            }
+            return default;
         }
         
-        //TODO: Cleanup this because this is *bad*
         /// <summary>
-        /// This goes through every assembly and looks for any that contains a <see cref="IUpdateCreator"/> that we can use
+        /// This goes through every assembly and looks for any that contains the type that we are looking for
         /// </summary>
         /// <param name="applicationLocation">Where the application is stored</param>
-        private static Dictionary<Assembly, List<Type>>? GetAssembliesWithCreators(string applicationLocation)
+        /// <param name="typeToCheckFor">Type to look for</param>
+        private static Dictionary<Assembly, List<Type>>? GetAssembliesWithType(string applicationLocation, Type typeToCheckFor)
         {
-            var creators = new Dictionary<Assembly, List<Type>>();
+            if (!typeToCheckFor.IsInterface)
+            {
+                Logging.Error("Type asked for isn't a interface, can't check for it");
+                return null;
+            }
+            
+            //Get what our core assembly is 
+            var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator))?.GetName().Name;
+            if (string.IsNullOrWhiteSpace(coreAssembly))
+            {
+                Logging.Error($"Couldn't get core assembly, unable to get {typeToCheckFor.Name} from other assemblies");
+                return null;
+            }
+            var sharedAssemblies = new[] { coreAssembly };
+
+            var types = new Dictionary<Assembly, List<Type>>();
+            
+            //Get where the nuget folder is as we want to grab contents from there in case
+            var nugetFolder = SettingsUtility.GetGlobalPackagesFolder(Settings.LoadDefaultSettings(null));
+            var probingDirectories = string.IsNullOrWhiteSpace(nugetFolder) ? 
+                new []{ applicationLocation } : 
+                new []{ applicationLocation, nugetFolder };
+
+            //Now lets try to find the types
             foreach (var file in Directory.EnumerateFiles(applicationLocation, "*.dll"))
             {
-                var settings = Settings.LoadDefaultSettings(null);
-                var nugetFolder = SettingsUtility.GetGlobalPackagesFolder(settings);
-                
-                //Load the assembly and look at every type that it contains
-                var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator))?.GetName().Name;
-                if (string.IsNullOrWhiteSpace(coreAssembly))
-                {
-                    Logging.Error("Couldn't get core assembly, able to get creators from other assemblies");
-                    return null;
-                }
-                
-                var assemLoader = new SharedAssemblyLoadContext(new [] { coreAssembly }, new []{ applicationLocation, nugetFolder }, AssemblyName.GetAssemblyName(file).Name);
+                //TODO: See if the assembly is already loaded in and grab that inserted
+                //Load in the assembly
+                var assemLoader = new SharedAssemblyLoadContext(sharedAssemblies, probingDirectories, AssemblyName.GetAssemblyName(file).Name);
                 var assem = assemLoader.LoadFromAssemblyName(AssemblyName.GetAssemblyName(file));
 
+                //Look at the types this assembly has 
                 foreach (var im in assem.DefinedTypes)
                 {
-                    //See if that type contains the IUpdateCreator interface
-                    if (im.ImplementedInterfaces.Any(x => x.FullName == typeof(IUpdateCreator).FullName))
+                    //See if this type contains the type as a interface
+                    if (im.ImplementedInterfaces.All(x => x != typeToCheckFor))
                     {
-                        //Add the IUpdateCreator to the list from this assembly 
-                        if (!creators.ContainsKey(assem))
-                        {
-                            creators.Add(assem, new List<Type>());
-                        }
-                        creators[assem].Add(im);
+                        continue;
                     }
+
+                    //Add the type to the list from this assembly 
+                    if (!types.ContainsKey(assem))
+                    {
+                        types.Add(assem, new List<Type>());
+                    }
+                    types[assem].Add(im);
                 }
             }
 
-            return creators;
+            return types;
         }
     }
 }

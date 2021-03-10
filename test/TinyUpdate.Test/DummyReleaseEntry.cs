@@ -11,10 +11,10 @@ namespace TinyUpdate.Test
         private static Random _rnd = new Random();
         
         //TODO: Finish
-        public static async Task<ReleaseEntry> MakeDummyReleaseEntry(bool createFile, string filename = null, params InvalidReleaseEntry[] invalidReleaseOptions)
+        public static async Task<ReleaseEntry> MakeDummyReleaseEntry(bool createFile, string extension, string filename = null, params InvalidReleaseEntry[] invalidReleaseOptions)
         {
             //Create everything that is needed for having a ReleaseEntry
-            filename ??= $"dummy{Global.TinyUpdateExtension}";
+            filename ??= $"dummy{extension}";
             long filesize;
             string sha256;
             var isDelta = false;

@@ -19,10 +19,10 @@ namespace TinyUpdate.Core.Tests
         [Ignore("Not added yet")]
         public async Task IsValidReleaseEntry_ApplicationVersionCheck()
         {
-            var releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true);
+            var releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true, ".tuup");
             Assert.IsTrue(releaseFile.IsValidReleaseEntry(), "File checking failed, making us return false");
 
-            releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true, invalidReleaseOptions: InvalidReleaseEntry.Version);
+            releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true, ".tuup", invalidReleaseOptions: InvalidReleaseEntry.Version);
             Assert.IsFalse(releaseFile.IsValidReleaseEntry(), "File checking failed, making us return true");
         }
         
@@ -50,11 +50,11 @@ namespace TinyUpdate.Core.Tests
         public async Task IsValidReleaseEntry_FileCheck()
         {
             //Check that we fail the file when the file doesn't exist
-            var releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(false);
+            var releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(false, ".tuup");
             Assert.IsFalse(releaseFile.IsValidReleaseEntry(), "File checking failed, Returning true when we should have false");
             
             //Check that we check the file correctly when everything is passed as it should be
-            releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true);
+            releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true, ".tuup");
             Assert.IsTrue(releaseFile.IsValidReleaseEntry(), "File checking failed, Returning false when we should have true");
             
             //Now we make one with a invalid filename name (no filename + invalid name), we should throw when this is the case

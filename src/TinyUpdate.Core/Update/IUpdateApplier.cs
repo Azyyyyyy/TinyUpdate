@@ -15,7 +15,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="progress">The progress of this update</param>
         /// <returns>If this update was successfully applied</returns>
         Task<bool> ApplyUpdate(ReleaseEntry entry, Action<decimal>? progress = null);
-        
+
         /// <summary>
         /// Applies a bunch of updates to the application 
         /// </summary>
@@ -23,5 +23,10 @@ namespace TinyUpdate.Core.Update
         /// <param name="progress">The progress of this update</param>
         /// <returns>If this update was successfully applied</returns>
         Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress = null);
+
+        /// <summary>
+        /// Extension to be used on this kind of update file
+        /// </summary>
+        public string Extension { get; }
     }
 }
