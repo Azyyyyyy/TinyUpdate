@@ -12,8 +12,15 @@ namespace TinyUpdate.Core
     public class ReleaseEntry
     {
         private readonly ILogging _logger;
-
-        public ReleaseEntry(string sha256, string filename, long filesize, bool isDelta, Version version, string? filePath = null, Version? oldVersion = null)
+        
+        public ReleaseEntry(
+            string sha256, 
+            string filename, 
+            long filesize, 
+            bool isDelta, 
+            Version version, 
+            string? filePath = null, 
+            Version? oldVersion = null)
         {
             if (isDelta)
             {
