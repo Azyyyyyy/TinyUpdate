@@ -12,6 +12,10 @@
       <ProjectReference Include="..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
+    </ItemGroup>
+
     <ItemGroup>
       <PackageReference Include="DeltaCompressionDotNet" Version="2.0.0" />
       <PackageReference Include="SharpCompress" Version="0.28.1" />
