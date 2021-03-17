@@ -15,7 +15,7 @@ namespace TinyUpdate.Core.Extensions
         /// <param name="action">Action to see if this is the item</param>
         /// <typeparam name="T">item type</typeparam>
         /// <returns>Index of item or -1 if not found</returns>
-        public static int IndexOf<T>(this IEnumerable<T> enumerable, Func<T, bool> action)
+        public static int IndexOf<T>(this IEnumerable<T?> enumerable, Func<T?, bool> action)
         {
             var index = 0;
             foreach (var item in enumerable)

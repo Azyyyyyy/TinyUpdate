@@ -11,6 +11,8 @@ using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
+using TinyUpdate.Binary.Entry;
+using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Binary
 {
@@ -159,8 +161,8 @@ namespace TinyUpdate.Binary
 
             //Grab all the files from the update file
             var zip = new ZipArchive(File.OpenRead(entry.FileLocation));
-            var files = (await GetFilesFromPackage(zip))?.ToArray();
-            if (files == null)
+            var updateEntry = await CreateUpdateEntry(zip);
+            if (updateEntry == null || updateEntry.Count == 0)
             {
                 /*This only happens when something is up with the update file,
                   delete and return false*/
@@ -170,40 +172,26 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
-            var fileCounter = 0m;
-            //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
-            var filesCount = files.Length + 1;
-            
-            void UpdateProgress() => progress?.Invoke(fileCounter / filesCount);
-            
-            //We want to do new and delta files after
-            var deltaFiles = new List<FileEntry>();
-            var newFiles = new List<FileEntry>();
-            foreach (var file in files)
+            void Cleanup()
             {
-                //If we have a folder path then create it
-                if (!string.IsNullOrWhiteSpace(file.FolderPath))
-                {
-                    var folder = Path.Combine(newPath, file.FolderPath);
-                    Logger.Debug("Creating folder {0}", folder);
-                    Directory.CreateDirectory(folder);
-                }
-                
-                //See if this file is a delta/new file. If so then do it after
-                if (file.IsDeltaFile())
-                {
-                    deltaFiles.Add(file);
-                    continue;
-                }
-                if (file.IsNewFile())
-                {
-                    newFiles.Add(file);
-                    continue;
-                }
-                
-                //If we get here then it's the same file
+                zip.Dispose();
+                progress?.Invoke(1);
+            }
+
+            //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
+            var fileCounter = 0m;
+            var filesCount = updateEntry.Count + 1;
+            
+            void UpdateProgress(decimal? fileCount = null) => progress?.Invoke((fileCount ?? fileCounter) / filesCount);
+            
+            //We want to do the files that didn't change first
+            foreach (var file in updateEntry.SameFile)
+            {
                 fileCounter++;
                 Logger.Debug("Processing {0}", file.FileLocation);
+
+                //Create folder (if it exists)
+                CreateDirectory(newPath, file.FileLocation);
 
                 //Get where the old and "new" file should be
                 var originalFile = Path.Combine(basePath, file.FileLocation);
@@ -213,9 +201,8 @@ namespace TinyUpdate.Binary
                   able to process file, if not then hard bail!*/
                 if (!ProcessSameFile(originalFile, newFile))
                 {
-                    zip.Dispose();
                     file.Stream?.Dispose();
-                    progress?.Invoke(1);
+                    Cleanup();
                     return false;
                 }
 
@@ -224,20 +211,22 @@ namespace TinyUpdate.Binary
             }
 
             //Note that this should be the only loop that is used when doing a full update
-            foreach (var newFile in newFiles)
+            foreach (var newFile in updateEntry.NewFile)
             {
                 fileCounter++;
                 Logger.Debug("Processing {0}", newFile.FileLocation);
+
+                //Create folder (if it exists)
+                CreateDirectory(newPath, newFile.FileLocation);
 
                 var newFileLocation = Path.Combine(newPath, newFile.FileLocation);
                 var applySuccessful = await ProcessNewFile(newFile, newFileLocation);
                 
                 //Check that it applied and is what we are expecting
-                if (!applySuccessful || !CheckUpdatedFile(newFileLocation, newFile))
+                if (!CheckUpdatedFile(applySuccessful, newFileLocation, newFile))
                 {
-                    zip.Dispose();
                     newFile.Stream?.Dispose();
-                    progress?.Invoke(1);
+                    Cleanup();
                     return false;
                 }
 
@@ -245,23 +234,28 @@ namespace TinyUpdate.Binary
                 newFile.Stream?.Dispose();
             }
             
-            foreach (var deltaFile in deltaFiles)
+            foreach (var deltaFile in updateEntry.DeltaFile)
             {
                 Logger.Debug("Processing {0}", deltaFile.FileLocation);
+
+                //Create folder (if it exists)
+                CreateDirectory(newPath, deltaFile.FileLocation);
 
                 var originalFile = Path.Combine(basePath, deltaFile.FileLocation);
                 var newFileLocation = Path.Combine(newPath, deltaFile.FileLocation);
 
                 var applySuccessful = await ProcessDeltaFile(originalFile, newFileLocation, deltaFile, 
-                    applyProgress => progress?.Invoke((fileCounter + applyProgress) / filesCount));
+                    applyProgress => UpdateProgress(fileCounter + applyProgress));
+                
+                /*We up this counter after as a delta update can report the progress of it being applied, upping it before
+                 will make the first delta update jump up the progress more then it should*/
                 fileCounter++;
                 
                 //Check that it applied and is what we are expecting
-                if (!applySuccessful || !CheckUpdatedFile(newFileLocation, deltaFile))
+                if (!CheckUpdatedFile(applySuccessful, newFileLocation, deltaFile))
                 {
                     deltaFile.Stream?.Dispose();
-                    zip.Dispose();
-                    progress?.Invoke(1);
+                    Cleanup();
                     return false;
                 }
 
@@ -270,7 +264,7 @@ namespace TinyUpdate.Binary
             }
 
             //Check for any dead files and delete them
-            var filesLocation = files.Select(x => Path.Combine(newPath, x.FileLocation)).ToArray();
+            var filesLocation = updateEntry.All.Select(x => Path.Combine(newPath, x.FileLocation)).ToArray();
             foreach (var file in Directory.EnumerateFiles(newPath))
             {
                 if (!filesLocation.Contains(file))
@@ -280,19 +274,37 @@ namespace TinyUpdate.Binary
                 }
             }
             
-            zip.Dispose();
-            progress?.Invoke(1);
+            Cleanup();
             return true;
+        }
+
+        private static void CreateDirectory(string basePath, string? folderPath)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                return;
+            }
+
+            var folder = Path.Combine(basePath, folderPath);
+            Logger.Debug("Creating folder {0}", folder);
+            Directory.CreateDirectory(folder);
         }
         
         /// <summary>
         /// Checks that the file applied is the file that should of been applied
         /// </summary>
+        /// <param name="applySuccessful">If applying the update was successful</param>
         /// <param name="fileLocation">Where the file is</param>
         /// <param name="fileEntry">Details about the file</param>
         /// <returns>If it's what we expect</returns>
-        private static bool CheckUpdatedFile(string fileLocation, FileEntry fileEntry)
+        private static bool CheckUpdatedFile(bool applySuccessful, string fileLocation, FileEntry fileEntry)
         {
+            if (!applySuccessful)
+            {
+                Logger.Error("Applying {0} wasn't successful", fileEntry.FileLocation);
+                return false;
+            }
+            
             //This file didn't change, assume it's fine
             if (fileEntry.Filesize == 0)
             {
@@ -542,12 +554,19 @@ namespace TinyUpdate.Binary
             inputStream.Dispose();
             return successfulUpdate;
         }
+
+        private static async Task<UpdateEntry?> CreateUpdateEntry(ZipArchive zip)
+        {
+            var updateEntry = new UpdateEntry();
+            await updateEntry.LoadAsyncEnumerable(GetFilesFromPackage(zip));
+            return updateEntry;
+        }
         
         /// <summary>
         /// Gets all the files that this update will have and any information needed correctly apply the update
         /// </summary>
         /// <param name="zip"><see cref="ZipArchive"/> that contains all the files</param>
-        private static async Task<IEnumerable<FileEntry>?> GetFilesFromPackage(ZipArchive zip)
+        private static async IAsyncEnumerable<FileEntry?> GetFilesFromPackage(ZipArchive zip)
         {
             var fileEntries = new List<FileEntry>();
             foreach (var zipEntry in zip.Entries)
@@ -565,7 +584,7 @@ namespace TinyUpdate.Binary
                 var filepath = Path.GetDirectoryName(zipEntry.FullName);
 
                 //Get the index of the entry for adding new data (if it exists)
-                var entryIndex = fileEntries.FindIndex(x => x.Filename == filename && x.FolderPath == filepath);
+                var entryIndex = fileEntries.IndexOf(x => x?.Filename == filename && x.FolderPath == filepath);
                 
                 //This means that the file is the binary that contains the patch, we want to get a stream to it
                 if (PatchExtensions.ContainsKey(entryEtx))
@@ -588,6 +607,10 @@ namespace TinyUpdate.Binary
                     {
                         fileEntries[entryIndex].Stream = zipEntry.Open();
                     }
+                    
+                    //TODO: Check everything is here
+                    yield return fileEntries[entryIndex];
+                    fileEntries.RemoveAt(entryIndex);
                     continue;
                 }
                 
@@ -606,7 +629,8 @@ namespace TinyUpdate.Binary
                     {
                         fileEntry.Stream?.Dispose();
                     }
-                    return null;
+
+                    yield break;
                 }
 
                 //Update/Create FileEntry with hash and filesize
@@ -620,17 +644,12 @@ namespace TinyUpdate.Binary
                     continue;
                 }
 
+                //TODO: Check everything is here
                 fileEntries[entryIndex].SHA256 = sha256Hash;
                 fileEntries[entryIndex].Filesize = filesize;
+                yield return fileEntries[entryIndex];
+                fileEntries.RemoveAt(entryIndex);
             }
-
-            //Get rid of any streams that will be empty
-            foreach (var fileEntry in fileEntries.Where(fileEntry => fileEntry.Filesize == 0))
-            {
-                fileEntry.Stream?.Dispose();
-                fileEntry.Stream = null;
-            }
-            return fileEntries;
         }
 
         /// <summary>

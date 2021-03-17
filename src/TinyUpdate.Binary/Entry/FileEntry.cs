@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace TinyUpdate.Binary
+namespace TinyUpdate.Binary.Entry
 {
     /// <summary>
     /// File entry with all the information to do a update
