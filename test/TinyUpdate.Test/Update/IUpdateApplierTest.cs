@@ -20,16 +20,47 @@ namespace TinyUpdate.Test.Update
         [NonParallelizable]
         public async Task ApplyUpdate_ReleaseEntryDelta()
         {
-            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup"));
+            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\nhyw3oro.lx0.tuup"));
         }
         
         [Test]
         [NonParallelizable]
         public async Task ApplyUpdate_ReleaseEntryFull()
         {
-            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\32gxkyyo.dsi-bs.tuup"));
+            Assert.IsTrue(await ApplyUpdate(@"C:\Users\aaron\source\delta-test\osu!.2021.302.0.0-full.tuup"));
         }
 
+        [Test]
+        [NonParallelizable]
+        public async Task ApplyUpdate_UpdateInfoDelta()
+        {
+            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            Global.ApplicationVersion = Version.Parse("2021.129.0");
+            
+            var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
+            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
+
+            var res = new UpdateInfo(new[]
+            {
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup", oldVersion: Version.Parse("2021.129.0")),
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\hwrduj5g.dwf.tuup", Version.Parse("2021.129.2"), Version.Parse("2021.129.1")),
+            });
+            var successfulUpdate =
+                await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
+            
+            deltaFileProgressStreamText.Dispose();
+            deltaFileProgressStream.Dispose();
+
+            Assert.IsTrue(successfulUpdate);
+        }
+        
+        [Test]
+        [NonParallelizable]
+        [Ignore("Not created yet")]
+        public async Task ApplyUpdate_UpdateInfoFull()
+        {
+        }
+        
         private async Task<bool> ApplyUpdate(string fileLocation)
         {
             Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
@@ -65,30 +96,6 @@ namespace TinyUpdate.Test.Update
                 version ?? Version.Parse("2021.129.1"),
                 Path.GetDirectoryName(fileLocation),
                 oldVersion ?? Version.Parse("2021.129.0"));
-        }
-        
-        [Test]
-        [NonParallelizable]
-        public async Task ApplyUpdate_UpdateInfo()
-        {
-            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            Global.ApplicationVersion = Version.Parse("2021.129.0");
-            
-            var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
-            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
-
-            var res = new UpdateInfo(new []
-            {
-                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup", oldVersion: Version.Parse("2021.129.0")),
-                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\hwrduj5g.dwf.tuup", Version.Parse("2021.129.2"), Version.Parse("2021.129.1")),
-            });
-            var successfulUpdate =
-                await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
-            
-            deltaFileProgressStreamText.Dispose();
-            deltaFileProgressStream.Dispose();
-
-            Assert.IsTrue(successfulUpdate);
         }
     }
 }

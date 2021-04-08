@@ -61,9 +61,23 @@ namespace TinyUpdate.Core
             }
         }
 
+        private static string _applicationFolder;
         /// <summary>
         /// The folder that contains the application files
         /// </summary>
-        public static string ApplicationFolder { get; set; }
+        public static string ApplicationFolder
+        {
+            get => _applicationFolder;
+            set
+            {
+                if (Directory.Exists(_applicationFolder))
+                {
+                    _applicationFolder = value;
+                    return;
+                }
+
+                throw new Exception("Folder doesn't exist");
+            }
+        }
     }
 }

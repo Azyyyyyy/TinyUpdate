@@ -4,21 +4,21 @@ using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Utils;
 
-namespace TinyUpdate.Test
+namespace TinyUpdate.Core.Tests
 {
     public static class DummyReleaseEntry
     {
-        private static Random _rnd = new Random();
+        private static readonly Random _rnd = new Random();
         
         //TODO: Finish
-        public static async Task<ReleaseEntry> MakeDummyReleaseEntry(bool createFile, string extension, string filename = null, params InvalidReleaseEntry[] invalidReleaseOptions)
+        public static async Task<ReleaseEntry> MakeDummyReleaseEntry(bool createFile, string extension, string? filename = null, Version? version = null, params InvalidReleaseEntry[] invalidReleaseOptions)
         {
             //Create everything that is needed for having a ReleaseEntry
-            filename ??= $"dummy{extension}";
+            filename ??= $"dummy-{Guid.NewGuid()}{extension}";
             long filesize;
             string sha256;
             var isDelta = false;
-            var version = new Version(
+            version ??= new Version(
                 Global.ApplicationVersion.Major + 1,
                 Global.ApplicationVersion.Minor,
                 Global.ApplicationVersion.Build >= 0 ? Global.ApplicationVersion.Build : 0,
@@ -27,7 +27,7 @@ namespace TinyUpdate.Test
             //Create some dummy content so we can make a SHA256 hash to work with
             var dummyContent = new byte[10000];
             _rnd.NextBytes(dummyContent);
-            sha256 = SHA256Util.CreateSHA256Hash(dummyContent);
+            sha256 = SHA256Util.CreateSHA256Hash(dummyContent, true);
             filesize = dummyContent.Length;
 
             var dummyReleaseFileLocation = Path.Combine(Global.TempFolder, filename);
@@ -42,7 +42,7 @@ namespace TinyUpdate.Test
                 var dummyReleaseFile = File.OpenWrite(dummyReleaseFileLocation);
 
                 await dummyReleaseFile.WriteAsync(dummyContent, 0, 0);
-                dummyReleaseFile.Dispose();                
+                await dummyReleaseFile.DisposeAsync();                
             }
 
             //Do any data corruption if needed

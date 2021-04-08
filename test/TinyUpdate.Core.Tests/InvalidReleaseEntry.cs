@@ -1,4 +1,4 @@
-﻿namespace TinyUpdate.Test
+﻿namespace TinyUpdate.Core.Tests
 {
     public enum InvalidReleaseEntry
     {

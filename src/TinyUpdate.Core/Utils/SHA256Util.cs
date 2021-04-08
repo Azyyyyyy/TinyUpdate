@@ -62,9 +62,17 @@ namespace TinyUpdate.Core.Utils
         /// Creates a SHA256 hash from a <see cref="byte"/>[]
         /// </summary>
         /// <param name="bytes"><see cref="byte"/>[] to use for creating SHA256 hash</param>
-        public static string CreateSHA256Hash(byte[] bytes) => 
-            bytes.Aggregate("", (current, b) => current + b.ToString("X2"));
-        
+        public static string CreateSHA256Hash(byte[] bytes, bool fileContents = false)
+        {
+            //If this is from file contents then we want to make it into something we can make a hash for
+            if (fileContents)
+            {
+                using SHA256Managed sha256 = new();
+                return CreateSHA256Hash(sha256.ComputeHash(bytes));
+            }
+            return bytes.Aggregate("", (current, b) => current + b.ToString("X2"));
+        }
+
         /// <summary>
         /// Gets if this string is a valid SHA256 hash  
         /// </summary>

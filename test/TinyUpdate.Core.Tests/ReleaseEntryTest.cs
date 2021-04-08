@@ -44,7 +44,11 @@ namespace TinyUpdate.Core.Tests
         {
         }
 
-        //ReleaseEntry OldVersion Check
+        [Test]
+        [Ignore("Not added yet")]
+        public async Task IsValidReleaseEntry_OldVersionCheck()
+        {
+        }
         
         [Test]
         public async Task IsValidReleaseEntry_FileCheck()

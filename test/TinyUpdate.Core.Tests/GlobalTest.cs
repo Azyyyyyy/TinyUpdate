@@ -11,7 +11,13 @@ namespace TinyUpdate.Core.Tests
 
         [Test]
         [Ignore("Not created yet")]
-        public void Test()
+        public void TempFolder_Throws()
+        {
+        }
+        
+        [Test]
+        [Ignore("Not created yet")]
+        public void ApplicationFolder_Throws()
         {
         }
     }

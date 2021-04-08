@@ -1,17 +1,19 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Test.Update
 {
     public class IUpdateCreatorTest
     {
+        private readonly ILogging _logger;
         private readonly IUpdateCreator _updateCreator;
         public IUpdateCreatorTest(IUpdateCreator updateCreator)
         {
+            _logger = LoggingCreator.CreateLogger(GetType().Name);
             _updateCreator = updateCreator;
         }
         
@@ -24,18 +26,16 @@ namespace TinyUpdate.Test.Update
         [Test]
         public async Task CreateDeltaPackage()
         {
-            var deltaFileProgressStream = File.OpenWrite("create_delta.txt");
-            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
-            
             Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
             Global.ApplicationVersion = Version.Parse("2021.129.0");
-            await _updateCreator.CreateDeltaPackage(
+
+            //Apply update
+            var wasSuccessful = await _updateCreator.CreateDeltaPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0",
                 null,
-                obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
-            deltaFileProgressStreamText.Dispose();
-            deltaFileProgressStream.Dispose();
+                obj => _logger.Debug($"Progress: {obj * 100}"));
+            Assert.True(wasSuccessful, "Wasn't able to apply update");
         }
         
         //TODO: Make test for file created (Checking hash and filesize)
@@ -43,17 +43,13 @@ namespace TinyUpdate.Test.Update
         [Test]
         public async Task CreateFullPackage()
         {
-            var deltaFileProgressStream = File.OpenWrite("create_full.txt");
-            var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
-            
             Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
             Global.ApplicationVersion = Version.Parse("2021.129.0");
-            await _updateCreator.CreateFullPackage(
+            var wasSuccessful = await _updateCreator.CreateFullPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 null,
-                obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
-            deltaFileProgressStreamText.Dispose();
-            deltaFileProgressStream.Dispose();
+                obj => _logger.Debug($"Progress: {obj * 100}"));
+            Assert.True(wasSuccessful, "Wasn't able to apply update");
         }
     }
 }
