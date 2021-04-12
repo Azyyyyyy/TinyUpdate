@@ -62,6 +62,7 @@ namespace TinyUpdate.Core.Logging.Loggers
             }
             Console.Write($"[{type} - {Name}]: ");
 
+            //TODO: Add more c o l o u r
             Console.ForegroundColor = oldColour;
             Console.WriteLine(message, propertyValues);
         }

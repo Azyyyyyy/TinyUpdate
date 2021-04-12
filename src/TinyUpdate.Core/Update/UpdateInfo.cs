@@ -11,12 +11,15 @@ namespace TinyUpdate.Core.Update
     {
         public UpdateInfo(IEnumerable<ReleaseEntry> updates)
         {
-            Updates = updates;
+            Updates = updates.ToArray();
 
-            //Get the new version if it exists
-            if (HasUpdate = updates.Any())
+            //See if there is any update that is newer then the current version
+            HasUpdate = Updates.Any(x => x.Version > Global.ApplicationVersion);
+
+            //Get the newest version if we have an update to apply
+            if (HasUpdate)
             {
-                NewVersion = updates.OrderByDescending(x => x.Version).FirstOrDefault().Version;
+                NewVersion = Updates.OrderByDescending(x => x.Version).FirstOrDefault()?.Version;
             }
         }
 
@@ -28,7 +31,7 @@ namespace TinyUpdate.Core.Update
         /// <summary>
         /// All the updates that we have found
         /// </summary>
-        public IEnumerable<ReleaseEntry> Updates { get; }
+        public ReleaseEntry[] Updates { get; }
 
         /// <summary>
         /// If we have any updates to apply

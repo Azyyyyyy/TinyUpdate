@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using DeltaCompressionDotNet.MsDelta;
+using TinyUpdate.Binary.Delta;
+using TinyUpdate.Binary.Extensions;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
@@ -62,14 +62,12 @@ namespace TinyUpdate.Binary
             }
             
             //Get all the files that are in the new version (Removing the Path so we only have the relative path of the file)
-            var newVersionFiles = RemovePath(
-                Directory.EnumerateFiles(newVersionLocation, "*", SearchOption.AllDirectories), 
-                newVersionLocation).ToArray();
+            var newVersionFiles = Directory.EnumerateFiles(newVersionLocation, "*", SearchOption.AllDirectories)
+                .RemovePath(newVersionLocation).ToArray();
             
             //and get the files from the old version
-            var baseVersionFiles = RemovePath(
-                Directory.EnumerateFiles(baseVersionLocation, "*", SearchOption.AllDirectories), 
-                baseVersionLocation).ToArray();
+            var baseVersionFiles = Directory.EnumerateFiles(baseVersionLocation, "*", SearchOption.AllDirectories)
+                .RemovePath(baseVersionLocation).ToArray();
 
             //Find any files that are in both version and process them based on if they had any changes
             Logger.Information("Processing files that are in both versions");
@@ -112,9 +110,8 @@ namespace TinyUpdate.Binary
                 }
             }
             
-            deltaFilesLength = sameFiles.LongLength;
-
             //Now process files that was added into the new version
+            deltaFilesLength = sameFiles.LongLength;
             Logger.Information("Processing files that only exist in the new version");
             foreach (var newFile in newFiles)
             {
@@ -186,9 +183,9 @@ namespace TinyUpdate.Binary
             var fileCount = 0m;
             var zipArchive = CreateZipArchive(fullUpdateLocation);
             
-            var files = RemovePath(
-                Directory.EnumerateFiles(applicationLocation, "*", SearchOption.AllDirectories), 
-                applicationLocation).ToArray();
+            var files = 
+                Directory.EnumerateFiles(applicationLocation, "*", SearchOption.AllDirectories)
+                    .RemovePath(applicationLocation).ToArray();
 
             foreach (var file in files)
             {
@@ -263,8 +260,7 @@ namespace TinyUpdate.Binary
             Stream? deltaFileStream = null;
             
             //Try to create diff file, outputting extension (and maybe a stream) based on what was used to make it
-            if (!CreateMSDiffFile(baseFileLocation, newFileLocation, tmpDeltaFile, out var extension) &&
-                !CreateBSDiffFile(baseFileLocation, newFileLocation, tmpDeltaFile, out extension, out deltaFileStream, progress))
+            if (!DeltaCreation.CreateDeltaFile(baseFileLocation, newFileLocation, tmpDeltaFile, out var extension, out deltaFileStream))
             {
                 //Wasn't able to, report back as fail
                 Logger.Error("Wasn't able to create delta file");
@@ -292,7 +288,7 @@ namespace TinyUpdate.Binary
             var addSuccessful = await AddFile(
                 zipArchive, 
                 deltaFileStream,
-                GetRelativePath(baseFileLocation, newFileLocation) + extension, 
+                baseFileLocation.GetRelativePath(newFileLocation) + extension, 
                 filesize: newFilesize, 
                 sha256Hash: hash);
                 
@@ -302,90 +298,6 @@ namespace TinyUpdate.Binary
             return addSuccessful;
         }
 
-        /// <summary>
-        /// Creates a delta file using <see cref="BinaryPatchUtility.Create"/>
-        /// </summary>
-        /// <param name="baseFileLocation">Old file location</param>
-        /// <param name="newFileLocation">New file location</param>
-        /// <param name="deltaFileLocation">Where to output the delta file</param>
-        /// <param name="extension">What extension to know it was made using this when applying the delta</param>
-        /// <param name="deltaFileStream">Stream with the </param>
-        /// <param name="progress">Reports back progress</param>
-        /// <returns>If we was able to create the delta file</returns>
-        private static bool CreateBSDiffFile(
-            string baseFileLocation, 
-            string newFileLocation, 
-            string deltaFileLocation, 
-            out string extension, 
-            out Stream? deltaFileStream, 
-            Action<decimal>? progress = null)
-        {
-            extension = ".bsdiff";
-            deltaFileStream = new MemoryStream();
-
-            var success = BinaryPatchUtility.Create(GetBytesFromFile(baseFileLocation),
-                    GetBytesFromFile(newFileLocation), deltaFileStream, progress);
-
-            if (!success)
-            {
-                deltaFileStream.Dispose();
-                deltaFileStream = null;
-            }
-
-            deltaFileStream?.Seek(0, SeekOrigin.Begin);
-            return success;
-        }
-
-        /// <summary>
-        /// Creates a delta file using <see cref="BinaryPatchUtility.Create"/>
-        /// </summary>
-        /// <param name="baseFileLocation">Old file location</param>
-        /// <param name="newFileLocation">New file location</param>
-        /// <param name="deltaFileLocation">Where to output the delta file</param>
-        /// <param name="extension">What extension to know it was made using this when applying the delta</param>
-        /// <returns>If we was able to create the delta file</returns>
-        private static bool CreateMSDiffFile(string baseFileLocation, string newFileLocation, string deltaFileLocation, out string extension)
-        {
-            extension = ".diff";
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Logger.Error("We aren't on Windows so can't apply MSDiff update");
-                return false;
-            }
-
-            var msDelta = new MsDeltaCompression();
-            try
-            {
-                msDelta.CreateDelta(baseFileLocation, newFileLocation, deltaFileLocation);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e);
-                return false;
-            }
-
-            return true;
-        }
-        
-        /// <summary>
-        /// Gets the contents of a file in a <see cref="byte"/>[]
-        /// </summary>
-        /// <param name="fileLocation">Where the file is located</param>
-        /// <returns>The files contents</returns>
-        private static byte[] GetBytesFromFile(string fileLocation)
-        {
-            //Get stream and then make byte[] to fill
-            var stream = File.OpenRead(fileLocation);
-
-            //Fill byte[] and dispose stream
-            var data = new byte[stream.Length];
-            stream.Read(data, 0, (int)stream.Length);
-            stream.Dispose();
-
-            //Return contents
-            return data;
-        }
-        
         /// <summary>
         /// Adds a file that is not in the last version into the <see cref="ZipArchive"/>
         /// </summary>
@@ -454,34 +366,6 @@ namespace TinyUpdate.Binary
                 fileStream.Dispose();
             }
             return true;
-        }
-        
-        /// <summary>
-        /// Removes path from string
-        /// </summary>
-        /// <param name="enumerable">file paths that contain the path</param>
-        /// <param name="path">Path to remove</param>
-        /// <returns>file paths without <see cref="path"/></returns>
-        private static IEnumerable<string> RemovePath(IEnumerable<string> enumerable, string path)
-        {
-            return enumerable.Select(file => 
-                file.Remove(0, path.Length + 1));
-        }
-        
-        //TODO: Make as extension so when on std 2.1 we can safely #if this out
-        private static string GetRelativePath(string baseFile, string newFile)
-        {
-            //If we get here then this is the same here
-            var basePath = baseFile;
-            var newPath = newFile;
-            while (!newPath.Contains(basePath))
-            {
-                basePath = basePath.Remove(0, basePath.IndexOf(Path.DirectorySeparatorChar) + 1);
-            }
-
-            newPath = newFile.Replace(basePath, "");
-            newPath = newFile.Remove(0, newPath.Length);
-            return newPath;
         }
     }
 }

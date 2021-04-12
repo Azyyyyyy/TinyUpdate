@@ -1,18 +1,16 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using DeltaCompressionDotNet.MsDelta;
+using TinyUpdate.Binary.Delta;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 using TinyUpdate.Binary.Entry;
-using TinyUpdate.Core.Extensions;
+using TinyUpdate.Binary.Extensions;
 
 namespace TinyUpdate.Binary
 {
@@ -22,13 +20,7 @@ namespace TinyUpdate.Binary
     public class BinaryApplier : IUpdateApplier
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryApplier");
-        private static readonly Dictionary<string, PatchType> PatchExtensions = new()
-        {
-            { ".bsdiff", PatchType.BSDiff },
-            { ".diff", PatchType.MSDiff },
-            { ".new", PatchType.New }
-        };
-        
+
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
         public string Extension { get; } = ".tuup";
 
@@ -56,7 +48,7 @@ namespace TinyUpdate.Binary
 
             /*Delete the folder if it exist, likely that application
              was closed while we was updating*/
-            CheckForFolder(newPath);
+            newPath.CheckForFolder();
             
             //Do the update!
             return await ApplyUpdate(basePath, newPath, entry, progress);
@@ -96,12 +88,12 @@ namespace TinyUpdate.Binary
             
             /*Delete the folder if it exist, likely that application
              was closed while we was updating*/
-            CheckForFolder(newVersionFolder);
+            newVersionFolder.CheckForFolder();
 
             /*Go through every update we have, reporting the
              progress by how many updates we have*/
             var updateCounter = 0m;
-            var updateCount = updateInfo.Updates.Count();
+            var updateCount = updateInfo.Updates.Length;
             var doneFirstUpdate = false;
             foreach (var updateEntry in updates)
             {
@@ -123,21 +115,6 @@ namespace TinyUpdate.Binary
             return true;
         }
 
-        /// <summary>
-        /// This checks if this folder exists and if it does, it will delete it and recreate it
-        /// </summary>
-        /// <param name="folder">Folder to check for</param>
-        private static void CheckForFolder(string folder)
-        {
-            /*Create the folder that's going to contain this update
-             deleting the folder if it already exists*/
-            if (Directory.Exists(folder))
-            {
-                Directory.Delete(folder, true);
-            }
-            Directory.CreateDirectory(folder);
-        }
-
         /// <inheritdoc cref="ApplyUpdate(ReleaseEntry, Action{decimal})"/>
         /// <param name="basePath">Path where we grab any old files that can be reused from</param>
         /// <param name="newPath">Where to put the new version of the application into</param>
@@ -151,7 +128,7 @@ namespace TinyUpdate.Binary
                 return false;
             }
             
-            //If we fail then delete the file, it's better to redownload then to get a virus!
+            //If we fail then delete the file, it's better to re-download then to get a virus!
             if (!entry.IsValidReleaseEntry(true))
             {
                 Logger.Error("Update file doesn't match what we expect... deleting update file and bailing");
@@ -161,7 +138,7 @@ namespace TinyUpdate.Binary
 
             //Grab all the files from the update file
             var zip = new ZipArchive(File.OpenRead(entry.FileLocation));
-            var updateEntry = await CreateUpdateEntry(zip);
+            var updateEntry = await zip.CreateUpdateEntry();
             if (updateEntry == null || updateEntry.Count == 0)
             {
                 /*This only happens when something is up with the update file,
@@ -191,7 +168,7 @@ namespace TinyUpdate.Binary
                 Logger.Debug("Processing {0}", file.FileLocation);
 
                 //Create folder (if it exists)
-                CreateDirectory(newPath, file.FileLocation);
+                newPath.CreateDirectory(file.FileLocation);
 
                 //Get where the old and "new" file should be
                 var originalFile = Path.Combine(basePath, file.FileLocation);
@@ -217,7 +194,7 @@ namespace TinyUpdate.Binary
                 Logger.Debug("Processing {0}", newFile.FileLocation);
 
                 //Create folder (if it exists)
-                CreateDirectory(newPath, newFile.FileLocation);
+                newPath.CreateDirectory(newFile.FileLocation);
 
                 var newFileLocation = Path.Combine(newPath, newFile.FileLocation);
                 var applySuccessful = await ProcessNewFile(newFile, newFileLocation);
@@ -239,12 +216,12 @@ namespace TinyUpdate.Binary
                 Logger.Debug("Processing {0}", deltaFile.FileLocation);
 
                 //Create folder (if it exists)
-                CreateDirectory(newPath, deltaFile.FileLocation);
+                newPath.CreateDirectory(deltaFile.FileLocation);
 
                 var originalFile = Path.Combine(basePath, deltaFile.FileLocation);
                 var newFileLocation = Path.Combine(newPath, deltaFile.FileLocation);
 
-                var applySuccessful = await ProcessDeltaFile(originalFile, newFileLocation, deltaFile, 
+                var applySuccessful = await DeltaApplying.ProcessDeltaFile(originalFile, newFileLocation, deltaFile, 
                     applyProgress => UpdateProgress(fileCounter + applyProgress));
                 
                 /*We up this counter after as a delta update can report the progress of it being applied, upping it before
@@ -278,18 +255,6 @@ namespace TinyUpdate.Binary
             return true;
         }
 
-        private static void CreateDirectory(string basePath, string? folderPath)
-        {
-            if (string.IsNullOrWhiteSpace(folderPath))
-            {
-                return;
-            }
-
-            var folder = Path.Combine(basePath, folderPath);
-            Logger.Debug("Creating folder {0}", folder);
-            Directory.CreateDirectory(folder);
-        }
-        
         /// <summary>
         /// Checks that the file applied is the file that should of been applied
         /// </summary>
@@ -327,25 +292,6 @@ namespace TinyUpdate.Binary
                 File.Delete(fileLocation);
             }
             return isExpectedFile;
-        }
-
-        /// <summary>
-        /// Processes a file that has a delta update
-        /// </summary>
-        /// <param name="originalFile">Where the original file is</param>
-        /// <param name="newFile">Where the file file needs to be</param>
-        /// <param name="file">Details about how we the update was made</param>
-        /// <param name="progress">Progress of applying update</param>
-        /// <returns>If we was able to process the file</returns>
-        private static async Task<bool> ProcessDeltaFile(string originalFile, string newFile, FileEntry file, Action<decimal>? progress = null)
-        {
-            Logger.Debug("File was updated, applying delta update");
-            return await (file.PatchType switch
-            {
-                PatchType.MSDiff => ApplyMSDiff(file, newFile, originalFile),
-                PatchType.BSDiff => ApplyBSDiff(file, newFile, originalFile, progress),
-                _ => Task.FromResult(false)
-            });
         }
 
         /// <summary>
@@ -417,274 +363,6 @@ namespace TinyUpdate.Binary
             await fileEntry.Stream.CopyToAsync(fileStream);
             fileStream.Dispose();
             return true;
-        }
-        
-        /// <summary>
-        /// Applies a patch that was created using <see cref="MsDeltaCompression"/>
-        /// </summary>
-        /// <param name="fileEntry">Patch to apply</param>
-        /// <param name="outputLocation">Where the output file should be</param>
-        /// <param name="baseFile">Where the original file is</param>
-        /// <returns>If the patch was applied correctly</returns>
-        private static async Task<bool> ApplyMSDiff(FileEntry fileEntry, string outputLocation, string baseFile)
-        {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Logger.Error("We aren't on Windows so can't apply MSDiff update");
-                return false;
-            }
-            
-            //Create Temp folder if it doesn't exist
-            Directory.CreateDirectory(Global.TempFolder);
-            
-            var tmpDeltaFile = Path.Combine(Global.TempFolder, fileEntry.Filename);
-
-            //Delete the tmp file if it already exists, likely from the last update
-            if (File.Exists(tmpDeltaFile))
-            {
-                File.Delete(tmpDeltaFile);
-            }
-
-            if (fileEntry.Stream == null)
-            {
-                Logger.Error("fileEntry's doesn't have a stream, can't make MSDiff update");
-                return false;
-            }
-            
-            //Put the delta file onto disk
-            var tmpFileStream = File.OpenWrite(tmpDeltaFile);
-            await fileEntry.Stream.CopyToAsync(tmpFileStream);
-            tmpFileStream.Dispose();
-            
-            //If baseFile + outputLocation are the same, copy it to a tmp file
-            //and then give it that (deleting it after)
-            string? tmpBaseFile = null;
-            if (baseFile == outputLocation)
-            {
-                tmpBaseFile = Path.Combine(Global.TempFolder, Path.GetRandomFileName());
-                File.Copy(baseFile, tmpBaseFile);
-                baseFile = tmpBaseFile;
-            }
-            
-            //Make the updated file!
-            var msDelta = new MsDeltaCompression();
-            try
-            {
-                File.Create(outputLocation).Dispose();
-                msDelta.ApplyDelta(tmpDeltaFile, baseFile, outputLocation);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e);
-                Logger.Error("File that failed to update: {0}", outputLocation);
-                return false;
-            }
-            finally
-            {
-                //Delete tmp files
-                File.Delete(tmpDeltaFile);
-                if (!string.IsNullOrWhiteSpace(tmpBaseFile))
-                {
-                    File.Delete(tmpBaseFile);
-                }
-            }
-            
-            return true;
-        }
-
-        /// <summary>
-        /// Applies a patch that was created using <see cref="BinaryPatchUtility"/>
-        /// </summary>
-        /// <inheritdoc cref="ApplyMSDiff"/>
-        /// <param name="progress">Progress of applying update</param>
-        /// <param name="fileEntry"></param>
-        /// <param name="outputLocation"></param>
-        /// <param name="baseFile"></param>
-        private static async Task<bool> ApplyBSDiff(FileEntry fileEntry, string outputLocation, string baseFile, Action<decimal>? progress)
-        {
-            Stream? inputStream = null;
-            /*If this is the same file then we want to copy it to mem and not
-             read from disk*/
-            if (outputLocation == baseFile)
-            {
-                inputStream = new MemoryStream();
-                var fileStream = StreamUtil.GetFileStreamRead(baseFile);
-                if (fileStream == null)
-                {
-                    Logger.Error("Wasn't able to grab {0} for applying a BSDiff update", baseFile);
-                    return false;
-                }
-                await fileStream.CopyToAsync(inputStream);
-                fileStream.Dispose();
-                inputStream.Seek(0, SeekOrigin.Begin);
-            }
-            
-            //Create streams for old file and where the new file will be
-            var outputStream = File.OpenWrite(outputLocation);
-            inputStream ??= StreamUtil.GetFileStreamRead(baseFile);
-            
-            //Check streams that can be null
-            if (inputStream == null)
-            {
-                Logger.Error("Wasn't able to grab {0} for applying a BSDiff update", baseFile);
-                return false;
-            }
-            
-            if (fileEntry.Stream == null)
-            {
-                Logger.Error("fileEntry's doesn't have a stream, can't make BSDiff update");
-                return false;
-            }
-            
-            //Create a memory stream as we really need to be able to seek
-            var patchMemStream = new MemoryStream();
-            await fileEntry.Stream.CopyToAsync(patchMemStream);
-            var successfulUpdate = await BinaryPatchUtility.Apply(inputStream,  () =>
-            {
-                //Copy the files over in a memory stream
-                var memStream = new MemoryStream();
-                patchMemStream.Seek(0, SeekOrigin.Begin);
-                patchMemStream.CopyTo(memStream);
-                memStream.Seek(0, SeekOrigin.Begin);
-
-                return memStream;
-            }, outputStream, progress);
-
-            outputStream.Dispose();
-            inputStream.Dispose();
-            return successfulUpdate;
-        }
-
-        private static async Task<UpdateEntry?> CreateUpdateEntry(ZipArchive zip)
-        {
-            var updateEntry = new UpdateEntry();
-            await updateEntry.LoadAsyncEnumerable(GetFilesFromPackage(zip));
-            return updateEntry;
-        }
-        
-        /// <summary>
-        /// Gets all the files that this update will have and any information needed correctly apply the update
-        /// </summary>
-        /// <param name="zip"><see cref="ZipArchive"/> that contains all the files</param>
-        private static async IAsyncEnumerable<FileEntry?> GetFilesFromPackage(ZipArchive zip)
-        {
-            var fileEntries = new List<FileEntry>();
-            foreach (var zipEntry in zip.Entries)
-            {
-                //Get file extension, if it doesn't have one then we don't
-                //want to deal with it as it's something we don't work with
-                var entryEtx = Path.GetExtension(zipEntry.Name);
-                if (string.IsNullOrEmpty(entryEtx))
-                {
-                    continue;
-                }
-                
-                //Get the filename + path so we can find the entry if it exists (or create if it doesn't)
-                var filename = zipEntry.Name.Remove(zipEntry.Name.LastIndexOf(entryEtx, StringComparison.Ordinal));
-                var filepath = Path.GetDirectoryName(zipEntry.FullName);
-
-                //Get the index of the entry for adding new data (if it exists)
-                var entryIndex = fileEntries.IndexOf(x => x?.Filename == filename && x.FolderPath == filepath);
-                
-                //This means that the file is the binary that contains the patch, we want to get a stream to it
-                if (PatchExtensions.ContainsKey(entryEtx))
-                {
-                    /*If we don't have the details about this update yet then just give the stream
-                     we can always dispose of the stream if we find out that we don't need it*/
-                    if (entryIndex == -1)
-                    {
-                        fileEntries.Add(new FileEntry(filename, filepath)
-                        {
-                            Stream = zipEntry.Open(),
-                            PatchType = PatchExtensions[entryEtx]
-                        });
-                        continue;
-                    }
-
-                    //We know that we need the stream if the Filesize isn't 0
-                    fileEntries[entryIndex].PatchType = PatchExtensions[entryEtx];
-                    if (fileEntries[entryIndex].Filesize != 0)
-                    {
-                        fileEntries[entryIndex].Stream = zipEntry.Open();
-                    }
-                    
-                    //TODO: Check everything is here
-                    yield return fileEntries[entryIndex];
-                    fileEntries.RemoveAt(entryIndex);
-                    continue;
-                }
-                
-                /*This means that we will be finding any checking details
-                 that we need to use when applying a patch (if this check returns false)*/
-                if (entryEtx != ".shasum")
-                {
-                    continue;
-                }
-
-                var (sha256Hash, filesize) = await GetShasumDetails(zipEntry.Open());
-                if (string.IsNullOrWhiteSpace(sha256Hash) || filesize == -1)
-                {
-                    /*If this happens then update file is not how it should be, clear all streams and return nothing*/
-                    foreach (var fileEntry in fileEntries)
-                    {
-                        fileEntry.Stream?.Dispose();
-                    }
-
-                    yield break;
-                }
-
-                //Update/Create FileEntry with hash and filesize
-                if (entryIndex == -1)
-                {
-                    fileEntries.Add(new FileEntry(filename, filepath)
-                    {
-                        SHA256 = sha256Hash,
-                        Filesize = filesize
-                    });
-                    continue;
-                }
-
-                //TODO: Check everything is here
-                fileEntries[entryIndex].SHA256 = sha256Hash;
-                fileEntries[entryIndex].Filesize = filesize;
-                yield return fileEntries[entryIndex];
-                fileEntries.RemoveAt(entryIndex);
-            }
-        }
-
-        /// <summary>
-        /// Gets the hash and filesize from a file that contains data about a file we need to use for updating
-        /// </summary>
-        /// <param name="fileStream">Stream of that file</param>
-        /// <returns>SHA256 hash and filesize that is expected</returns>
-        private static async Task<(string? sha256Hash, long filesize)> GetShasumDetails(Stream fileStream)
-        {
-            //Grab the text from the file
-            var textStream = new StreamReader(fileStream);
-            var text = await textStream.ReadToEndAsync();
-
-            //Dispose the streams
-            textStream.Dispose();
-            fileStream.Dispose();
-
-            //Return nothing if we don't have anything
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return (null, -1);
-            }
-
-            //Grab what we need, checking that it's what we expect
-            var textS = text.Split(' ');
-            var hash = textS[0];
-            if (textS.Length != 2 ||
-                string.IsNullOrWhiteSpace(hash) ||
-                !SHA256Util.IsValidSHA256(hash) ||
-                !long.TryParse(textS[1], out var filesize))
-            {
-                return (null, -1);
-            }
-
-            return (hash, filesize);
         }
     }
 }

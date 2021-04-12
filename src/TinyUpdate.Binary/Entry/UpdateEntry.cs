@@ -9,7 +9,7 @@ namespace TinyUpdate.Binary.Entry
     /// <summary>
     /// An entry with all of the files that are in a update
     /// </summary>
-    internal class UpdateEntry
+    public class UpdateEntry
     {
         private readonly ILogging _logger = LoggingCreator.CreateLogger("UpdateEntry");
         public UpdateEntry(IEnumerable<FileEntry> fileEntries)
@@ -69,7 +69,7 @@ namespace TinyUpdate.Binary.Entry
             }
             SameFile.Add(fileEntry);
         }
-        
+
         /// <summary>
         /// Files that need to be processed as a delta file
         /// </summary>

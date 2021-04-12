@@ -40,7 +40,7 @@ namespace TinyUpdate.Core.Update
         {
             if (updateInfo.HasUpdate)
             {
-                return await GetChangelog(updateInfo.Updates.OrderBy(x => x.Version).First());
+                return await GetChangelog(updateInfo.Updates.First(x => x.Version == updateInfo.NewVersion));
             }
 
             return null;
@@ -62,23 +62,27 @@ namespace TinyUpdate.Core.Update
         /// <returns>If we was able to download the updates</returns>
         public virtual async Task<bool> DownloadUpdate(UpdateInfo updateInfo, Action<decimal>? progress)
         {
-            var updates = updateInfo.Updates.OrderBy(x => x.Version);
+            var updates = updateInfo.Updates.OrderBy(x => x.Version).ThenByDescending(x => x.IsDelta).ToArray();
 
             /*Go through every update we have, reporting the
              progress by how many updates we have*/
-            var downloadCounter = 0m;
-            var downloadCount = updateInfo.Updates.Count();
+            var totalBytesToDownload = updates.Select(x => x.Filesize).Sum();
+            var totalBytesDownloaded = 0l;
             foreach (var updateEntry in updates)
             {
                 /*Base path changes based on if the first update has been done*/
                 if (!await DownloadUpdate(updateEntry,
-                    updateProgress => progress?.Invoke((updateProgress + downloadCounter) / downloadCount)))
+                    updateProgress =>
+                    {
+                        progress?.Invoke(((updateEntry.Filesize * updateProgress) + totalBytesDownloaded) /
+                                         totalBytesToDownload);
+                    }))
                 {
                     Logger.Error("Downloading version {0} failed", updateEntry.Version);
                     return false;
                 }
 
-                downloadCounter++;
+                totalBytesDownloaded += updateEntry.Filesize;
             }
             
             return true;

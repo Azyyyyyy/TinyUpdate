@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using TinyUpdate.Core;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core.Tests

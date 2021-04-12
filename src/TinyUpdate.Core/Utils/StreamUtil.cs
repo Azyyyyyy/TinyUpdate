@@ -15,7 +15,7 @@ namespace TinyUpdate.Core.Utils
         /// Provides a <see cref="FileStream"/> after doing some checking
         /// </summary>
         /// <param name="fileLocation">File to grab</param>
-        public static FileStream? GetFileStreamRead(string fileLocation)
+        public static FileStream? SafeOpenRead(string fileLocation)
         {
             if (!File.Exists(fileLocation))
             {

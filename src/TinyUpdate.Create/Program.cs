@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -100,10 +100,7 @@ namespace TinyUpdate.Create
             }
 
             //Check that they got filled in
-            if (_applicationNewVersion == null)
-            {
-                _applicationNewVersion = RequestVersion("Couldn't get application version, what is the new version of the application");
-            }
+            _applicationNewVersion ??= RequestVersion("Couldn't get application version, what is the new version of the application");
             if (_createDeltaUpdate && _applicationOldVersion == null)
             {
                 _applicationOldVersion = RequestVersion("Couldn't get application version, what is the old version of the application");

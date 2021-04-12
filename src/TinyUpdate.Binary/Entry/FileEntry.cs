@@ -5,7 +5,7 @@ namespace TinyUpdate.Binary.Entry
     /// <summary>
     /// File entry with all the information to do a update
     /// </summary>
-    internal class FileEntry
+    public class FileEntry
     {
         public FileEntry(string filename, string? folderPath)
         {

@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Test", "test\Tin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Create", "src\TinyUpdate.Create\TinyUpdate.Create.csproj", "{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Updaters", "Updaters", "{60A271CD-1066-4FD6-818B-C853119638F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Github", "src\Updaters\TinyUpdate.Github\TinyUpdate.Github.csproj", "{D737936B-5E1B-4FFF-88EE-A587564FD9FF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,6 +53,10 @@ Global
 		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D737936B-5E1B-4FFF-88EE-A587564FD9FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D737936B-5E1B-4FFF-88EE-A587564FD9FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D737936B-5E1B-4FFF-88EE-A587564FD9FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D737936B-5E1B-4FFF-88EE-A587564FD9FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,6 +68,8 @@ Global
 		{0392D9B0-B557-42AF-B0DF-C6B97703F902} = {2758B32D-CB41-474D-BB8B-ADB8473C77AE}
 		{3688FDF1-07F4-48F3-B4E2-CA53B4991ADC} = {2758B32D-CB41-474D-BB8B-ADB8473C77AE}
 		{960F745A-E78C-4EE4-8A52-5DA1E5AEA426} = {9C7F5078-B017-4447-85E8-74E38B1D0147}
+		{60A271CD-1066-4FD6-818B-C853119638F2} = {9C7F5078-B017-4447-85E8-74E38B1D0147}
+		{D737936B-5E1B-4FFF-88EE-A587564FD9FF} = {60A271CD-1066-4FD6-818B-C853119638F2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C33583C4-B2A9-41B5-A4DA-9062595FDCBD}

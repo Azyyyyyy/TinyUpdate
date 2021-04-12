@@ -9,7 +9,7 @@ namespace TinyUpdate.Core.Utils
     /// </summary>
     public static class FilePathUtil
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger("FilePathUtil");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(FilePathUtil));
         private static readonly string[] FileNameInvalidChars;
         private static readonly string[] PathInvalidChars;
 
@@ -45,8 +45,7 @@ namespace TinyUpdate.Core.Utils
         /// <param name="s">File path to check</param>
         /// <param name="invalidChar"><see cref="char"/> that is invalid</param>
         public static bool IsValidForFilePath(this string s, out char? invalidChar) => CheckValidation(PathInvalidChars, s, out invalidChar);
-        
-        
+
         /// <summary>
         /// Checks string for anything that it shouldn't be in it
         /// </summary>

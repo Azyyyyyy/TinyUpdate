@@ -2,6 +2,7 @@
 using System.IO;
 using TinyUpdate.Core.Exceptions;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core
@@ -20,8 +21,10 @@ namespace TinyUpdate.Core
             bool isDelta, 
             Version version, 
             string? filePath = null, 
-            Version? oldVersion = null)
+            Version? oldVersion = null,
+            string? tag = null)
         {
+            //If it's a delta file then we should also be given an oldVersion
             if (isDelta)
             {
                 if (oldVersion == null)
@@ -31,13 +34,18 @@ namespace TinyUpdate.Core
                 OldVersion = oldVersion;
             }
             
+            //Check hash and file name/path
             if (!SHA256Util.IsValidSHA256(sha256))
             {
                 throw new Exception("SHA256 hash given is not a valid SHA256 hash");
             }
             if (!filename.IsValidForFileName(out var invalidChar))
             {
-                throw new InvalidFilePathException(invalidChar);
+                throw new InvalidFileNameException(invalidChar);
+            }
+            if (filePath != null && filePath.IsValidForFilePath(out var invalidPathChar))
+            {
+                throw new InvalidFilePathException(invalidPathChar);
             }
             _logger = LoggingCreator.CreateLogger($"ReleaseEntry ({filename})");
 
@@ -47,7 +55,13 @@ namespace TinyUpdate.Core
             IsDelta = isDelta;
             Version = version;
             FileLocation = Path.Combine(filePath ?? Global.TempFolder, Filename);
+            Tag = tag;
         }
+
+        /// <summary>
+        /// Tag that a <see cref="UpdateChecker"/> can use to store some extra data that is needed
+        /// </summary>
+        public string? Tag { get; }
 
         /// <summary>
         /// The SHA256 of the file that contains this release
@@ -90,16 +104,16 @@ namespace TinyUpdate.Core
         /// <param name="checkFile">If we should also check the update file and not just the metadata we have about it and if it's currently on disk</param>
         public virtual bool IsValidReleaseEntry(bool checkFile = false)
         {
-            //Check that file exists
-            if (!File.Exists(FileLocation))
-            {
-                _logger.Warning("{0} doesn't exist, this release entry isn't valid", FileLocation);
-                return false;
-            }
-            
             //If we want to check the file then we want to check the SHA256 + file size
             if (checkFile)
             {
+                //Check that file exists
+                if (!File.Exists(FileLocation))
+                {
+                    _logger.Warning("{0} doesn't exist, this release entry isn't valid", FileLocation);
+                    return false;
+                }
+                
                 try
                 {
                     using var file = File.Open(FileLocation, FileMode.Open);

@@ -12,12 +12,12 @@
         }
 
         /// <summary>
-        /// Content to use for rendering a changelog
+        /// Content to use for rendering the changelog
         /// </summary>
         public string? Content { get; }
 
         /// <summary>
-        /// What is going to be used when rendering <see cref="Content"/> to the user
+        /// What technology to use when rendering <see cref="Content"/>
         /// </summary>
         public NoteType Type { get; }
     }

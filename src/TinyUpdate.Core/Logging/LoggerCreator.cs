@@ -12,6 +12,7 @@ namespace TinyUpdate.Core.Logging
     {
         private static readonly List<LoggingBuilder> LogBuilders = new();
         
+        //TODO: Make a empty logger for when we got no log builder
         /// <summary>
         /// Creates <see cref="ILogging"/>
         /// </summary>

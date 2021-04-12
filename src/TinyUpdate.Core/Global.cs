@@ -57,9 +57,12 @@ namespace TinyUpdate.Core
                 {
                     throw new InvalidFilePathException(invalidChar);
                 }
-                _tempFolder = Path.Combine(value, Path.GetFileName(ApplicationFolder));
+                _tempFolder = Path.Combine(value, ApplicationName);
             }
         }
+
+        //TODO: Check for name being File path/name safe
+        public static string ApplicationName { get; set; }
 
         private static string _applicationFolder;
         /// <summary>
