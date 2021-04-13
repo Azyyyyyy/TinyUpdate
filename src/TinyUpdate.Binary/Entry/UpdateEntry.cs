@@ -11,7 +11,7 @@ namespace TinyUpdate.Binary.Entry
     /// </summary>
     public class UpdateEntry
     {
-        private readonly ILogging _logger = LoggingCreator.CreateLogger("UpdateEntry");
+        private readonly ILogging _logger = LoggingCreator.CreateLogger(nameof(UpdateEntry));
         public UpdateEntry(IEnumerable<FileEntry> fileEntries)
         {
             foreach (var fileEntry in fileEntries)

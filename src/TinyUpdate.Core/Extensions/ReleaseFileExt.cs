@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core.Extensions
@@ -9,6 +10,8 @@ namespace TinyUpdate.Core.Extensions
     /// </summary>
     public static class ReleaseFileExt
     {
+        private static ILogging Logger = LoggingCreator.CreateLogger(nameof(ReleaseFileExt));
+        
         /// <summary>
         /// Creates a <see cref="ReleaseEntry"/> from <see cref="ReleaseFile"/>'s
         /// </summary>
@@ -19,13 +22,20 @@ namespace TinyUpdate.Core.Extensions
             foreach (var releaseFile in releaseFiles)
             {
                 var fileName = Path.GetFileNameWithoutExtension(releaseFile.Name);
-                yield return new 
+                var version = fileName.ToVersion();
+                if (version == null)
+                {
+                    Logger.Warning("we wasn't able to get a version from the filename {0}, skipping...", fileName);
+                    continue;
+                }
+                
+                yield return new
                     ReleaseEntry(
                         releaseFile.SHA256, 
                         releaseFile.Name,
                         releaseFile.Size, 
                         fileName.EndsWith("-delta"),
-                        fileName.ToVersion(), 
+                        version,
                         oldVersion: releaseFile.OldVersion, 
                         tag: tag);
             }

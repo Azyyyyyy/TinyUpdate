@@ -11,8 +11,8 @@ namespace TinyUpdate.Core.Utils
     /// </summary>
     public static class SHA256Util
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger("SHA256");
-        private static readonly Regex SHA256Regex = new("^[a-fA-F0-9]{64}$");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(SHA256Util));
+        private static readonly Regex SHA256Regex = new("^[a-fA-F0-9]{64}$", RegexOptions.Compiled);
         
         /// <summary>
         /// Checks the output of a <see cref="Stream"/> to a SHA256 hash that is expected
@@ -23,6 +23,7 @@ namespace TinyUpdate.Core.Utils
         public static bool CheckSHA256(Stream stream, string expectedSHA256)
         {
             stream.Seek(0, SeekOrigin.Begin);
+
             //Make a byte[] that can be used for hashing
             using SHA256Managed sha256 = new();
             return CheckSHA256(sha256.ComputeHash(stream), expectedSHA256);

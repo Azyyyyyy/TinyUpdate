@@ -20,7 +20,7 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryCreator : IUpdateCreator
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryCreator");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryCreator));
 
         /// <inheritdoc cref="IUpdateCreator.Extension"/>
         public string Extension { get; } = ".tuup";
@@ -257,10 +257,9 @@ namespace TinyUpdate.Binary
         {
             //Create where the delta file can be stored to grab once made 
             var tmpDeltaFile = Path.Combine(Global.TempFolder, Path.GetRandomFileName());
-            Stream? deltaFileStream = null;
-            
+
             //Try to create diff file, outputting extension (and maybe a stream) based on what was used to make it
-            if (!DeltaCreation.CreateDeltaFile(baseFileLocation, newFileLocation, tmpDeltaFile, out var extension, out deltaFileStream))
+            if (!DeltaCreation.CreateDeltaFile(baseFileLocation, newFileLocation, tmpDeltaFile, out var extension, out var deltaFileStream))
             {
                 //Wasn't able to, report back as fail
                 Logger.Error("Wasn't able to create delta file");
@@ -271,6 +270,7 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
+            //Check that we got something to work with
             if (deltaFileStream == null && !File.Exists(tmpDeltaFile))
             {
                 Logger.Error("We have no delta file/stream to work off somehow");

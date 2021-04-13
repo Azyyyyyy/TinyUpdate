@@ -11,7 +11,6 @@ namespace TinyUpdate.Github.Rest
 {
     public class GithubApiRest : GithubApi
     {
-        private readonly ILogging _logger = LoggingCreator.CreateLogger(nameof(GithubApiGraphQL));
         public GithubApiRest() : base("https://api.github.com")
         {
         }
@@ -21,7 +20,7 @@ namespace TinyUpdate.Github.Rest
             var releases = await GetGithubReleaseRest(organization, repository);
             if (releases == null)
             {
-                _logger.Error("We can't use what was returned from GitHub API");
+                Logger.Error("We can't use what was returned from GitHub API");
                 return null;
             }
 
@@ -29,10 +28,10 @@ namespace TinyUpdate.Github.Rest
             var release = releases.Assets.FirstOrDefault(x => x.Name == "RELEASES");
             if (release == null)
             {
-                _logger.Error("We can't find any RELEASES file in the newest github release");
+                Logger.Error("We can't find any RELEASES file in the newest github release");
                 return null;
             }
-            _logger.Information("RELEASES file exists in newest github release, downloading if not already downloaded");
+            Logger.Information("RELEASES file exists in newest github release, downloading if not already downloaded");
 
             return await DownloadAndParseReleaseFile(releases.TagName, release.Size, release.BrowserDownloadUrl);
         }
@@ -56,16 +55,16 @@ namespace TinyUpdate.Github.Rest
             
             //Make request for getting the newest update and
             //Check that we got something from it
-            using var response = await _httpClient.GetAsync($"/repos/{organization}/{repository}/releases/latest");
+            using var response = await HttpClient.GetAsync($"/repos/{organization}/{repository}/releases/latest");
             if (response.IsSuccessStatusCode)
             {
                 return await JsonSerializer.DeserializeAsync<GithubReleaseRest>(await response.Content.ReadAsStreamAsync());
             }
 
-            _logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
+            Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                _logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+                Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
             }
 
             return null;

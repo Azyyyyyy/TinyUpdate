@@ -5,9 +5,12 @@ using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Binary.Extensions
 {
+    /// <summary>
+    /// Extensions to make working with paths easier
+    /// </summary>
     public static class PathExt
     {
-        private static ILogging Logger = LoggingCreator.CreateLogger(nameof(PathExt));
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(PathExt));
         
         /// <summary>
         /// Removes path from string
@@ -26,10 +29,8 @@ namespace TinyUpdate.Binary.Extensions
         /// </summary>
         /// <param name="baseFile">First file to base the path on</param>
         /// <param name="newFile">Second file to base the path on</param>
-        /// <returns></returns>
         public static string GetRelativePath(this string baseFile, string newFile)
         {
-            //If we get here then this is the same here
             var basePath = baseFile;
             var newPath = newFile;
             while (!newPath.Contains(basePath))
@@ -57,6 +58,11 @@ namespace TinyUpdate.Binary.Extensions
             Directory.CreateDirectory(folder);
         }
 
+        /// <summary>
+        /// Creates a <see cref="Directory"/> from two paths
+        /// </summary>
+        /// <param name="basePath">Base path</param>
+        /// <param name="folderPath">path to append to <see cref="basePath"/></param>
         public static void CreateDirectory(this string basePath, string? folderPath)
         {
             if (string.IsNullOrWhiteSpace(folderPath))

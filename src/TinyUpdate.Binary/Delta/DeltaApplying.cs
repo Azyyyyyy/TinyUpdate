@@ -10,6 +10,9 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary.Delta
 {
+    /// <summary>
+    /// Processes applying delta update files 
+    /// </summary>
     public class DeltaApplying
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(DeltaApplying));

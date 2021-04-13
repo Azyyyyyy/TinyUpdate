@@ -9,7 +9,7 @@ namespace TinyUpdate.Core.Utils
     /// </summary>
     public static class StreamUtil
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger("StreamUtil");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(StreamUtil));
 
         /// <summary>
         /// Provides a <see cref="FileStream"/> after doing some checking

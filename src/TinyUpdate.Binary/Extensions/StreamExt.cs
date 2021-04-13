@@ -4,6 +4,9 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Binary.Extensions
 {
+    /// <summary>
+    /// Extensions to make grabbing data from <see cref="Stream"/>'s easier
+    /// </summary>
     public static class StreamExt
     {
         /// <summary>

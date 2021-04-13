@@ -5,13 +5,18 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
-
+    <Import Project="../../../Nuget-metadata.csproj" />
+    
     <ItemGroup>
       <ProjectReference Include="..\..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
       <PackageReference Include="System.Text.Json" Version="5.0.2" />
     </ItemGroup>
 

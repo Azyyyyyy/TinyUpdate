@@ -57,7 +57,7 @@ namespace TinyUpdate.Binary
     */
     internal static class BinaryPatchUtility
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryPatchUtility");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryPatchUtility));
 
         /// <summary>
         /// Creates a binary patch (in <a href="http://www.daemonology.net/bsdiff/">bsdiff</a> format) that can be used

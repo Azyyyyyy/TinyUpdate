@@ -47,7 +47,7 @@ namespace TinyUpdate.Core
             {
                 throw new InvalidFilePathException(invalidPathChar);
             }
-            _logger = LoggingCreator.CreateLogger($"ReleaseEntry ({filename})");
+            _logger = LoggingCreator.CreateLogger($"{nameof(ReleaseEntry)} ({filename})");
 
             SHA256 = sha256;
             Filename = filename;

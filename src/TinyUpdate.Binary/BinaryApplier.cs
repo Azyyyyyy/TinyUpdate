@@ -19,7 +19,7 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryApplier : IUpdateApplier
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger("BinaryApplier");
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryApplier));
 
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
         public string Extension { get; } = ".tuup";

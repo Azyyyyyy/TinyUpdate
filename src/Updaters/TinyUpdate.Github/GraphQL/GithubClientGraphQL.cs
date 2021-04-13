@@ -15,12 +15,11 @@ namespace TinyUpdate.Github.GraphQL
     // ReSharper disable once InconsistentNaming
     internal class GithubApiGraphQL : GithubApi
     {
-        private readonly ILogging _logger = LoggingCreator.CreateLogger(nameof(GithubApiGraphQL));
         public GithubApiGraphQL(string personalToken) 
             : base("https://api.github.com/graphql")
         {
             var basicValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(personalToken));
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicValue);
+            HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicValue);
         }
 
         private const string ChangeLogQuery = 
@@ -72,16 +71,16 @@ namespace TinyUpdate.Github.GraphQL
             };
 
             //Check that we got something from it
-            var response = await _httpClient.SendAsync(request);
+            var response = await HttpClient.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
                 return response;
             }
 
-            _logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
+            Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                _logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+                Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
             }
             return null;
         }
@@ -98,7 +97,7 @@ namespace TinyUpdate.Github.GraphQL
             var releases = await JsonSerializer.DeserializeAsync<GithubReleaseGraphQL>(await response.Content.ReadAsStreamAsync());
             if (releases == null)
             {
-                _logger.Error("We can't use what was returned from GitHub API");
+                Logger.Error("We can't use what was returned from GitHub API");
                 return null;
             }
 
@@ -106,10 +105,10 @@ namespace TinyUpdate.Github.GraphQL
             var release = releases.Data.Organization.Repository.Releases.Nodes.FirstOrDefault();
             if (release?.ReleaseAssets.Nodes.FirstOrDefault()?.Name != "RELEASES")
             {
-                _logger.Error("We can't find any RELEASES file in the newest github release");
+                Logger.Error("We can't find any RELEASES file in the newest github release");
                 return null;
             }
-            _logger.Information("RELEASES file exists in newest github release, downloading if not already downloaded");
+            Logger.Information("RELEASES file exists in newest github release, downloading if not already downloaded");
 
             return await DownloadAndParseReleaseFile(release.TagName, release.ReleaseAssets.Nodes.First().Size, release.ReleaseAssets.Nodes.First().DownloadUrl);
         }
@@ -126,7 +125,7 @@ namespace TinyUpdate.Github.GraphQL
             var releases = await JsonSerializer.DeserializeAsync<GithubReleaseGraphQL>(await response.Content.ReadAsStreamAsync());
             if (releases == null)
             {
-                _logger.Error("We can't use what was returned from GitHub API");
+                Logger.Error("We can't use what was returned from GitHub API");
                 return null;
             }
 

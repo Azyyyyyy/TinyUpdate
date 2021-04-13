@@ -11,17 +11,17 @@ namespace TinyUpdate.Github
 {
     public abstract class GithubApi
     {
-        protected readonly HttpClient _httpClient;
-        protected readonly ILogging _logging;
+        protected readonly HttpClient HttpClient;
+        protected readonly ILogging Logger;
         
         protected GithubApi(string apiEndpoint)
         {
-            _logging = LoggingCreator.CreateLogger(GetType().Name);
-            _httpClient = new HttpClient
+            Logger = LoggingCreator.CreateLogger(GetType().Name);
+            HttpClient = new HttpClient
             {
                 BaseAddress = new Uri(apiEndpoint)
             };
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{Global.ApplicationName}-{Global.ApplicationVersion}");
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{Global.ApplicationName}-{Global.ApplicationVersion}");
         }
 
         public abstract Task<UpdateInfo?> CheckForUpdate(string organization, string repository);
@@ -35,14 +35,14 @@ namespace TinyUpdate.Github
             if (!File.Exists(releaseFileLoc))
             {
                 Directory.CreateDirectory(Global.TempFolder);
-                using var releaseStream = await _httpClient.GetStreamAsync(downloadUrl);
+                using var releaseStream = await HttpClient.GetStreamAsync(downloadUrl);
                 using var releaseFileStream = File.Open(releaseFileLoc, FileMode.CreateNew, FileAccess.ReadWrite);
                 await releaseStream.CopyToAsync(releaseFileStream);
 
                 //Just do a sanity check
                 if (releaseFileStream.Length != fileSize)
                 {
-                    _logging.Error("RELEASE file isn't the length as expected, deleting and returning null...");
+                    Logger.Error("RELEASE file isn't the length as expected, deleting and returning null...");
                     releaseFileStream.Dispose();
                     File.Delete(releaseFileLoc);
                     return null;

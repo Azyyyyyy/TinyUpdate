@@ -6,7 +6,8 @@
         <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
         <PackageOutputPath>../../packages</PackageOutputPath>
     </PropertyGroup>
-
+    <Import Project="../../Nuget-metadata.csproj" />
+    
     <!--So we can get what OS we are building for on compiling-->
     <PropertyGroup>
         <IsWindows>false</IsWindows>
@@ -64,7 +65,5 @@
         <EmbeddedResource Include="Native\macOS\**" />
         <None Include="Native\macOS\**" />
     </ItemGroup>
-
-    <Import Project="../../Nuget-metadata.csproj" />
 
 </Project>

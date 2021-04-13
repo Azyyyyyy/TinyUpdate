@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Core.Utils
@@ -10,25 +11,23 @@ namespace TinyUpdate.Core.Utils
     public static class FilePathUtil
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(FilePathUtil));
-        private static readonly string[] FileNameInvalidChars;
-        private static readonly string[] PathInvalidChars;
+        private static readonly char[] FileNameInvalidChars;
+        private static readonly char[] PathInvalidChars;
 
-        //TODO: Maybe make a char Contains extension so we don't need this?
-        //We have to make it a string because string.Contains() doesn't allow checking with chars....
         static FilePathUtil()
         {
             var invalidChars = Path.GetInvalidFileNameChars();
-            FileNameInvalidChars = new string[invalidChars.LongLength];
+            FileNameInvalidChars = new char[invalidChars.LongLength];
             for (var i = 0; i < invalidChars.LongLength; i++)
             {
-                FileNameInvalidChars[i] = invalidChars[i].ToString();
+                FileNameInvalidChars[i] = invalidChars[i];
             }
             
             invalidChars = Path.GetInvalidPathChars();
-            PathInvalidChars = new string[invalidChars.LongLength];
+            PathInvalidChars = new char[invalidChars.LongLength];
             for (var i = 0; i < invalidChars.LongLength; i++)
             {
-                PathInvalidChars[i] = invalidChars[i].ToString();
+                PathInvalidChars[i] = invalidChars[i];
             }
         }
 
@@ -52,26 +51,24 @@ namespace TinyUpdate.Core.Utils
         /// <param name="chars"><see cref="char"/>[] that shouldn't be in <see cref="s"/></param>
         /// <param name="s">string to check</param>
         /// <param name="invalidChar"><see cref="char"/> that was in <see cref="s"/> but shouldn't be</param>
-        private static bool CheckValidation(IEnumerable<string> chars, string s, out char? invalidChar)
+        private static bool CheckValidation(IReadOnlyCollection<char> chars, string s, out char? invalidChar)
         {
             Logger.Debug("Checking {0}", s);
-            //Check that the string even has anything
             invalidChar = null;
+
+            //Check that the string even has anything
             if (string.IsNullOrWhiteSpace(s))
             {
-                Logger.Debug("{0} is not usable", s);
+                Logger.Debug("{0} contains nothing", s);
                 return false;
             }
 
             //Check the chars
-            foreach (var charToCheck in chars)
+            foreach (var sChar in s.Where(chars.Contains))
             {
-                if (s.Contains(charToCheck))
-                {
-                    invalidChar = charToCheck[0];
-                    Logger.Debug("{0} is not usable", s);
-                    return false;
-                }
+                invalidChar = sChar;
+                Logger.Debug("{0} is not usable", s);
+                return false;
             }
 
             Logger.Debug("{0} is usable", s);

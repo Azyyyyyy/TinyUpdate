@@ -67,7 +67,7 @@ namespace TinyUpdate.Core.Update
             /*Go through every update we have, reporting the
              progress by how many updates we have*/
             var totalBytesToDownload = updates.Select(x => x.Filesize).Sum();
-            var totalBytesDownloaded = 0l;
+            var totalBytesDownloaded = 0L;
             foreach (var updateEntry in updates)
             {
                 /*Base path changes based on if the first update has been done*/

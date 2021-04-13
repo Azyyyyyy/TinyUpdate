@@ -15,7 +15,7 @@ namespace TinyUpdate.Core
     {
         static Global()
         {
-            //TODO: Replace this with something else, it really doesn't hold up for being 
+            //TODO: Replace this with something else, it really doesn't hold up for being used
             //Get the assembly, check that a version number exists and that we can make a Version out of it
             var runningAssembly = Assembly.GetEntryAssembly();
             if (runningAssembly == null)

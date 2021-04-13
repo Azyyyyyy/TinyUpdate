@@ -2,6 +2,9 @@
 
 namespace TinyUpdate.Binary.Extensions
 {
+    /// <summary>
+    /// Extensions to make grabbing data from <see cref="FileEntry"/>'s easier
+    /// </summary>
     internal static class FileEntryExt
     {
         /// <summary>

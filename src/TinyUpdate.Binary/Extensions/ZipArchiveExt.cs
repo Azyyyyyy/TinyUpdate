@@ -8,6 +8,9 @@ using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Binary.Extensions
 {
+    /// <summary>
+    /// Extensions to make using <see cref="ZipArchive"/> easier
+    /// </summary>
     public static class ZipArchiveExt
     {
         private static readonly Dictionary<string, PatchType> PatchExtensions = new()
@@ -17,6 +20,10 @@ namespace TinyUpdate.Binary.Extensions
             { ".new", PatchType.New }
         };
         
+        /// <summary>
+        /// Creates a <see cref="UpdateEntry"/> from the contents of a <see cref="ZipArchive"/>
+        /// </summary>
+        /// <param name="zip"><see cref="ZipArchive"/> to grab data from</param>
         public static async Task<UpdateEntry?> CreateUpdateEntry(this ZipArchive zip)
         {
             var updateEntry = new UpdateEntry();
@@ -28,7 +35,7 @@ namespace TinyUpdate.Binary.Extensions
         /// Gets all the files that this update will have and any information needed correctly apply the update
         /// </summary>
         /// <param name="zip"><see cref="ZipArchive"/> that contains all the files</param>
-        private static async IAsyncEnumerable<FileEntry?> GetFilesFromPackage(this ZipArchive zip)
+        public static async IAsyncEnumerable<FileEntry?> GetFilesFromPackage(this ZipArchive zip)
         {
             var fileEntries = new List<FileEntry>();
             foreach (var zipEntry in zip.Entries)
