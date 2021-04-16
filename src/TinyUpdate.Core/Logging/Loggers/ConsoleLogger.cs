@@ -16,31 +16,31 @@ namespace TinyUpdate.Core.Logging.Loggers
         public string Name { get; }
 
         /// <inheritdoc cref="ILogging.Debug"/>
-        public void Debug(string message, params object[] propertyValues)
+        public void Debug(string message, params object?[] propertyValues)
         {
             Write("DEBUG", ConsoleColor.Blue, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Error(string, object[])"/>
-        public void Error(string message, params object[] propertyValues)
+        public void Error(string message, params object?[] propertyValues)
         {
             Write("ERROR", ConsoleColor.Red, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
-        public void Error(Exception e, params object[] propertyValues)
+        public void Error(Exception e, params object?[] propertyValues)
         {
             Error(e.Message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Information"/>
-        public void Information(string message, params object[] propertyValues)
+        public void Information(string message, params object?[] propertyValues)
         {
             Write("INFO", ConsoleColor.Cyan, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Warning"/>
-        public void Warning(string message, params object[] propertyValues)
+        public void Warning(string message, params object?[] propertyValues)
         {
             Write("WARNING", ConsoleColor.Yellow, message, propertyValues);
         }
@@ -52,7 +52,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <param name="colour">Colour to be used for [TYPE - NAME]</param>
         /// <param name="message">Message to output</param>
         /// <param name="propertyValues">objects that should be formatted into the outputted message</param>
-        protected virtual void Write(string type, ConsoleColor colour, string message, params object[] propertyValues)
+        protected virtual void Write(string type, ConsoleColor colour, string message, params object?[] propertyValues)
         {
             var oldColour = Console.ForegroundColor;
             Console.ForegroundColor = colour;

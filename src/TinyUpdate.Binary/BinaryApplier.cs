@@ -65,7 +65,7 @@ namespace TinyUpdate.Binary
             }
             
             //Check that we can bounce from each update that needs to be applied
-            var updates = updateInfo.Updates.OrderBy(x => x.Version);
+            var updates = updateInfo.Updates.OrderBy(x => x.Version).ToArray();
             var lastUpdateVersion = Global.ApplicationVersion;
             foreach (var update in updates)
             {
@@ -168,7 +168,7 @@ namespace TinyUpdate.Binary
                 Logger.Debug("Processing {0}", file.FileLocation);
 
                 //Create folder (if it exists)
-                newPath.CreateDirectory(file.FileLocation);
+                newPath.CreateDirectory(file.FolderPath);
 
                 //Get where the old and "new" file should be
                 var originalFile = Path.Combine(basePath, file.FileLocation);
@@ -194,7 +194,7 @@ namespace TinyUpdate.Binary
                 Logger.Debug("Processing {0}", newFile.FileLocation);
 
                 //Create folder (if it exists)
-                newPath.CreateDirectory(newFile.FileLocation);
+                newPath.CreateDirectory(newFile.FolderPath);
 
                 var newFileLocation = Path.Combine(newPath, newFile.FileLocation);
                 var applySuccessful = await ProcessNewFile(newFile, newFileLocation);
@@ -216,7 +216,7 @@ namespace TinyUpdate.Binary
                 Logger.Debug("Processing {0}", deltaFile.FileLocation);
 
                 //Create folder (if it exists)
-                newPath.CreateDirectory(deltaFile.FileLocation);
+                newPath.CreateDirectory(deltaFile.FolderPath);
 
                 var originalFile = Path.Combine(basePath, deltaFile.FileLocation);
                 var newFileLocation = Path.Combine(newPath, deltaFile.FileLocation);

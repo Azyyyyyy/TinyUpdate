@@ -2,7 +2,6 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using DeltaCompressionDotNet.MsDelta;
 using TinyUpdate.Binary.Entry;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Logging;
@@ -13,7 +12,7 @@ namespace TinyUpdate.Binary.Delta
     /// <summary>
     /// Processes applying delta update files 
     /// </summary>
-    public class DeltaApplying
+    public static class DeltaApplying
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(DeltaApplying));
 
@@ -84,29 +83,17 @@ namespace TinyUpdate.Binary.Delta
             }
             
             //Make the updated file!
-            var msDelta = new MsDeltaCompression();
-            try
+            File.Create(outputLocation).Dispose();
+            var wasApplySuccessful = MsDelta.MsDelta.ApplyDelta(tmpDeltaFile, baseFile, outputLocation);
+
+            //Delete tmp files
+            File.Delete(tmpDeltaFile);
+            if (!string.IsNullOrWhiteSpace(tmpBaseFile))
             {
-                File.Create(outputLocation).Dispose();
-                msDelta.ApplyDelta(tmpDeltaFile, baseFile, outputLocation);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e);
-                Logger.Error("File that failed to update: {0}", outputLocation);
-                return false;
-            }
-            finally
-            {
-                //Delete tmp files
-                File.Delete(tmpDeltaFile);
-                if (!string.IsNullOrWhiteSpace(tmpBaseFile))
-                {
-                    File.Delete(tmpBaseFile);
-                }
+                File.Delete(tmpBaseFile);
             }
             
-            return true;
+            return wasApplySuccessful;
         }
 
         /// <summary>

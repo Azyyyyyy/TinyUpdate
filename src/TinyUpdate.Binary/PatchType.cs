@@ -1,6 +1,4 @@
-﻿using DeltaCompressionDotNet.MsDelta;
-
-namespace TinyUpdate.Binary
+﻿namespace TinyUpdate.Binary
 {
     /// <summary>
     /// What kind of patch this file is

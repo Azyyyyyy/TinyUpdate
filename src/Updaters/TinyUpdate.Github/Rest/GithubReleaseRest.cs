@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Text.Json.Serialization;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+#pragma warning disable 8618
 
 namespace TinyUpdate.Github.Rest
 {

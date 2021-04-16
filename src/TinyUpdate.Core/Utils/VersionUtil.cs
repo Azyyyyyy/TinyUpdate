@@ -24,7 +24,7 @@ namespace TinyUpdate.Core.Utils
         /// <summary>
         /// Gets the version from the filename if it exists 
         /// </summary>
-        /// <param name="fileName"></param>
+        /// <param name="fileName">The filename that contains a <see cref="Version"/></param>
         public static Version? ToVersion(this string fileName)
         {
             var name = SuffixRegex.Replace(fileName, "");

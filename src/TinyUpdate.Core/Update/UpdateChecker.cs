@@ -19,7 +19,7 @@ namespace TinyUpdate.Core.Update
         }
 
         /// <summary>
-        /// Finds any updates that are haven't been applied to the application
+        /// Finds any updates that haven't been applied to the application
         /// </summary>
         /// <returns><see cref="UpdateInfo"/> with all the updates that are pending</returns>
         public abstract Task<UpdateInfo?> CheckForUpdate();

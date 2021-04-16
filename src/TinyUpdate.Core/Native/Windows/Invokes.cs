@@ -3,9 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace TinyUpdate.Core.Native.Windows
 {
-    /// <summary>
-    /// Contains anything we need to tap into that needs
-    /// </summary>
     internal static class Invoke
     {
         [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]

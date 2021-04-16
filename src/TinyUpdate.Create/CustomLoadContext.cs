@@ -35,8 +35,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         private readonly ILogging _logging = LoggingCreator.CreateLogger("SharedAssemblyLoadContext");
 
         private readonly string _mainLibName;
-        string _mainLibFramework;
-        Version _mainLibVersion;
+        private string _mainLibFramework = null!;
+        private Version _mainLibVersion = null!;
 
         public SharedAssemblyLoadContext(
             IEnumerable<string> sharedAssemblies,
@@ -53,19 +53,24 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         protected override Assembly Load(AssemblyName assemblyName) 
         {
             //If it's an assembly that we want to load from default
-            if (_sharedAssemblies.Contains(assemblyName.Name))
+            if (assemblyName.Name != null && 
+                _sharedAssemblies.Contains(assemblyName.Name))
             {
                 return Default.LoadFromAssemblyName(assemblyName);
             }
             return LoadFrom(assemblyName);
         }
 
-        private Assembly LoadFrom(AssemblyName assemblyName)
+        private Assembly? LoadFrom(AssemblyName assemblyName)
         {
-            return LoadFrom(assemblyName.Name, assemblyName.Version);
+            if (assemblyName.Name != null && assemblyName.Version != null)
+            {
+                return LoadFrom(assemblyName.Name, assemblyName.Version);
+            }
+            return null;
         }
 
-        private bool LoadAssem(string dir, string assemblyName, Version version, out Assembly assembly)
+        private bool LoadAssembly(string dir, string assemblyName, Version version, out Assembly? assembly)
         {
             assembly = null;
 
@@ -206,7 +211,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             };
         }
         
-        private Assembly LoadFrom(string assemblyName, Version assemblyVersion)
+        private Assembly? LoadFrom(string assemblyName, Version assemblyVersion)
         {
             //We don't want to handle loading these in
             if (assemblyName == "netstandard" || assemblyName == "mscorlib" || Regex.IsMatch(assemblyName, "System*"))
@@ -217,7 +222,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             foreach (string assemblyProbingDirectoryRoot in _assemblyProbingDirectories)
             {
                 //Attempt to load it from the root drive
-                if (LoadAssem(assemblyProbingDirectoryRoot, assemblyName, assemblyVersion, out var assembly))
+                if (LoadAssembly(assemblyProbingDirectoryRoot, assemblyName, assemblyVersion, out var assembly))
                 {
                     return assembly;
                 }
@@ -232,7 +237,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
                         .ThenByDescending(x => fileNetVersions.IndexOf(y => y.Contains(x))); //Now order by the version folders we expect
 
                     //Try to load them in
-                    if (filesOrdered.Any(file => LoadAssem(Path.GetDirectoryName(file), assemblyName, assemblyVersion, out assembly)))
+                    if (filesOrdered.Any(file => LoadAssembly(Path.GetDirectoryName(file), assemblyName, assemblyVersion, out assembly)))
                     {
                         return assembly;
                     }
@@ -240,7 +245,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
                 //Just try to load *something*
                 if (Directory.EnumerateDirectories(assemblyProbingDirectoryRoot, "*", SearchOption.AllDirectories)
-                    .Any(assemblyProbingDirectory => LoadAssem(assemblyProbingDirectory, assemblyName, assemblyVersion, out assembly)))
+                    .Any(assemblyProbingDirectory => LoadAssembly(assemblyProbingDirectory, assemblyName, assemblyVersion, out assembly)))
                 {
                     return assembly;
                 }

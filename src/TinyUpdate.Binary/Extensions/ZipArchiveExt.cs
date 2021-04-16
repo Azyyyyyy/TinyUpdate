@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Threading.Tasks;
 using TinyUpdate.Binary.Entry;
 using TinyUpdate.Core.Extensions;
@@ -77,7 +79,6 @@ namespace TinyUpdate.Binary.Extensions
                         fileEntries[entryIndex].Stream = zipEntry.Open();
                     }
                     
-                    //TODO: Check everything is here
                     yield return fileEntries[entryIndex];
                     fileEntries.RemoveAt(entryIndex);
                     continue;
@@ -113,12 +114,33 @@ namespace TinyUpdate.Binary.Extensions
                     continue;
                 }
 
-                //TODO: Check everything is here
                 fileEntries[entryIndex].SHA256 = sha256Hash;
                 fileEntries[entryIndex].Filesize = filesize;
+                
+                //Clear stream if we don't need it
+                if (filesize == 0)
+                {
+                    fileEntries[entryIndex].Stream?.Dispose();
+                    fileEntries[entryIndex].Stream = null;
+                }
+                
                 yield return fileEntries[entryIndex];
                 fileEntries.RemoveAt(entryIndex);
             }
+
+            //Make sure that everything that wasn't returned gets returned (as long it has the data needed)
+            var fileEntriesCounter = 0;
+            foreach (var fileEntry in fileEntries.Where(fileEntry => fileEntry.Filesize == 0 || !string.IsNullOrWhiteSpace(fileEntry.SHA256)))
+            {
+                fileEntriesCounter++;
+                if (fileEntry.Filesize == 0)
+                {
+                    fileEntry.Stream?.Dispose();
+                    fileEntry.Stream = null;
+                }
+                yield return fileEntry;
+            }
+            Debug.Assert(fileEntries.Count - fileEntriesCounter == 0);
         }
     }
 }

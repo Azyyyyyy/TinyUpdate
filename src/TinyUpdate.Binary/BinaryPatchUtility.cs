@@ -878,7 +878,6 @@ namespace TinyUpdate.Binary
         /// Throws if the stream is disposed
         /// </summary>
         /// <exception cref="ObjectDisposedException"></exception>
-        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         private void ThrowIfDisposed()
         {
             // throws an ObjectDisposedException if this object has been disposed

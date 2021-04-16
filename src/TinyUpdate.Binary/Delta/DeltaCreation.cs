@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using DeltaCompressionDotNet.MsDelta;
 using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Binary.Delta
@@ -90,19 +89,8 @@ namespace TinyUpdate.Binary.Delta
                 Logger.Error("We aren't on Windows so can't apply MSDiff update");
                 return false;
             }
-
-            var msDelta = new MsDeltaCompression();
-            try
-            {
-                msDelta.CreateDelta(baseFileLocation, newFileLocation, deltaFileLocation);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e);
-                return false;
-            }
-
-            return true;
+            
+            return MsDelta.MsDelta.CreateDelta(baseFileLocation, newFileLocation, deltaFileLocation);
         }
     }
 }

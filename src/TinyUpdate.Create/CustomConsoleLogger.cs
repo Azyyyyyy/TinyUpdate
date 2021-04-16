@@ -13,23 +13,23 @@ namespace TinyUpdate.Create
         {
         }
 
-        /// <inheritdoc cref="Console.WriteLine(string, object[])"/>
-        public void WriteLine(string message, params object[] propertyValues)
+        /// <inheritdoc cref="System.Console.WriteLine(string, object[])"/>
+        public void WriteLine(string message, params object?[] propertyValues)
         {
-            if (Console.CursorLeft != 0)
+            if (System.Console.CursorLeft != 0)
             {
-                Console.WriteLine();
+                System.Console.WriteLine();
             }
-            Console.WriteLine(message, propertyValues);
+            System.Console.WriteLine(message, propertyValues);
         }
 
-        /// <inheritdoc cref="Console.Write(string, object[])"/>
-        public void Write(string message, params object[] propertyValues)
+        /// <inheritdoc cref="System.Console.Write(string, object[])"/>
+        public void Write(string message, params object?[] propertyValues)
         {
-            Console.Write(message, propertyValues);
+            System.Console.Write(message, propertyValues);
         }
 
-        protected override void Write(string type, ConsoleColor colour, string message, params object[] propertyValues)
+        protected override void Write(string type, ConsoleColor colour, string message, params object?[] propertyValues)
         {
             if (type == "WARNING" || type == "ERROR")
             {

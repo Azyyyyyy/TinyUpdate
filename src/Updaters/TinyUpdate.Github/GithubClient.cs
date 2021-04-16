@@ -47,6 +47,7 @@ namespace TinyUpdate.Github
                 Logger.Warning("No personal token was given, going to fall back to REST");
             }
             
+            //Get what api we should use and setup httpClient
             _githubApi = useGraphQL && canUseGraphQL ? new GithubApiGraphQL(personalToken) : new GithubApiRest();
             _httpClient = HttpClientFactory.Create(new HttpClientHandler(), _progressMessageHandler);
         }
@@ -75,7 +76,6 @@ namespace TinyUpdate.Github
 
             //Download the file
             Logger.Information("Downloading file {0} ({1})", releaseEntry.Filename, releaseEntry.FileLocation);
-
             _progressMessageHandler.HttpReceiveProgress += ReportProgress;
             var successfullyDownloaded = await DownloadUpdateInter(releaseEntry, progress);
             _progressMessageHandler.HttpReceiveProgress -= ReportProgress;
@@ -87,7 +87,7 @@ namespace TinyUpdate.Github
             {
                 return true;
             }
-
+            
             Logger.Error("Checking file {0} failed after downloading, going to delete it to be safe", releaseEntry.Filename);
             try
             {

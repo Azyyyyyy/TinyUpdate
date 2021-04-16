@@ -73,7 +73,7 @@ namespace TinyUpdate.Core
             get => _applicationFolder;
             set
             {
-                if (Directory.Exists(_applicationFolder))
+                if (Directory.Exists(value))
                 {
                     _applicationFolder = value;
                     return;

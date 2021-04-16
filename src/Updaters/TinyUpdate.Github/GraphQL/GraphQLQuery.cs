@@ -2,6 +2,9 @@
 
 namespace TinyUpdate.Github.GraphQL
 {
+    /// <summary>
+    /// Basic class to act as a GraphQl Query
+    /// </summary>
     public class GraphQLQuery
     {
         public GraphQLQuery(string query, string variables)

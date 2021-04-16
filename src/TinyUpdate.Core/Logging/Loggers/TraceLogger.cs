@@ -17,31 +17,31 @@ namespace TinyUpdate.Core.Logging.Loggers
         public string Name { get; }
 
         /// <inheritdoc cref="ILogging.Debug"/>
-        public void Debug(string message, params object[] propertyValues)
+        public void Debug(string message, params object?[] propertyValues)
         {
             Trace.WriteLine(string.Format(message, propertyValues), $"DEBUG - {Name}");
         }
 
         /// <inheritdoc cref="ILogging.Error(string, object[])"/>
-        public void Error(string message, params object[] propertyValues)
+        public void Error(string message, params object?[] propertyValues)
         {
             Trace.TraceError(message + $" ({Name})", propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
-        public void Error(Exception e, params object[] propertyValues)
+        public void Error(Exception e, params object?[] propertyValues)
         {
             Error(e.Message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Information"/>
-        public void Information(string message, params object[] propertyValues)
+        public void Information(string message, params object?[] propertyValues)
         {
             Trace.TraceInformation(message + $" ({Name})", propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Warning"/>
-        public void Warning(string message, params object[] propertyValues)
+        public void Warning(string message, params object?[] propertyValues)
         {
             Trace.TraceWarning(message + $" ({Name})", propertyValues);
         }

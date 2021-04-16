@@ -43,7 +43,7 @@ namespace TinyUpdate.Core
             {
                 throw new InvalidFileNameException(invalidChar);
             }
-            if (filePath != null && filePath.IsValidForFilePath(out var invalidPathChar))
+            if (filePath != null && !filePath.IsValidForFilePath(out var invalidPathChar))
             {
                 throw new InvalidFilePathException(invalidPathChar);
             }

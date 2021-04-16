@@ -7,17 +7,20 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
-using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Github.GraphQL
 {
+    /// <summary>
+    /// <see cref="GithubApi"/> that uses Github's GraphQL api (V4). This will require a personal token
+    /// </summary>
     // ReSharper disable once InconsistentNaming
     internal class GithubApiGraphQL : GithubApi
     {
         public GithubApiGraphQL(string personalToken) 
             : base("https://api.github.com/graphql")
         {
+            //Make personalToken into Base64
             var basicValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(personalToken));
             HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicValue);
         }
@@ -56,34 +59,6 @@ namespace TinyUpdate.Github.GraphQL
     }
   }
 }";
-
-        private async Task<HttpResponseMessage?> GetResponseMessage(GraphQLQuery query)
-        {
-            //TODO: Handle errors
-            //TODO: Handle when we get rate limited
-            //TODO: Add something to not crash when we have no wifi
-            
-            //Make request for getting the newest update
-            using var request = new HttpRequestMessage
-            {
-                Method = HttpMethod.Post,
-                Content = new StringContent(JsonSerializer.Serialize(query), Encoding.UTF8, "application/json")
-            };
-
-            //Check that we got something from it
-            var response = await HttpClient.SendAsync(request);
-            if (response.IsSuccessStatusCode)
-            {
-                return response;
-            }
-
-            Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
-            }
-            return null;
-        }
 
         public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository)
         {
@@ -135,6 +110,34 @@ namespace TinyUpdate.Github.GraphQL
                 new ReleaseNote(
                     disc,
                     NoteType.Markdown);
+        }
+        
+        private async Task<HttpResponseMessage?> GetResponseMessage(GraphQLQuery query)
+        {
+            //TODO: Handle errors
+            //TODO: Handle when we get rate limited
+            //TODO: Add something to not crash when we have no wifi
+            
+            //Make request for getting the newest update
+            using var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                Content = new StringContent(JsonSerializer.Serialize(query), Encoding.UTF8, "application/json")
+            };
+
+            //Check that we got something from it
+            var response = await HttpClient.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                return response;
+            }
+
+            Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+            }
+            return null;
         }
     }
 }

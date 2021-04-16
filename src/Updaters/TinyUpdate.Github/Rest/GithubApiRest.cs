@@ -3,12 +3,13 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
-using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
-using TinyUpdate.Github.GraphQL;
 
 namespace TinyUpdate.Github.Rest
 {
+    /// <summary>
+    /// <see cref="GithubApi"/> that uses Github's REST api (V3)
+    /// </summary>
     public class GithubApiRest : GithubApi
     {
         public GithubApiRest() : base("https://api.github.com")
@@ -17,6 +18,7 @@ namespace TinyUpdate.Github.Rest
         
         public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository)
         {
+            //Get release data
             var releases = await GetGithubReleaseRest(organization, repository);
             if (releases == null)
             {

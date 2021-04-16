@@ -10,7 +10,7 @@ namespace TinyUpdate.Core.Extensions
     /// </summary>
     public static class ReleaseFileExt
     {
-        private static ILogging Logger = LoggingCreator.CreateLogger(nameof(ReleaseFileExt));
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(ReleaseFileExt));
         
         /// <summary>
         /// Creates a <see cref="ReleaseEntry"/> from <see cref="ReleaseFile"/>'s
