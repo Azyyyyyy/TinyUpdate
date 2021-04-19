@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using SharpCompress.Compressors;
@@ -110,7 +111,7 @@ namespace TinyUpdate.Binary
             int ebLen = 0;
 
             using (WrappingStream wrappingStream = new(output, Ownership.None))
-            using (BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, true))
+            using (BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, false))
             {
                 // compute the differences, writing ctrl as we go
                 int scan = 0;
@@ -232,7 +233,7 @@ namespace TinyUpdate.Binary
             if (dbLen > 0)
             {
                 using WrappingStream wrappingStream = new(output, Ownership.None);
-                using var bz2Stream = new BZip2Stream(wrappingStream, CompressionMode.Compress, true);
+                using var bz2Stream = new BZip2Stream(wrappingStream, CompressionMode.Compress, false);
                 bz2Stream.Write(db, 0, dbLen);
             }
 
@@ -244,7 +245,7 @@ namespace TinyUpdate.Binary
             if (ebLen > 0)
             {
                 using WrappingStream wrappingStream = new(output, Ownership.None);
-                using BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, true);
+                using BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, false);
                 bz2Stream.Write(eb, 0, ebLen);
             }
 
@@ -325,20 +326,19 @@ namespace TinyUpdate.Binary
             byte[] oldData = new byte[cBufferSize];
 
             // prepare to read three parts of the patch in parallel
+            using Stream compressedControlStream = openPatchStream();
+            using Stream compressedDiffStream = openPatchStream();
+            using Stream compressedExtraStream = openPatchStream();
             {
-                using Stream compressedControlStream = openPatchStream();
-                using Stream compressedDiffStream = openPatchStream();
-                using Stream compressedExtraStream = openPatchStream();
-
                 // seek to the start of each part
                 compressedControlStream.Seek(CHeaderSize, SeekOrigin.Current);
                 compressedDiffStream.Seek(CHeaderSize + controlLength, SeekOrigin.Current);
                 compressedExtraStream.Seek(CHeaderSize + controlLength + diffLength, SeekOrigin.Current);
 
                 // decompress each part (to read it)
-                using var controlStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, true);
-                using var diffStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, true);
-                using var extraStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, true);
+                using var controlStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, false);
+                using var diffStream = new BZip2Stream(compressedDiffStream, CompressionMode.Decompress, false);
+                using var extraStream = new BZip2Stream(compressedExtraStream, CompressionMode.Decompress, false);
                 var control = new long[3];
                 var buffer = new byte[8];
 
@@ -854,24 +854,18 @@ namespace TinyUpdate.Binary
         /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
         protected override void Dispose(bool disposing)
         {
-            try
+            // doesn't close the base stream, but just prevents access to it through this WrappingStream
+            if (!disposing)
             {
-                // doesn't close the base stream, but just prevents access to it through this WrappingStream
-                if (!disposing)
-                {
-                    return;
-                }
+                return;
+            }
 
-                if (_mOwnership == Ownership.Owns)
-                {
-                    _mStreamBase.Dispose();
-                }
-                _disposed = true;
-            }
-            finally
+            if (_mOwnership == Ownership.Owns)
             {
-                base.Dispose(disposing);
+                _mStreamBase.Dispose();
             }
+            _disposed = true;
+            base.Dispose(disposing);
         }
 
         /// <summary>

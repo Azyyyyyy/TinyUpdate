@@ -16,17 +16,17 @@ namespace TinyUpdate.Create
         /// <inheritdoc cref="System.Console.WriteLine(string, object[])"/>
         public void WriteLine(string message, params object?[] propertyValues)
         {
-            if (System.Console.CursorLeft != 0)
+            if (Console.CursorLeft != 0)
             {
-                System.Console.WriteLine();
+                Console.WriteLine();
             }
-            System.Console.WriteLine(message, propertyValues);
+            Console.WriteLine(message, propertyValues);
         }
 
         /// <inheritdoc cref="System.Console.Write(string, object[])"/>
         public void Write(string message, params object?[] propertyValues)
         {
-            System.Console.Write(message, propertyValues);
+            Console.Write(message, propertyValues);
         }
 
         protected override void Write(string type, ConsoleColor colour, string message, params object?[] propertyValues)

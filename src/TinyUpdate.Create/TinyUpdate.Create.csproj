@@ -12,9 +12,9 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\TinyUpdate.Binary\TinyUpdate.Binary.csproj" />
+      <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20574.7" />
+      <PackageReference Include="System.Reflection.MetadataLoadContext" Version="5.0.1" />
       <ProjectReference Include="..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
-        <PackageReference Include="NuGet.Configuration" Version="5.9.0" />
     </ItemGroup>
     <Import Project="../../Nuget-metadata.csproj" />
 

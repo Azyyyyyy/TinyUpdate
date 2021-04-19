@@ -137,6 +137,7 @@ namespace TinyUpdate.Binary
             foreach (var deltaFile in deltaFiles)
             {
                 var deltaFileLocation = Path.Combine(newVersionLocation, deltaFile);
+                Logger.Debug("Processing changed file {0}", deltaFile);
 
                 //Try to add the file as a delta file
                 if (await AddDeltaFile(zipArchive,
@@ -218,12 +219,16 @@ namespace TinyUpdate.Binary
         /// <returns></returns>
         private ZipArchive CreateZipArchive(string? updateFileLocation = null)
         {
-            //TODO: Make it clear out stream if content is already there
             //Create the Temp folder in case it doesn't exist
             Directory.CreateDirectory(Global.TempFolder);
             
             //Create the delta file that will contain all our data
             updateFileLocation ??= Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Extension);
+            if (File.Exists(updateFileLocation))
+            {
+                File.Delete(updateFileLocation);
+            }
+            
             var updateFileStream = File.OpenWrite(updateFileLocation);
             return new ZipArchive(updateFileStream, ZipArchiveMode.Create);
         }

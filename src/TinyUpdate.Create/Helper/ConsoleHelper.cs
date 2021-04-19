@@ -2,31 +2,64 @@
 using System.IO;
 using System.Linq;
 
-namespace TinyUpdate.Create
+namespace TinyUpdate.Create.Helper
 {
-    public static class Console
+    /// <summary>
+    /// Helper to get data from the console in a easy and useful way
+    /// </summary>
+    public static class ConsoleHelper
     {
-        private static readonly CustomConsoleLogger Logger = new(nameof(Console));
+        private static readonly CustomConsoleLogger Logger = new(nameof(ConsoleHelper));
+        
+        public static string ShowS(int count) => count > 1 ? "s" : "";
+        /// <summary>
+        /// Creates a string that displays the contents of <see cref="TimeSpan"/>
+        /// </summary>
+        /// <param name="timeSpan"><see cref="TimeSpan"/> to use</param>
+        public static string TimeSpanToString(TimeSpan timeSpan)
+        {
+            var s = "";
+            if (timeSpan.Days > 0)
+            {
+                s += $"{timeSpan:%d} Day{ShowS(timeSpan.Days)}, ";
+            }
+            if (timeSpan.Hours > 0)
+            {
+                s += $"{timeSpan:%h} Hour{ShowS(timeSpan.Hours)}, ";
+            }
+            if (timeSpan.Minutes > 0)
+            {
+                s += $"{timeSpan:%m} Minute{ShowS(timeSpan.Minutes)}, ";
+            }
+            if (timeSpan.Seconds > 0)
+            {
+                s += $"{timeSpan:%s} Second{ShowS(timeSpan.Seconds)}, ";
+            }
+            if (timeSpan.Milliseconds > 0)
+            {
+                s += $"{timeSpan:%s} Millisecond{ShowS(timeSpan.Milliseconds)}, ";
+            }
+            var timeCount = s.Count(x => x == ',');
+            if (timeCount > 0)
+            {
+                s = s.Remove(s.LastIndexOf(','));
+                if (timeCount > 1)
+                {
+                    var i = s.LastIndexOf(',');
+                    s = s[..i] + " and" + s[(i + 1)..];
+                }
+            }
+
+            return s;
+        }
 
         public static void ShowSuccess(bool wasSuccessful) => Logger.Write(wasSuccessful ? " Success ✓" : " Failed ✖");
-        
-        private static readonly string[] NoStrings =
-        {
-            "no",
-            "n"
-        };
-
-        private static readonly string[] YesStrings =
-        {
-            "yes",
-            "y"
-        };
         
         public static int RequestNumber(int min, int max)
         {
             while (true)
             {
-                if (!int.TryParse(System.Console.ReadLine(), out var number))
+                if (!int.TryParse(Console.ReadLine(), out var number))
                 {
                     Logger.Error("You need to give a valid number!!");
                     continue;
@@ -55,7 +88,7 @@ namespace TinyUpdate.Create
             while (true)
             {
                 Logger.Write(message + ": ");
-                var line = System.Console.ReadLine();
+                var line = Console.ReadLine();
 
                 //If they put in nothing then error
                 if (string.IsNullOrWhiteSpace(line))
@@ -80,26 +113,38 @@ namespace TinyUpdate.Create
             while (true)
             {
                 Logger.Write(message + ": ");
-                var line = System.Console.ReadLine();
+                var line = Console.ReadLine();
 
-                //If they put in nothing then they want the preferred op
+                //Give back what they put in
                 if (!string.IsNullOrWhiteSpace(line))
                 {
                     return line;
                 }
 
-                //They didn't put in something we know, tell them
+                //They didn't put in something, tell them
                 Logger.Error("You need to put in something!!");
             }
         }
         
+        private static readonly string[] NoStrings =
+        {
+            "no",
+            "n"
+        };
+
+        private static readonly string[] YesStrings =
+        {
+            "yes",
+            "y"
+        };
+
         public static bool RequestYesOrNo(string message, bool booleanPreferred)
         {
             while (true)
             {
                 Logger.WriteLine("");
                 Logger.Write(message + (booleanPreferred ? " [Y/n]" : " [N/y]") + ": ");
-                var line = System.Console.ReadLine()?.ToLower();
+                var line = Console.ReadLine()?.ToLower();
 
                 //If they put in nothing then they want the preferred op
                 if (string.IsNullOrWhiteSpace(line))
@@ -127,7 +172,7 @@ namespace TinyUpdate.Create
             while (true)
             {
                 Logger.Write(message + ": ");
-                var line = System.Console.ReadLine();
+                var line = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(line))
                 {
                     Logger.Error("You need to put something in!!!");
@@ -148,7 +193,7 @@ namespace TinyUpdate.Create
             while (true)
             {
                 Logger.Write(message + ": ");
-                var line = System.Console.ReadLine();
+                var line = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(line))
                 {
                     Logger.Error("You need to put something in!!!");

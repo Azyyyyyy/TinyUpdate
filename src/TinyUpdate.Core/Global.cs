@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using TinyUpdate.Core.Exceptions;
 using TinyUpdate.Core.Utils;
 
-[assembly: InternalsVisibleTo("TinyUpdate.Test")]
 namespace TinyUpdate.Core
 {
     /// <summary>

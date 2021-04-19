@@ -10,7 +10,7 @@ using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 
 //Big thanks for Andrew Larsson showing their loader for shared assemblies!: https://gist.github.com/andrewLarsson/f5351a7c9234ba8c0981037f79108344
-namespace TinyUpdate.Create
+namespace TinyUpdate.Create.AssemblyHelper
 {
     /*
 Copyright 2018 Andrew Larsson
@@ -32,7 +32,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         private readonly List<string> _sharedAssemblies;
         private readonly List<string> _assemblyProbingDirectories = new();
 
-        private readonly ILogging _logging = LoggingCreator.CreateLogger("SharedAssemblyLoadContext");
+        private readonly ILogging _logging = LoggingCreator.CreateLogger(nameof(SharedAssemblyLoadContext));
 
         private readonly string _mainLibName;
         private string _mainLibFramework = null!;
@@ -58,7 +58,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             {
                 return Default.LoadFromAssemblyName(assemblyName);
             }
-            return LoadFrom(assemblyName);
+            return LoadFrom(assemblyName)!;
         }
 
         private Assembly? LoadFrom(AssemblyName assemblyName)
@@ -70,9 +70,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             return null;
         }
 
-        private bool LoadAssembly(string dir, string assemblyName, Version version, out Assembly? assembly)
+        private bool LoadAssembly(string? dir, string assemblyName, Version version, out Assembly? assembly)
         {
             assembly = null;
+            if (string.IsNullOrWhiteSpace(dir))
+            {
+                return false;
+            }
 
             //Check that the assembly exists here
             string assemblyPath = Path.Combine(dir, assemblyName) + ".dll";
@@ -234,7 +238,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
                     var files = Directory.GetFiles(assemblyProbingDirectoryRoot, $"{assemblyName}.dll", SearchOption.AllDirectories);
                     var filesOrdered = files.Where(x => fileNetVersions.Any(x.Contains))
                         .OrderByDescending(x => x) //Order by folder names, should bring newest versions first
-                        .ThenByDescending(x => fileNetVersions.IndexOf(y => y.Contains(x))); //Now order by the version folders we expect
+                        .ThenByDescending(x => fileNetVersions.IndexOf(y => y?.Contains(x) ?? false)); //Now order by the version folders we expect
 
                     //Try to load them in
                     if (filesOrdered.Any(file => LoadAssembly(Path.GetDirectoryName(file), assemblyName, assemblyVersion, out assembly)))

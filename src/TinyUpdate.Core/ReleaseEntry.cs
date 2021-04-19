@@ -114,19 +114,11 @@ namespace TinyUpdate.Core
                     return false;
                 }
                 
-                try
+                using var file = StreamUtil.SafeOpenRead(FileLocation);
+                if (file?.Length != Filesize ||
+                    !SHA256Util.CheckSHA256(file, SHA256))
                 {
-                    using var file = File.Open(FileLocation, FileMode.Open);
-                    if (file.Length != Filesize ||
-                        !SHA256Util.CheckSHA256(file, SHA256))
-                    {
-                        _logger.Warning("{0} validation failed, this release entry isn't valid", FileLocation);
-                        return false;
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.Error(e);
+                    _logger.Warning("{0} validation failed, this release entry isn't valid", FileLocation);
                     return false;
                 }
             }

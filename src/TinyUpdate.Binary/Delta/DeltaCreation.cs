@@ -31,7 +31,7 @@ namespace TinyUpdate.Binary.Delta
         {
             deltaFileStream = null;
             if (CreateMSDiffFile(baseFileLocation, newFileLocation, deltaFileLocation, out extension) ||
-                CreateBSDiffFile(baseFileLocation, newFileLocation, deltaFileLocation, out extension, out deltaFileStream, progress))
+                CreateBSDiffFile(baseFileLocation, newFileLocation, out extension, out deltaFileStream, progress))
             {
                 return true;
             }
@@ -44,24 +44,25 @@ namespace TinyUpdate.Binary.Delta
         /// </summary>
         /// <param name="baseFileLocation">Old file location</param>
         /// <param name="newFileLocation">New file location</param>
-        /// <param name="deltaFileLocation">Where to output the delta file</param>
         /// <param name="extension">What extension to know it was made using this when applying the delta</param>
         /// <param name="deltaFileStream">Stream with the </param>
         /// <param name="progress">Reports back progress</param>
         /// <returns>If we was able to create the delta file</returns>
-        private static bool CreateBSDiffFile(
+        internal static bool CreateBSDiffFile(
             string baseFileLocation, 
-            string newFileLocation, 
-            string deltaFileLocation, 
-            out string extension, 
-            out Stream? deltaFileStream, 
+            string newFileLocation,
+            out string extension,
+            out Stream? deltaFileStream,
             Action<decimal>? progress = null)
         {
             extension = ".bsdiff";
-            deltaFileStream = new MemoryStream();
+            var tmpDeltaFileStream = new MemoryStream();
 
-            var success = BinaryPatchUtility.Create(File.ReadAllBytes(baseFileLocation),
-                File.ReadAllBytes(newFileLocation), deltaFileStream, progress);
+            var success = BinaryPatchUtility.Create(
+                File.ReadAllBytes(baseFileLocation),
+                File.ReadAllBytes(newFileLocation), 
+                tmpDeltaFileStream, progress);
+            deltaFileStream = tmpDeltaFileStream;
 
             if (!success)
             {
@@ -81,7 +82,11 @@ namespace TinyUpdate.Binary.Delta
         /// <param name="deltaFileLocation">Where to output the delta file</param>
         /// <param name="extension">What extension to know it was made using this when applying the delta</param>
         /// <returns>If we was able to create the delta file</returns>
-        private static bool CreateMSDiffFile(string baseFileLocation, string newFileLocation, string deltaFileLocation, out string extension)
+        internal static bool CreateMSDiffFile(
+            string baseFileLocation, 
+            string newFileLocation, 
+            string deltaFileLocation, 
+            out string extension)
         {
             extension = ".diff";
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

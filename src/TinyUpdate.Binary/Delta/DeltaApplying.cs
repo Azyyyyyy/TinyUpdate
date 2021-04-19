@@ -36,13 +36,13 @@ namespace TinyUpdate.Binary.Delta
         }
         
         /// <summary>
-        /// Applies a patch that was created using <see cref="MsDeltaCompression"/>
+        /// Applies a patch that was created using <see cref="MsDelta"/>
         /// </summary>
         /// <param name="fileEntry">Patch to apply</param>
         /// <param name="outputLocation">Where the output file should be</param>
         /// <param name="baseFile">Where the original file is</param>
         /// <returns>If the patch was applied correctly</returns>
-        private static async Task<bool> ApplyMSDiff(FileEntry fileEntry, string outputLocation, string baseFile)
+        internal static async Task<bool> ApplyMSDiff(FileEntry fileEntry, string outputLocation, string baseFile)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -104,7 +104,7 @@ namespace TinyUpdate.Binary.Delta
         /// <param name="fileEntry"></param>
         /// <param name="outputLocation"></param>
         /// <param name="baseFile"></param>
-        private static async Task<bool> ApplyBSDiff(FileEntry fileEntry, string outputLocation, string baseFile, Action<decimal>? progress)
+        internal static async Task<bool> ApplyBSDiff(FileEntry fileEntry, string outputLocation, string baseFile, Action<decimal>? progress)
         {
             Stream? inputStream = null;
             /*If this is the same file then we want to copy it to mem and not

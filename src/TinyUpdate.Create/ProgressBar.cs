@@ -26,7 +26,7 @@ namespace TinyUpdate.Create
             // A progress bar is only for temporary display in a console window.
             // If the console output is redirected to a file, draw nothing.
             // Otherwise, we'll end up with a lot of garbage in the target file.
-            if (!System.Console.IsOutputRedirected)
+            if (!Console.IsOutputRedirected)
             {
                 ResetTimer();
             }
@@ -48,7 +48,7 @@ namespace TinyUpdate.Create
                     return;
                 }
 
-                var blockCount = System.Console.WindowWidth / 2;
+                var blockCount = Console.WindowWidth / 2;
                 int progressBlockCount = (int) (_currentProgress * blockCount);
 
                 int percent = (int) (_currentProgress * 100);
@@ -65,12 +65,12 @@ namespace TinyUpdate.Create
             // If the new text is shorter than the old one: delete overlapping characters
             int overlapCount = _currentText.Length - text.Length;
             if (overlapCount > 0) {
-                System.Console.Write(new string(' ', overlapCount));
-                System.Console.Write(new string('\b', overlapCount));
+                Console.Write(new string(' ', overlapCount));
+                Console.Write(new string('\b', overlapCount));
             }
 
-            System.Console.CursorLeft = 0;
-            System.Console.Write(text);
+            Console.CursorLeft = 0;
+            Console.Write(text);
             _currentText = text;
         }
 

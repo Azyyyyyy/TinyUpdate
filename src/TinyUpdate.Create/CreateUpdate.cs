@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using TinyUpdate.Core.Update;
+using TinyUpdate.Create.Helper;
 
 namespace TinyUpdate.Create
 {
@@ -16,29 +17,31 @@ namespace TinyUpdate.Create
             }
             
             Logger.WriteLine("Creating Delta update");
-            using var progressBar = new ProgressBar();
+            var progressBar = new ProgressBar();
             var wasUpdateCreated = 
                 await updateCreator.CreateDeltaPackage(
                     Global.NewVersionLocation,
                     Global.OldVersionLocation,
                     Program.GetOutputLocation(true, updateCreator.Extension),
                     progress => progressBar.Report((double)progress));
+            progressBar.Dispose();
 
-            Console.ShowSuccess(wasUpdateCreated);
+            ConsoleHelper.ShowSuccess(wasUpdateCreated);
             return wasUpdateCreated;
         }
         
         public static async Task<bool> CreateFullUpdate(IUpdateCreator updateCreator)
         {
             Logger.WriteLine("Creating Full update");
-            using var progressBar = new ProgressBar();
+            var progressBar = new ProgressBar();
             var wasUpdateCreated = 
                 await updateCreator.CreateFullPackage(
                     Global.NewVersionLocation,
                     Program.GetOutputLocation(false, updateCreator.Extension),
                     progress => progressBar.Report((double)progress));
+            progressBar.Dispose();
 
-            Console.ShowSuccess(wasUpdateCreated);
+            ConsoleHelper.ShowSuccess(wasUpdateCreated);
             return wasUpdateCreated;
         }
     }
