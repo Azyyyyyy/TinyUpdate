@@ -86,6 +86,7 @@ namespace TinyUpdate.Create
         private static async Task Run()
         {
             //Add logging
+            LoggingCreator.GlobalLevel = LogLevel.Warn;
             LoggingCreator.AddLogBuilder(new CustomLoggerBuilder());
             TaskScheduler.UnobservedTaskException += (sender, eventArgs) =>
             {

@@ -13,6 +13,11 @@ namespace TinyUpdate.Core.Logging
         string Name { get; }
 
         /// <summary>
+        /// How much logging we should process
+        /// </summary>
+        LogLevel? LogLevel { get; set; }
+
+        /// <summary>
         /// Writes debug data
         /// </summary>
         /// <param name="message">Message to write</param>

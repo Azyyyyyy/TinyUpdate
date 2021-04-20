@@ -6,7 +6,7 @@
     public enum PatchType
     {
         /// <summary>
-        /// The patch was used using <see cref="MsDeltaCompression"/>
+        /// The patch was used using <see cref="MsDelta"/>
         /// </summary>
         MSDiff,
         

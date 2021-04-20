@@ -21,6 +21,15 @@ namespace TinyUpdate.Binary
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryApplier));
 
+        /// <summary>
+        /// Gets where an certain version of the application would be located
+        /// </summary>
+        /// <param name="version">the <see cref="Version"/> we want the path for</param>
+        /// <returns>What the <see cref="version"/> would be</returns>
+        public string? GetApplicationPath(Version? version) =>
+            version == null ? null :
+            Path.Combine(Global.ApplicationFolder, $"app-{version}");
+
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
         public string Extension { get; } = ".tuup";
 
@@ -35,8 +44,8 @@ namespace TinyUpdate.Binary
             }
             
             //Get the paths for where the version will be and where the older version is
-            var newPath = entry.Version.GetApplicationPath();
-            var basePath = Global.ApplicationVersion.GetApplicationPath();
+            var newPath = GetApplicationPath(entry.Version);
+            var basePath = GetApplicationPath(Global.ApplicationVersion);
 
             /*Make sure the basePath exists, can't do a delta update without it!
              (This also shows that something is *REALLY* wrong)*/
@@ -79,7 +88,7 @@ namespace TinyUpdate.Binary
             }
             
             //Get the **newest** version that we have to apply and use 
-            var newVersionFolder = updateInfo.NewVersion?.GetApplicationPath();
+            var newVersionFolder = GetApplicationPath(updateInfo.NewVersion);
             if (string.IsNullOrWhiteSpace(newVersionFolder))
             {
                 Logger.Error("Can't get folder for the new version");
@@ -99,7 +108,7 @@ namespace TinyUpdate.Binary
             {
                 /*Base path changes based on if the first update has been done*/
                 if (!await ApplyUpdate(
-                    doneFirstUpdate ? newVersionFolder : Global.ApplicationVersion.GetApplicationPath(),
+                    doneFirstUpdate ? newVersionFolder : GetApplicationPath(Global.ApplicationVersion),
                     newVersionFolder,
                     updateEntry,
                     updateProgress => progress?.Invoke((updateProgress + updateCounter) / updateCount)))

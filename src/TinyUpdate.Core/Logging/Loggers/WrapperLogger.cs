@@ -19,7 +19,9 @@ namespace TinyUpdate.Core.Logging.Loggers
         }
 
         /// <inheritdoc cref="ILogging.Name"/>
-        public string Name { get; } = "WrapperLogger";
+        public string Name { get; } = nameof(WrapperLogger);
+
+        public LogLevel? LogLevel { get; set; }
 
         /// <inheritdoc cref="ILogging.Debug"/>
         public void Debug(string message, params object?[] propertyValues)

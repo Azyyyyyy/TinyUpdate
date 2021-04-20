@@ -29,6 +29,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
     public class SharedAssemblyLoadContext : AssemblyLoadContext
     {
+        private static readonly Regex SystemRegex = new Regex("System*", RegexOptions.Compiled);
+        
         private readonly List<string> _sharedAssemblies;
         private readonly List<string> _assemblyProbingDirectories = new();
 
@@ -218,7 +220,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         private Assembly? LoadFrom(string assemblyName, Version assemblyVersion)
         {
             //We don't want to handle loading these in
-            if (assemblyName == "netstandard" || assemblyName == "mscorlib" || Regex.IsMatch(assemblyName, "System*"))
+            if (assemblyName == "netstandard" || assemblyName == "mscorlib" || SystemRegex.IsMatch(assemblyName))
             {
                 return null;
             }

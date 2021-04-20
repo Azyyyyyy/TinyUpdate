@@ -12,6 +12,7 @@ namespace TinyUpdate.Create.AssemblyHelper
     public static class GetAssembly
     {
         private static readonly CustomConsoleLogger Logger = new(nameof(GetAssembly));
+        private static readonly Regex ApiFileRegex = new("api-ms*", RegexOptions.Compiled);
 
         //From https://stackoverflow.com/a/15608028
         public static bool IsDotNetAssembly(string file)
@@ -95,7 +96,7 @@ namespace TinyUpdate.Create.AssemblyHelper
             foreach (var type in types)
             {
                 counter++;
-                Logger.WriteLine($"{counter}) {type.FullName}");
+                Logger.WriteLine($"{counter}) {{0}}", type.FullName);
             }
             Logger.WriteLine("");
         }
@@ -125,7 +126,7 @@ namespace TinyUpdate.Create.AssemblyHelper
             int selectedInt = 1;
             if (ty == null && availableTypes.Values.Select(x => x.Count).Sum(x => x) > 1)
             {
-                Logger.WriteLine($"Select the {friendlyName} that you want to use (1 - {0})", counter);
+                Logger.WriteLine("Select the {0} that you want to use (1 - {1})", friendlyName, counter);
                 selectedInt = ConsoleHelper.RequestNumber(1, counter);
             }
 
@@ -171,7 +172,7 @@ namespace TinyUpdate.Create.AssemblyHelper
             //Don't try to load the file if it's any of these files or not an PE file
             var fileName = Path.GetFileName(file);
             if (blacklistedFiles.Contains(fileName)
-                || Regex.IsMatch(fileName, "api-ms*")
+                || ApiFileRegex.IsMatch(fileName)
                 || !IsDotNetAssembly(file))
             {
                 return false;
@@ -209,7 +210,7 @@ namespace TinyUpdate.Create.AssemblyHelper
 
         /*When we run this the first time we put any files that contained
          something useful and then re-look at them files, saves time rechecking*/
-        private static List<string> _cachedFiles = new List<string>();
+        private static readonly List<string> CachedFiles = new();
         /// <summary>
         /// This goes through every assembly and looks for any that contains the type that we are looking for
         /// </summary>
@@ -238,8 +239,8 @@ namespace TinyUpdate.Create.AssemblyHelper
 
             //Now lets try to find the types
             foreach (var file in 
-                _cachedFiles.Any() ?
-                    _cachedFiles :
+                CachedFiles.Any() ?
+                    CachedFiles :
                     Directory.EnumerateFiles(applicationLocation, "*.dll"))
             {
                 //Check that it's something we can load in
@@ -259,9 +260,9 @@ namespace TinyUpdate.Create.AssemblyHelper
                         continue;
                     }
 
-                    if (!_cachedFiles.Contains(file))
+                    if (!CachedFiles.Contains(file))
                     {
-                        _cachedFiles.Add(file);
+                        CachedFiles.Add(file);
                     }
 
                     //Add the type to the list from this assembly 

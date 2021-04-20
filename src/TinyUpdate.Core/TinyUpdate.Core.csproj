@@ -40,6 +40,15 @@
       <Compile Remove="Native\**" />
       <EmbeddedResource Remove="Native\**" />
       <None Remove="Native\**" />
+      <Compile Remove="UnofficiallySupported\**" />
+      <EmbeddedResource Remove="UnofficiallySupported\**" />
+      <None Remove="UnofficiallySupported\**" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+        <Compile Include="UnofficiallySupported\**" />
+        <EmbeddedResource Include="UnofficiallySupported\**" />
+        <None Include="UnofficiallySupported\**" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(IsAny)'=='true'">

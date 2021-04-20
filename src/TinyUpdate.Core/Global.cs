@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using TinyUpdate.Core.Exceptions;
 using TinyUpdate.Core.Utils;
 

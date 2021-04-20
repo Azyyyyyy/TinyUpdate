@@ -33,24 +33,38 @@ namespace TinyUpdate.Test
         }
         
         public string Name { get; }
+        public LogLevel? LogLevel { get; set; }
+
         public void Debug(string message, params object[] propertyValues)
         {
-            TestContext.WriteLine($"[DEBUG - {Name}]: {message}", propertyValues);
+            if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Trace))
+            {
+                TestContext.WriteLine($"[DEBUG - {Name}]: {message}", propertyValues);
+            }
         }
 
         public void Information(string message, params object[] propertyValues)
         {
-            TestContext.WriteLine($"[INFO - {Name}]: {message}", propertyValues);
+            if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Info))
+            {
+                TestContext.WriteLine($"[INFO - {Name}]: {message}", propertyValues);
+            }
         }
 
         public void Warning(string message, params object[] propertyValues)
         {
-            TestContext.WriteLine($"[WARNING - {Name}]: {message}", propertyValues);
+            if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Warn))
+            {
+                TestContext.WriteLine($"[WARNING - {Name}]: {message}", propertyValues);
+            }
         }
 
         public void Error(string message, params object[] propertyValues)
         {
-            TestContext.WriteLine($"[ERROR - {Name}]: {message}", propertyValues);
+            if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Error))
+            {
+                TestContext.WriteLine($"[ERROR - {Name}]: {message}", propertyValues);
+            }
         }
 
         public void Error(Exception e, params object[] propertyValues)

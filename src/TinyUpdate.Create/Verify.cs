@@ -47,7 +47,7 @@ namespace TinyUpdate.Create
             Directory.CreateDirectory(applicationLocation);
             Core.Global.ApplicationFolder = applicationLocation;
             Core.Global.ApplicationVersion = Global.ApplicationOldVersion ?? new Version(0, 0, 0, 1);
-            var oldVersionLocation = Core.Global.ApplicationVersion.GetApplicationPath();
+            var oldVersionLocation = applier.GetApplicationPath(Core.Global.ApplicationVersion);
 
             //Delete the old version if it exists, likely here from verifying update files last time
             if (Directory.Exists(oldVersionLocation))
@@ -127,7 +127,7 @@ namespace TinyUpdate.Create
             
             //Grab files that we have
             var newVersionFiles = Directory.GetFiles(Global.NewVersionLocation,"*", SearchOption.AllDirectories);
-            var appliedVersionFiles = Directory.GetFiles(newVersion.GetApplicationPath(),"*", SearchOption.AllDirectories);
+            var appliedVersionFiles = Directory.GetFiles(updateApplier.GetApplicationPath(newVersion),"*", SearchOption.AllDirectories);
 
             //Check that we got every file that we need/expect
             if (newVersionFiles.LongLength != appliedVersionFiles.LongLength)

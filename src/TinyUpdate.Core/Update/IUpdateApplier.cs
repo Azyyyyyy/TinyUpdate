@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace TinyUpdate.Core.Update
@@ -24,6 +25,8 @@ namespace TinyUpdate.Core.Update
         /// <returns>If this update was successfully applied</returns>
         Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress = null);
 
+        string? GetApplicationPath([NotNullIfNotNull("version")] Version? version);
+        
         /// <summary>
         /// Extension to be used on this kind of update file
         /// </summary>

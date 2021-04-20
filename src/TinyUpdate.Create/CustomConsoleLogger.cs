@@ -1,5 +1,4 @@
-﻿using System;
-using TinyUpdate.Core.Logging;
+﻿using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Logging.Loggers;
 
 namespace TinyUpdate.Create
@@ -16,25 +15,13 @@ namespace TinyUpdate.Create
         /// <inheritdoc cref="System.Console.WriteLine(string, object[])"/>
         public void WriteLine(string message, params object?[] propertyValues)
         {
-            if (Console.CursorLeft != 0)
-            {
-                Console.WriteLine();
-            }
-            Console.WriteLine(message, propertyValues);
+            WriteMessage(message, true, true, propertyValues);
         }
 
         /// <inheritdoc cref="System.Console.Write(string, object[])"/>
         public void Write(string message, params object?[] propertyValues)
         {
-            Console.Write(message, propertyValues);
-        }
-
-        protected override void Write(string type, ConsoleColor colour, string message, params object?[] propertyValues)
-        {
-            if (type == "WARNING" || type == "ERROR")
-            {
-                base.Write(type, colour, message, propertyValues);
-            }
+            WriteMessage(message, false, false, propertyValues);
         }
     }
     

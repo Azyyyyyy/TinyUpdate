@@ -16,16 +16,24 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Name"/>
         public string Name { get; }
 
+        public LogLevel? LogLevel { get; set; }
+
         /// <inheritdoc cref="ILogging.Debug"/>
         public void Debug(string message, params object?[] propertyValues)
         {
-            Trace.WriteLine(string.Format(message, propertyValues), $"DEBUG - {Name}");
+            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Trace))
+            {
+                Trace.WriteLine(string.Format(message, propertyValues), $"DEBUG - {Name}");
+            }
         }
 
         /// <inheritdoc cref="ILogging.Error(string, object[])"/>
         public void Error(string message, params object?[] propertyValues)
         {
-            Trace.TraceError(message + $" ({Name})", propertyValues);
+            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Error))
+            {
+                Trace.TraceError(message + $" ({Name})", propertyValues);
+            }
         }
 
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
@@ -37,13 +45,19 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Information"/>
         public void Information(string message, params object?[] propertyValues)
         {
-            Trace.TraceInformation(message + $" ({Name})", propertyValues);
+            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Info))
+            {
+                Trace.TraceInformation(message + $" ({Name})", propertyValues);
+            }
         }
 
         /// <inheritdoc cref="ILogging.Warning"/>
         public void Warning(string message, params object?[] propertyValues)
         {
-            Trace.TraceWarning(message + $" ({Name})", propertyValues);
+            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Warn))
+            {
+                Trace.TraceWarning(message + $" ({Name})", propertyValues);
+            }
         }
     }
     

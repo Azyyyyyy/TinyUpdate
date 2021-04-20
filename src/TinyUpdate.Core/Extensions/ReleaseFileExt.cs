@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using TinyUpdate.Core.Logging;
-using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core.Extensions
 {

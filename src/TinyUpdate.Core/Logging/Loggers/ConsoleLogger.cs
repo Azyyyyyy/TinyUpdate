@@ -15,16 +15,18 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Name"/>
         public string Name { get; }
 
+        public LogLevel? LogLevel { get; set; }
+
         /// <inheritdoc cref="ILogging.Debug"/>
         public void Debug(string message, params object?[] propertyValues)
         {
-            Write("DEBUG", ConsoleColor.Blue, message, propertyValues);
+            Write("DEBUG", ConsoleColor.Blue, Logging.LogLevel.Trace, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Error(string, object[])"/>
         public void Error(string message, params object?[] propertyValues)
         {
-            Write("ERROR", ConsoleColor.Red, message, propertyValues);
+            Write("ERROR", ConsoleColor.Red, Logging.LogLevel.Error, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
@@ -36,13 +38,13 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Information"/>
         public void Information(string message, params object?[] propertyValues)
         {
-            Write("INFO", ConsoleColor.Cyan, message, propertyValues);
+            Write("INFO", ConsoleColor.Cyan, Logging.LogLevel.Info, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Warning"/>
         public void Warning(string message, params object?[] propertyValues)
         {
-            Write("WARNING", ConsoleColor.Yellow, message, propertyValues);
+            Write("WARNING", ConsoleColor.Yellow, Logging.LogLevel.Warn, message, propertyValues);
         }
         
         /// <summary>
@@ -52,8 +54,13 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <param name="colour">Colour to be used for [TYPE - NAME]</param>
         /// <param name="message">Message to output</param>
         /// <param name="propertyValues">objects that should be formatted into the outputted message</param>
-        protected virtual void Write(string type, ConsoleColor colour, string message, params object?[] propertyValues)
+        protected virtual void Write(string type, ConsoleColor colour, LogLevel logLevel, string message, params object?[] propertyValues)
         {
+            if (!LoggingCreator.ShouldProcess(LogLevel, logLevel))
+            {
+                return;
+            }
+            
             var oldColour = Console.ForegroundColor;
             Console.ForegroundColor = colour;
             if (Console.CursorLeft != 0)
@@ -62,9 +69,53 @@ namespace TinyUpdate.Core.Logging.Loggers
             }
             Console.Write($"[{type} - {Name}]: ");
 
-            //TODO: Add more c o l o u r
             Console.ForegroundColor = oldColour;
-            Console.WriteLine(message, propertyValues);
+            WriteMessage(message, true, false, propertyValues);
+        }
+
+        protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, params object?[] propertyValues)
+        {
+            if (checkCursor && Console.CursorLeft != 0)
+            {
+                Console.Write(Environment.NewLine);
+            }
+            
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                Console.WriteLine();
+                return;
+            }
+            
+            var oldColour = Console.ForegroundColor;
+            while (message.Length != 0)
+            {
+                var startBracketInt = message.IndexOf('{') + 1;
+                var endBracketInt = message.IndexOf('}');
+                /*This shows that we are at the end of the message
+                 or the message has no properties to show*/
+                if (startBracketInt == 0 && endBracketInt == -1)
+                {
+                    if (writeNewLineOnEnd)
+                    {
+                        Console.WriteLine(message);
+                        break;
+                    }
+                    
+                    Console.Write(message);
+                    break;
+                }
+
+                Console.Write(message[..(startBracketInt - 1)]);
+                if (!int.TryParse(message[startBracketInt..endBracketInt], out var number))
+                {
+                    throw new FormatException();
+                }
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write(propertyValues[number]);
+                Console.ForegroundColor = oldColour;
+                message = message.Substring(endBracketInt + 1, message[(endBracketInt + 1)..].Length);
+            }
         }
     }
 
