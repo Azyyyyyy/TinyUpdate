@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TinyUpdate.Core.Logging.Loggers
 {
@@ -54,13 +58,27 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <param name="colour">Colour to be used for [TYPE - NAME]</param>
         /// <param name="message">Message to output</param>
         /// <param name="propertyValues">objects that should be formatted into the outputted message</param>
-        protected virtual void Write(string type, ConsoleColor colour, LogLevel logLevel, string message, params object?[] propertyValues)
+        private void Write(string type, ConsoleColor colour, LogLevel logLevel, string message, params object?[] propertyValues)
         {
             if (!LoggingCreator.ShouldProcess(LogLevel, logLevel))
             {
                 return;
             }
-            
+
+            WriteInit(type, colour, logLevel, message, propertyValues);
+        }
+
+        private readonly List<CancellationTokenSource> _writeGuid = new();
+        private async void WriteInit(string type, ConsoleColor colour, LogLevel logLevel, string message, params object?[] propertyValues)
+        {
+            var token = new CancellationTokenSource();
+            _writeGuid.Add(token);
+            if (_writeGuid.Count > 1)
+            {
+                await Task.Delay(-1, token.Token);
+            }
+            _writeGuid.Remove(token);
+
             var oldColour = Console.ForegroundColor;
             Console.ForegroundColor = colour;
             if (Console.CursorLeft != 0)
@@ -70,11 +88,28 @@ namespace TinyUpdate.Core.Logging.Loggers
             Console.Write($"[{type} - {Name}]: ");
 
             Console.ForegroundColor = oldColour;
-            WriteMessage(message, true, false, propertyValues);
+            WriteMessage(message, true, false, false, propertyValues);
+            _writeGuid.FirstOrDefault()?.Cancel();
         }
 
-        protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, params object?[] propertyValues)
+        protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck, params object?[] propertyValues)
         {
+            WriteMessageInit(message, writeNewLineOnEnd, checkCursor, processWaitCheck, propertyValues);
+        }
+
+        private async void WriteMessageInit(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck, params object?[] propertyValues)
+        {
+            var token = new CancellationTokenSource();
+            if (processWaitCheck)
+            {
+                _writeGuid.Add(token);
+                if (_writeGuid.Count > 1)
+                {
+                    await Task.Delay(-1, token.Token);
+                }
+                _writeGuid.Remove(token);
+            }
+
             if (checkCursor && Console.CursorLeft != 0)
             {
                 Console.Write(Environment.NewLine);
@@ -115,6 +150,11 @@ namespace TinyUpdate.Core.Logging.Loggers
                 Console.Write(propertyValues[number]);
                 Console.ForegroundColor = oldColour;
                 message = message.Substring(endBracketInt + 1, message[(endBracketInt + 1)..].Length);
+            }
+
+            if (processWaitCheck)
+            {
+                _writeGuid.FirstOrDefault()?.Cancel();
             }
         }
     }

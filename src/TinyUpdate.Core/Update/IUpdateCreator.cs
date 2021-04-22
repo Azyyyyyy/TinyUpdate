@@ -14,9 +14,10 @@ namespace TinyUpdate.Core.Update
         /// <param name="newVersionLocation">The new version of the application</param>
         /// <param name="baseVersionLocation">The version that the user will be upgrading from</param>
         /// <param name="deltaUpdateLocation">Where the delta file should be put (defaults to Temp folder with random name)</param>
+        /// <param name="concurrentDeltaCreation">How many delta files we can create at the same time (NOTE: You WILL need a powerful CPU and a lot of RAM to use this)</param>
         /// <param name="progress">Reports back the progress of creating the update file</param>
         /// <returns>If we was able to create the package</returns>
-        public Task<bool> CreateDeltaPackage(string newVersionLocation, string baseVersionLocation, string? deltaUpdateLocation = null, Action<decimal>? progress = null);
+        public Task<bool> CreateDeltaPackage(string newVersionLocation, string baseVersionLocation, string? deltaUpdateLocation = null, int concurrentDeltaCreation = 1, Action<decimal>? progress = null);
 
         /// <summary>
         /// Creates a full package from the application folder

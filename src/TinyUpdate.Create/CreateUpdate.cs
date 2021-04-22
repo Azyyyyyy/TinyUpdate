@@ -23,7 +23,8 @@ namespace TinyUpdate.Create
                     Global.NewVersionLocation,
                     Global.OldVersionLocation,
                     Program.GetOutputLocation(true, updateCreator.Extension),
-                    progress => progressBar.Report((double)progress));
+                    3,
+                    progress: progress => progressBar.Report((double)progress));
             progressBar.Dispose();
 
             ConsoleHelper.ShowSuccess(wasUpdateCreated);

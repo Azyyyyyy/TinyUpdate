@@ -51,7 +51,6 @@ namespace TinyUpdate.Create
                 new Option<string?>(
                     new []{ "--ct", "--creator-type" },
                     "What the Type is called that processes "),
-                //Add arg for creator/applier
             };
             rootCommand.Description = Logger.Name;
 

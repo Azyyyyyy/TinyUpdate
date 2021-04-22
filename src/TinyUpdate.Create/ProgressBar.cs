@@ -9,6 +9,7 @@ namespace TinyUpdate.Create
     /// </summary>
     public class ProgressBar : IDisposable, IProgress<double>
     {
+        private CustomConsoleLogger _logger = new(nameof(ProgressBar));
         private readonly TimeSpan _animationInterval = TimeSpan.FromSeconds(1.0 / 8);
         private const string Animation = @"|/-\";
 
@@ -62,15 +63,20 @@ namespace TinyUpdate.Create
 
         private void UpdateText(string text)
         {
+            if (Console.CursorLeft > _currentText.Length)
+            {
+                _logger.WriteLine();
+            }
+            
             // If the new text is shorter than the old one: delete overlapping characters
             int overlapCount = _currentText.Length - text.Length;
-            if (overlapCount > 0) {
-                Console.Write(new string(' ', overlapCount));
-                Console.Write(new string('\b', overlapCount));
+            if (Console.CursorLeft != 0 && overlapCount > 0) {
+                _logger.Write(new string(' ', overlapCount));
+                _logger.Write(new string('\b', overlapCount));
             }
 
             Console.CursorLeft = 0;
-            Console.Write(text);
+            _logger.Write(text);
             _currentText = text;
         }
 

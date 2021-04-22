@@ -34,7 +34,7 @@ namespace TinyUpdate.Test.Update
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0",
                 null,
-                obj => _logger.Debug($"Progress: {obj * 100}"));
+                progress: obj => _logger.Debug($"Progress: {obj * 100}"));
             Assert.True(wasSuccessful, "Wasn't able to apply update");
         }
         
