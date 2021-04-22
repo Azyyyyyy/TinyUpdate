@@ -47,9 +47,9 @@ namespace TinyUpdate.Create
             Directory.CreateDirectory(applicationLocation);
             Core.Global.ApplicationFolder = applicationLocation;
             Core.Global.ApplicationVersion = Global.ApplicationOldVersion ?? new Version(0, 0, 0, 1);
-            var oldVersionLocation = applier.GetApplicationPath(Core.Global.ApplicationVersion);
 
             //Delete the old version if it exists, likely here from verifying update files last time
+            var oldVersionLocation = applier.GetApplicationPath(Core.Global.ApplicationVersion);
             if (Directory.Exists(oldVersionLocation))
             {
                 Directory.Delete(oldVersionLocation, true);
@@ -60,7 +60,7 @@ namespace TinyUpdate.Create
             var folderToCopy = Global.OldVersionLocation ?? Global.NewVersionLocation;
             foreach (var file in Directory.EnumerateFiles(folderToCopy, "*", SearchOption.AllDirectories))
             {
-                var fileLocation = Path.Combine(oldVersionLocation, file.Remove(0, folderToCopy.Length + 1));
+                var fileLocation = Path.Combine(oldVersionLocation, file[(folderToCopy.Length + 1)..]);
                 var folder = Path.GetDirectoryName(fileLocation);
                 if (string.IsNullOrWhiteSpace(folder))
                 {
@@ -77,7 +77,11 @@ namespace TinyUpdate.Create
             if (Global.CreateFullUpdate && File.Exists(fullUpdateFileLocation))
             {
                 ConsoleHelper.ShowSuccess(
-                    await VerifyUpdate(fullUpdateFileLocation, false, Global.ApplicationOldVersion, Global.ApplicationNewVersion, applier));
+                    await VerifyUpdate(fullUpdateFileLocation, 
+                        false, 
+                        Global.ApplicationOldVersion, 
+                        Global.ApplicationNewVersion, 
+                        applier));
                 Logger.WriteLine("");
             }
             
@@ -85,11 +89,20 @@ namespace TinyUpdate.Create
             if (Global.CreateDeltaUpdate && File.Exists(deltaUpdateFileLocation))
             {
                 ConsoleHelper.ShowSuccess(
-                    await VerifyUpdate(deltaUpdateFileLocation, true, Global.ApplicationOldVersion, Global.ApplicationNewVersion, applier));
+                    await VerifyUpdate(deltaUpdateFileLocation, 
+                        true, 
+                        Global.ApplicationOldVersion, 
+                        Global.ApplicationNewVersion, 
+                        applier));
             }
         }
 
-        private static async Task<bool> VerifyUpdate(string updateFile, bool isDelta, Version? oldVersion, Version newVersion, IUpdateApplier updateApplier)
+        private static async Task<bool> VerifyUpdate(
+            string updateFile, 
+            bool isDelta, 
+            Version? oldVersion, 
+            Version newVersion, 
+            IUpdateApplier updateApplier)
         {
             //Grab the hash and size of this update file
             Logger.WriteLine("Applying update file {0} to test applying and to be able to cross check files", updateFile);
@@ -113,7 +126,8 @@ namespace TinyUpdate.Create
             var stopwatch = new Stopwatch();
 
             stopwatch.Start();
-            var successful = await updateApplier.ApplyUpdate(entry, progress => applyProgressBar.Report((double)progress));
+            var successful = 
+                await updateApplier.ApplyUpdate(entry, progress => applyProgressBar.Report((double)progress));
             stopwatch.Stop();
             applyProgressBar.Dispose();
             
@@ -148,7 +162,7 @@ namespace TinyUpdate.Create
             //Check that the files are bit-for-bit and that the folder structure is the same
             foreach (var file in newVersionFiles)
             {
-                var fileName = file.Remove(0, Global.NewVersionLocation.Length);
+                var fileName = file[Global.NewVersionLocation.Length..];
                 var fileIndex = appliedVersionFiles.IndexOf(x => x?.EndsWith(fileName) ?? false);
 
                 await using var fileStream = File.OpenRead(appliedVersionFiles[fileIndex]);

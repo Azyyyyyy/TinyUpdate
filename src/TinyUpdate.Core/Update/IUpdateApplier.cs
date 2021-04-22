@@ -25,7 +25,8 @@ namespace TinyUpdate.Core.Update
         /// <returns>If this update was successfully applied</returns>
         Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress = null);
 
-        string? GetApplicationPath([NotNullIfNotNull("version")] Version? version);
+        [return: NotNullIfNotNull("version")]
+        string? GetApplicationPath(Version? version);
         
         /// <summary>
         /// Extension to be used on this kind of update file

@@ -196,7 +196,8 @@ namespace TinyUpdate.Create
             Logger.WriteLine("");
         }
         
-        public static string GetOutputLocation(bool deltaFile, string extension) => Path.Combine(Global.OutputLocation, $"{Global.MainApplicationName}.{Global.ApplicationNewVersion}-{(deltaFile ? "delta" : "full")}{extension}");
+        public static string GetOutputLocation(bool deltaFile, string extension) => 
+            Path.Combine(Global.OutputLocation, $"{Global.MainApplicationName}.{Global.ApplicationNewVersion}-{(deltaFile ? "delta" : "full")}{extension}");
 
         private static void ShowHeader()
         {

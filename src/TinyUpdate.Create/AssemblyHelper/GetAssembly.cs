@@ -131,13 +131,8 @@ namespace TinyUpdate.Create.AssemblyHelper
             }
 
             //Loop though all the types we got (This will skip if selectedInt is 0, meaning that it was auto selected)
-            foreach (var types in availableTypes.Values)
+            foreach (var types in availableTypes.Values.TakeWhile(types => ty == null))
             {
-                if (ty != null)
-                {
-                    break;
-                }
-                
                 //If this is the case then the type they want isn't from this assembly
                 if (types.Count < selectedInt)
                 {
@@ -229,19 +224,21 @@ namespace TinyUpdate.Create.AssemblyHelper
             var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator))?.GetName().Name;
             if (string.IsNullOrWhiteSpace(coreAssembly))
             {
-                Logger.Error($"Couldn't get core assembly, unable to get {typeToCheckFor.Name} from other assemblies");
+                Logger.Error("Couldn't get core assembly, unable to get {0} from other assemblies", typeToCheckFor.Name);
                 return types;
             }
 
+            var files = Directory.GetFiles(applicationLocation, "*.dll");
+
             // Create PathAssemblyResolver that can resolve assemblies using the created list.
-            var resolver = new PathAssemblyResolver(Directory.EnumerateFiles(applicationLocation, "*.dll"));
+            var resolver = new PathAssemblyResolver(files);
             using var mlc = new MetadataLoadContext(resolver);
 
             //Now lets try to find the types
             foreach (var file in 
                 CachedFiles.Any() ?
-                    CachedFiles :
-                    Directory.EnumerateFiles(applicationLocation, "*.dll"))
+                    CachedFiles.ToArray() :
+                    files)
             {
                 //Check that it's something we can load in
                 if (!CanLoadFile(file))

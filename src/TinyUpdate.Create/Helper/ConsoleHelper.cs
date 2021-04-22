@@ -37,12 +37,12 @@ namespace TinyUpdate.Create.Helper
             }
             if (timeSpan.Milliseconds > 0)
             {
-                s += $"{timeSpan:%s} Millisecond{ShowS(timeSpan.Milliseconds)}, ";
+                s += $"{timeSpan:%fff} Millisecond{ShowS(timeSpan.Milliseconds)}, ";
             }
             var timeCount = s.Count(x => x == ',');
             if (timeCount > 0)
             {
-                s = s.Remove(s.LastIndexOf(','));
+                s = s[..s.LastIndexOf(',')];
                 if (timeCount > 1)
                 {
                     var i = s.LastIndexOf(',');
@@ -53,7 +53,8 @@ namespace TinyUpdate.Create.Helper
             return s;
         }
 
-        public static void ShowSuccess(bool wasSuccessful) => Logger.Write(wasSuccessful ? " Success ✓" : " Failed ✖");
+        public static void ShowSuccess(bool wasSuccessful) => 
+            Logger.Write(wasSuccessful ? " Success ✓" : " Failed ✖");
         
         public static int RequestNumber(int min, int max)
         {

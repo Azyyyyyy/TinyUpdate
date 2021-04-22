@@ -21,7 +21,7 @@ namespace TinyUpdate.Binary.Extensions
         public static IEnumerable<string> RemovePath(this IEnumerable<string> enumerable, string path)
         {
             return enumerable.Select(file => 
-                file.Remove(0, path.Length + 1));
+                file.Substring(path.Length + 1));
         }
         
         /// <summary>
@@ -35,11 +35,11 @@ namespace TinyUpdate.Binary.Extensions
             var newPath = newFile;
             while (!newPath.Contains(basePath))
             {
-                basePath = basePath.Remove(0, basePath.IndexOf(Path.DirectorySeparatorChar) + 1);
+                basePath = basePath.Substring(basePath.IndexOf(Path.DirectorySeparatorChar) + 1);
             }
 
             newPath = newFile.Replace(basePath, "");
-            newPath = newFile.Remove(0, newPath.Length);
+            newPath = newFile.Substring(newPath.Length);
             return newPath;
         }
         

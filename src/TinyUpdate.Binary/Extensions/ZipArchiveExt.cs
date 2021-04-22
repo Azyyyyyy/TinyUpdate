@@ -51,7 +51,7 @@ namespace TinyUpdate.Binary.Extensions
                 }
                 
                 //Get the filename + path so we can find the entry if it exists (or create if it doesn't)
-                var filename = zipEntry.Name.Remove(zipEntry.Name.LastIndexOf(entryEtx, StringComparison.Ordinal));
+                var filename = zipEntry.Name.Substring(0, zipEntry.Name.LastIndexOf(entryEtx, StringComparison.Ordinal));
                 var filepath = Path.GetDirectoryName(zipEntry.FullName);
 
                 //Get the index of the entry for adding new data (if it exists)
