@@ -50,12 +50,13 @@ namespace TinyUpdate.Core.Logging.Loggers
         {
             Write("WARNING", ConsoleColor.Yellow, Logging.LogLevel.Warn, message, propertyValues);
         }
-        
+
         /// <summary>
         /// Writes data to <see cref="Console"/>
         /// </summary>
         /// <param name="type">What type of log this is (Debug, Info, Error etc...)</param>
         /// <param name="colour">Colour to be used for [TYPE - NAME]</param>
+        /// <param name="logLevel">The log level that this is</param>
         /// <param name="message">Message to output</param>
         /// <param name="propertyValues">objects that should be formatted into the outputted message</param>
         private void Write(string type, ConsoleColor colour, LogLevel logLevel, string message, params object?[] propertyValues)

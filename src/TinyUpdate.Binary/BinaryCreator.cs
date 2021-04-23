@@ -321,6 +321,7 @@ namespace TinyUpdate.Binary
             var hash = SHA256Util.CreateSHA256Hash(newFileStream);
             newFileStream.Dispose();
             
+            
             //Grab file and add it to the set of files
             deltaFileStream ??= File.OpenRead(tmpDeltaFile);
             var addSuccessful = await AddFile(
@@ -355,7 +356,7 @@ namespace TinyUpdate.Binary
         private static async Task<bool> AddSameFile(ZipArchive zipArchive, string filepath) =>
             await AddFile(zipArchive, Stream.Null, filepath + ".diff");
 
-        private static Dictionary<Guid, CancellationTokenSource> _guids = new();
+        private static List<CancellationTokenSource> _guids = new();
         
         /// <summary>
         /// Adds the file to the <see cref="ZipArchive"/> with all the needed information
@@ -374,16 +375,9 @@ namespace TinyUpdate.Binary
             long? filesize = null, 
             string? sha256Hash = null)
         {
-            var guid = Guid.NewGuid();
             var token = new CancellationTokenSource();
-            void FinishGuid()
-            {
-                _guids.Remove(guid);
-                _guids.Values.FirstOrDefault()?.Cancel();
-            }
-            
-            _guids.Add(guid, token);
-            while (_guids.Keys.First() != guid)
+            _guids.Add(token);
+            if (_guids.Count > 1)
             {
                 await Wait(token.Token);
             }
@@ -402,7 +396,8 @@ namespace TinyUpdate.Binary
                 {
                     fileStream.Dispose();
                 }
-                FinishGuid();
+                _guids.Remove(token);
+                _guids.FirstOrDefault()?.Cancel();
                 return true;
             }
 
@@ -420,7 +415,8 @@ namespace TinyUpdate.Binary
             {
                 fileStream.Dispose();
             }
-            FinishGuid();
+            _guids.Remove(token);
+            _guids.FirstOrDefault()?.Cancel();
             return true;
         }
     }
