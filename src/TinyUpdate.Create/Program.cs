@@ -104,10 +104,7 @@ namespace TinyUpdate.Create
             };
             
             //Run the application if we get this far
-            while (true)
-            {
-                await Run();
-            }
+            await Run();
             return 0;
         }
 
