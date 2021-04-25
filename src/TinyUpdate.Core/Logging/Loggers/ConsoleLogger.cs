@@ -6,7 +6,6 @@ using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Core.Logging.Loggers
 {
-    //TODO: Fix issue where output will sometimes be skipped
     /// <summary>
     /// Logs to the Console with some colour
     /// </summary>
@@ -71,31 +70,23 @@ namespace TinyUpdate.Core.Logging.Loggers
             WriteInit(type, colour, logLevel, message, propertyValues);
         }
         
-        private readonly List<CancellationTokenSource> _writeGuid = new();
-        private async void WriteInit(string type, ConsoleColor colour, LogLevel logLevel, string message,
+        private void WriteInit(string type, ConsoleColor colour, LogLevel logLevel, string message,
             params object?[] propertyValues)
         {
-            var token = new CancellationTokenSource();
-            _writeGuid.Add(token);
-            if (_writeGuid.Count > 1)
+            lock (Console.Out)
             {
-                await token.Token.Wait();
+                var oldColour = Console.ForegroundColor;
+                Console.ForegroundColor = colour;
+                if (Console.CursorLeft != 0)
+                {
+                    Console.Write(Environment.NewLine);
+                }
+
+                Console.Write($"[{type} - {Name}]: ");
+
+                Console.ForegroundColor = oldColour;
             }
-
-            _writeGuid.Remove(token);
-
-            var oldColour = Console.ForegroundColor;
-            Console.ForegroundColor = colour;
-            if (Console.CursorLeft != 0)
-            {
-                Console.Write(Environment.NewLine);
-            }
-
-            Console.Write($"[{type} - {Name}]: ");
-
-            Console.ForegroundColor = oldColour;
             WriteMessage(message, true, false, false, propertyValues);
-            _writeGuid.FirstOrDefault()?.Cancel();
         }
 
         protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck,
@@ -104,66 +95,52 @@ namespace TinyUpdate.Core.Logging.Loggers
             WriteMessageInit(message, writeNewLineOnEnd, checkCursor, processWaitCheck, propertyValues);
         }
 
-        private async void WriteMessageInit(string message, bool writeNewLineOnEnd, bool checkCursor,
+        private static void WriteMessageInit(string message, bool writeNewLineOnEnd, bool checkCursor,
             bool processWaitCheck, params object?[] propertyValues)
         {
-            var token = new CancellationTokenSource();
-            if (processWaitCheck)
+            lock (Console.Out)
             {
-                _writeGuid.Add(token);
-                if (_writeGuid.Count > 1)
+                if (checkCursor && Console.CursorLeft != 0)
                 {
-                    await token.Token.Wait();
+                    Console.Write(Environment.NewLine);
                 }
 
-                _writeGuid.Remove(token);
-            }
-
-            if (checkCursor && Console.CursorLeft != 0)
-            {
-                Console.Write(Environment.NewLine);
-            }
-
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                Console.WriteLine();
-                return;
-            }
-
-            var oldColour = Console.ForegroundColor;
-            while (message.Length != 0)
-            {
-                var startBracketInt = message.IndexOf('{') + 1;
-                var endBracketInt = message.IndexOf('}');
-                /*This shows that we are at the end of the message
-                 or the message has no properties to show*/
-                if (startBracketInt == 0 && endBracketInt == -1)
+                if (string.IsNullOrWhiteSpace(message))
                 {
-                    if (writeNewLineOnEnd)
+                    Console.WriteLine();
+                    return;
+                }
+
+                var oldColour = Console.ForegroundColor;
+                while (message.Length != 0)
+                {
+                    var startBracketInt = message.IndexOf('{') + 1;
+                    var endBracketInt = message.IndexOf('}');
+                    /*This shows that we are at the end of the message
+                     or the message has no properties to show*/
+                    if (startBracketInt == 0 && endBracketInt == -1)
                     {
-                        Console.WriteLine(message);
+                        if (writeNewLineOnEnd)
+                        {
+                            Console.WriteLine(message);
+                            break;
+                        }
+
+                        Console.Write(message);
                         break;
                     }
 
-                    Console.Write(message);
-                    break;
+                    Console.Write(message[..(startBracketInt - 1)]);
+                    if (!int.TryParse(message[startBracketInt..endBracketInt], out var number))
+                    {
+                        throw new FormatException();
+                    }
+
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.Write(propertyValues[number]);
+                    Console.ForegroundColor = oldColour;
+                    message = message.Substring(endBracketInt + 1, message[(endBracketInt + 1)..].Length);
                 }
-
-                Console.Write(message[..(startBracketInt - 1)]);
-                if (!int.TryParse(message[startBracketInt..endBracketInt], out var number))
-                {
-                    throw new FormatException();
-                }
-
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write(propertyValues[number]);
-                Console.ForegroundColor = oldColour;
-                message = message.Substring(endBracketInt + 1, message[(endBracketInt + 1)..].Length);
-            }
-
-            if (processWaitCheck)
-            {
-                _writeGuid.FirstOrDefault()?.Cancel();
             }
         }
     }

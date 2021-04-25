@@ -94,12 +94,6 @@ namespace TinyUpdate.Create
             {
                 //Get where the file will be 
                 var fileLocation = Path.Combine(oldVersionLocation, file[(folderToCopy.Length + 1)..]);
-                if (!File.Exists(fileLocation))
-                {
-                    Logger.Error("File that should exist doesn't ({0})", fileLocation);
-                    return;
-                }
-
                 var folder = Path.GetDirectoryName(fileLocation);
                 if (string.IsNullOrWhiteSpace(folder))
                 {

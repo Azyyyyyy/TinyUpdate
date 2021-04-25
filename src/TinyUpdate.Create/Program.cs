@@ -38,7 +38,7 @@ namespace TinyUpdate.Create
                     new[] {"--ol", "--old-version-location"},
                     "Where the old version of the application is stored"),
                 new Option<string>(
-                    new[] {"--an", "--application-name"},
+                    new[] {"--af", "--application-file"},
                     "What is the main application file?"),
                 new Option<bool>(
                     new[] {"-s", "--skip-verifying"},
@@ -61,7 +61,7 @@ namespace TinyUpdate.Create
             rootCommand.Handler = CommandHandler
                 .Create<bool, bool, DirectoryInfo?, DirectoryInfo?, DirectoryInfo?, string, bool, bool, string?, string?
                     , string?>(
-                    async (delta, full, outputLocation, newVersionLocation, oldVersionLocation, applicationName,
+                    async (delta, full, outputLocation, newVersionLocation, oldVersionLocation, applicationFile,
                         skipVerifying, verify, applierType, creatorType, intendedOs) =>
                     {
                         Global.CreateDeltaUpdate = delta;
@@ -71,7 +71,7 @@ namespace TinyUpdate.Create
                             (newVersionLocation?.Exists ?? false ? newVersionLocation.FullName : null)!;
                         Global.OldVersionLocation =
                             oldVersionLocation?.Exists ?? false ? oldVersionLocation.FullName : null;
-                        Global.MainApplicationName = applicationName;
+                        Global.MainApplicationFile = applicationFile;
                         Global.SkipVerify = skipVerifying;
                         Global.AskIfUserWantsToVerify = !verify && !skipVerifying;
                         Global.IntendedOS = !string.IsNullOrWhiteSpace(intendedOs)
@@ -79,18 +79,15 @@ namespace TinyUpdate.Create
                             : null;
                         _applierTypeName = applierType;
                         _creatorTypeName = creatorType;
-
-                        await Run();
                     });
-
-            return await rootCommand.InvokeAsync(args);
-        }
-
-        private static string? _applierTypeName;
-        private static string? _creatorTypeName;
-
-        private static async Task Run()
-        {
+            
+            //Parse args, throwing the error if it couldn't
+            var commandResult = await rootCommand.InvokeAsync(args);
+            if (commandResult != 0)
+            {
+                return commandResult;
+            }
+            
             //Add logging
             LoggingCreator.GlobalLevel = LogLevel.Warn;
             LoggingCreator.AddLogBuilder(new CustomLoggerBuilder());
@@ -105,7 +102,20 @@ namespace TinyUpdate.Create
                 Logger.Error("{0}", eventArgs.ExceptionObject);
                 Logger.Error("Is terminating due to error?: {0}", eventArgs.IsTerminating);
             };
+            
+            //Run the application if we get this far
+            while (true)
+            {
+                await Run();
+            }
+            return 0;
+        }
 
+        private static string? _applierTypeName;
+        private static string? _creatorTypeName;
+
+        private static async Task Run()
+        {
             //Show header and get what kind of update we are doing 
             ShowHeader();
             GetUpdateType();
@@ -138,7 +148,7 @@ namespace TinyUpdate.Create
             //Get where we are storing the update files created and what is the main .dll is
             Global.OutputLocation ??= ConsoleHelper.RequestFolder(
                 $"Where do you want to store the update file{ConsoleHelper.ShowS(Global.CreateDeltaUpdate && Global.CreateFullUpdate)}?");
-            Global.MainApplicationName ??=
+            Global.MainApplicationFile ??=
                 ConsoleHelper.RequestFile("What is the main application file?", Global.NewVersionLocation);
 
             //Get metadata about the application we are making update files for
@@ -182,7 +192,7 @@ namespace TinyUpdate.Create
         private static void GetApplicationMetadata()
         {
             //Grab the assemblyName
-            var mainApplicationName = Global.MainApplicationName;
+            var mainApplicationName = Global.MainApplicationFile;
             var fileLocation = Path.Combine(Global.NewVersionLocation, mainApplicationName);
             var assemblyName = GetAssembly.IsDotNetAssembly(fileLocation)
                 ? AssemblyName.GetAssemblyName(fileLocation)

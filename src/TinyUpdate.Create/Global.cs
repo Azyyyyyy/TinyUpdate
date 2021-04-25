@@ -17,6 +17,8 @@ namespace TinyUpdate.Create
         public static Version? ApplicationOldVersion { get; set; }
         public static string MainApplicationName { get; set; } = null!;
 
+        public static string MainApplicationFile { get; set; } = null!;
+
         public static bool SkipVerify { get; set; }
         public static bool AskIfUserWantsToVerify { get; set; } = true;
     }
