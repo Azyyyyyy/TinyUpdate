@@ -3,15 +3,15 @@
     public enum LogLevel
     {
         /// <summary>
-        /// Show all logging, even any debug loggin
+        /// Show all logging
         /// </summary>
         Trace,
-        
+
         /// <summary>
         /// Show any general, warning, and error logging
         /// </summary>
         Info,
-        
+
         /// <summary>
         /// Show any warnings and error logging
         /// </summary>

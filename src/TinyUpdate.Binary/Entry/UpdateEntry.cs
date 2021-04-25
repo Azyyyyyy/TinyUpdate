@@ -12,6 +12,7 @@ namespace TinyUpdate.Binary.Entry
     public class UpdateEntry
     {
         private readonly ILogging _logger = LoggingCreator.CreateLogger(nameof(UpdateEntry));
+
         public UpdateEntry(IEnumerable<FileEntry> fileEntries)
         {
             foreach (var fileEntry in fileEntries)
@@ -22,7 +23,8 @@ namespace TinyUpdate.Binary.Entry
 
         public UpdateEntry()
         {
-            _logger.Warning("UpdateEntry has been created with nothing passed in. Only do this if you plan to load in a IAsyncEnumerable instead of a IEnumerable");
+            _logger.Warning(
+                "UpdateEntry has been created with nothing passed in. Only do this if you plan to load in a IAsyncEnumerable instead of a IEnumerable");
         }
 
         /// <summary>
@@ -42,7 +44,7 @@ namespace TinyUpdate.Binary.Entry
                     NewFile.Clear();
                     break;
                 }
-                
+
                 ProcessFileEntry(fileEntry);
             }
         }
@@ -55,18 +57,20 @@ namespace TinyUpdate.Binary.Entry
                 fileEntry.Stream?.Dispose();
                 fileEntry.Stream = null;
             }
-                
+
             //Add to the correct 
             if (fileEntry.IsDeltaFile())
             {
                 DeltaFile.Add(fileEntry);
                 return;
             }
+
             if (fileEntry.IsNewFile())
             {
                 NewFile.Add(fileEntry);
                 return;
             }
+
             SameFile.Add(fileEntry);
         }
 
@@ -74,7 +78,7 @@ namespace TinyUpdate.Binary.Entry
         /// Files that need to be processed as a delta file
         /// </summary>
         public List<FileEntry> DeltaFile { get; } = new();
-        
+
         /// <summary>
         /// Files that should already be on the device
         /// </summary>

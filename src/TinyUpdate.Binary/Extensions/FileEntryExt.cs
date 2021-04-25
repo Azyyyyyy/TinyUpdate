@@ -13,7 +13,7 @@ namespace TinyUpdate.Binary.Extensions
         /// <param name="fileEntry">Details about the file</param>
         public static bool IsDeltaFile(this FileEntry fileEntry)
         {
-            return fileEntry.Filesize != 0 && fileEntry.PatchType != PatchType.New;
+            return fileEntry.Filesize != 0 && fileEntry.DeltaExtension != ".new";
         }
 
         /// <summary>
@@ -22,7 +22,7 @@ namespace TinyUpdate.Binary.Extensions
         /// <param name="fileEntry">Details about the file</param>
         public static bool IsNewFile(this FileEntry fileEntry)
         {
-            return fileEntry.Filesize != 0 && fileEntry.PatchType == PatchType.New;
+            return fileEntry.Filesize != 0 && fileEntry.DeltaExtension == ".new";
         }
     }
 }

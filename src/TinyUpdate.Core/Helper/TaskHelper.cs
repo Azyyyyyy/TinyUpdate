@@ -36,7 +36,7 @@ namespace TinyUpdate.Core.Helper
 
             throw new PlatformNotSupportedException("We currently don't support the OS we are currently running on");
         }
-        
+
         /// <inheritdoc cref="RunTaskBasedOnOS{T}"/>
         public static Task<T> RunTaskBasedOnOSAsync<T>(Task<T> windowsTask, Task<T> linuxTask, Task<T> macOSTask)
         {

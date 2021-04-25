@@ -22,7 +22,7 @@ namespace TinyUpdate.Core.Utils
             {
                 FileNameInvalidChars[i] = invalidChars[i];
             }
-            
+
             invalidChars = Path.GetInvalidPathChars();
             PathInvalidChars = new char[invalidChars.LongLength];
             for (var i = 0; i < invalidChars.LongLength; i++)
@@ -36,14 +36,16 @@ namespace TinyUpdate.Core.Utils
         /// </summary>
         /// <param name="s">File name to check</param>
         /// <param name="invalidChar"><see cref="char"/> that is invalid</param>
-        public static bool IsValidForFileName(this string s, out char? invalidChar) => CheckValidation(FileNameInvalidChars, s, out invalidChar);
-        
+        public static bool IsValidForFileName(this string s, out char? invalidChar) =>
+            CheckValidation(FileNameInvalidChars, s, out invalidChar);
+
         /// <summary>
         /// Gets if the string contains any char that is not allowed in a file name
         /// </summary>
         /// <param name="s">File path to check</param>
         /// <param name="invalidChar"><see cref="char"/> that is invalid</param>
-        public static bool IsValidForFilePath(this string s, out char? invalidChar) => CheckValidation(PathInvalidChars, s, out invalidChar);
+        public static bool IsValidForFilePath(this string s, out char? invalidChar) =>
+            CheckValidation(PathInvalidChars, s, out invalidChar);
 
         /// <summary>
         /// Checks string for anything that it shouldn't be in it
@@ -51,7 +53,7 @@ namespace TinyUpdate.Core.Utils
         /// <param name="chars"><see cref="char"/>[] that shouldn't be in <see cref="s"/></param>
         /// <param name="s">string to check</param>
         /// <param name="invalidChar"><see cref="char"/> that was in <see cref="s"/> but shouldn't be</param>
-        private static bool CheckValidation(IReadOnlyCollection<char> chars, string s, out char? invalidChar)
+        private static bool CheckValidation(IEnumerable<char> chars, string s, out char? invalidChar)
         {
             Logger.Debug("Checking {0}", s);
             invalidChar = null;

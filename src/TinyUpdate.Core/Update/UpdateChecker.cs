@@ -12,6 +12,7 @@ namespace TinyUpdate.Core.Update
     {
         protected readonly ILogging Logger;
         private readonly IUpdateApplier _updateApplier;
+
         protected UpdateChecker(IUpdateApplier updateApplier)
         {
             _updateApplier = updateApplier;
@@ -84,7 +85,7 @@ namespace TinyUpdate.Core.Update
 
                 totalBytesDownloaded += updateEntry.Filesize;
             }
-            
+
             return true;
         }
 

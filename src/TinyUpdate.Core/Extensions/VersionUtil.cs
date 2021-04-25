@@ -9,8 +9,10 @@ namespace TinyUpdate.Core.Extensions
     public static class VersionExt
     {
         private static readonly Regex SuffixRegex = new Regex(@"(-full|-delta)?", RegexOptions.Compiled);
-        private static readonly Regex VersionRegex = new Regex(@"\d+(\.\d+){0,3}(-[A-Za-z][0-9A-Za-z-]*)?$", RegexOptions.Compiled);
-        
+
+        private static readonly Regex VersionRegex =
+            new Regex(@"\d+(\.\d+){0,3}(-[A-Za-z][0-9A-Za-z-]*)?$", RegexOptions.Compiled);
+
         /// <summary>
         /// Gets the version from the filename if it exists 
         /// </summary>

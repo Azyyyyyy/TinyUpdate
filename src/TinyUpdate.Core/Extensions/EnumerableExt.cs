@@ -24,6 +24,7 @@ namespace TinyUpdate.Core.Extensions
                 {
                     return index;
                 }
+
                 index++;
             }
 

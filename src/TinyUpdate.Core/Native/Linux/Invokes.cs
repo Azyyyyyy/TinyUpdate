@@ -16,6 +16,7 @@ namespace TinyUpdate.Core.Native.Linux
         /// <param name="originalFile">Where the file that is going to be linked is</param>
         /// <param name="linkLocation">where we want the link to be</param>
         /// <returns>If we was able to make the hard link</returns>
-        internal static bool CreateHardLink(string originalFile, string linkLocation) => link(originalFile, linkLocation) == 0;
+        internal static bool CreateHardLink(string originalFile, string linkLocation) =>
+            link(originalFile, linkLocation) == 0;
     }
 }

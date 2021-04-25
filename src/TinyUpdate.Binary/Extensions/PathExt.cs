@@ -11,7 +11,7 @@ namespace TinyUpdate.Binary.Extensions
     public static class PathExt
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(PathExt));
-        
+
         /// <summary>
         /// Removes path from string
         /// </summary>
@@ -20,10 +20,10 @@ namespace TinyUpdate.Binary.Extensions
         /// <returns>file paths without <see cref="path"/></returns>
         public static IEnumerable<string> RemovePath(this IEnumerable<string> enumerable, string path)
         {
-            return enumerable.Select(file => 
+            return enumerable.Select(file =>
                 file.Substring(path.Length + 1));
         }
-        
+
         /// <summary>
         /// Gets the relative path for two files
         /// </summary>
@@ -42,7 +42,7 @@ namespace TinyUpdate.Binary.Extensions
             newPath = newFile.Substring(newPath.Length);
             return newPath;
         }
-        
+
         /// <summary>
         /// This checks if this folder exists and if it does, it will delete it and recreate it
         /// </summary>
@@ -55,6 +55,7 @@ namespace TinyUpdate.Binary.Extensions
             {
                 Directory.Delete(folder, true);
             }
+
             Directory.CreateDirectory(folder);
         }
 

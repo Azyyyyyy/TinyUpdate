@@ -25,16 +25,14 @@ namespace TinyUpdate.Core.Logging
         {
             return logLevel >= (loggerLevel ?? GlobalLevel);
         }
-        
+
         /// <summary>
         /// Creates <see cref="ILogging"/>
         /// </summary>
         /// <param name="name">Name of the class that is requesting an <see cref="ILogging"/></param>
-        public static ILogging CreateLogger(string name) => 
-            new WrapperLogger(name, 
-                LogBuilders.Any() ? 
-                    LogBuilders.ToArray() : 
-                    new LoggingBuilder[]{ new EmptyLoggerBuilder() });
+        public static ILogging CreateLogger(string name) =>
+            new WrapperLogger(name,
+                LogBuilders.Any() ? LogBuilders.ToArray() : new LoggingBuilder[] {new EmptyLoggerBuilder()});
 
         /// <summary>
         /// Adds a <see cref="LoggingBuilder"/> that will be used when creating a <see cref="ILogging"/> from <see cref="CreateLogger"/>

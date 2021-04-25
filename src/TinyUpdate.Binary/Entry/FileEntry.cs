@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Binary.Entry
 {
@@ -11,11 +12,9 @@ namespace TinyUpdate.Binary.Entry
         {
             Filename = filename;
             FolderPath = folderPath;
-            FileLocation = string.IsNullOrWhiteSpace(folderPath) ? 
-                Filename : 
-                Path.Combine(folderPath, Filename);
+            FileLocation = string.IsNullOrWhiteSpace(folderPath) ? Filename : Path.Combine(folderPath, Filename);
         }
-        
+
         /// <summary>
         /// The filename of the file
         /// </summary>
@@ -47,8 +46,8 @@ namespace TinyUpdate.Binary.Entry
         public Stream? Stream { get; set; }
 
         /// <summary>
-        /// What kind of patch this is
+        /// The extension that shows the <see cref="IDeltaUpdate"/> that created this file
         /// </summary>
-        public PatchType PatchType { get; set; }
+        public string DeltaExtension { get; set; } = null!;
     }
 }

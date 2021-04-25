@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
+using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Core.Logging.Loggers
 {
+    //TODO: Fix issue where output will sometimes be skipped
     /// <summary>
     /// Logs to the Console with some colour
     /// </summary>
@@ -59,7 +60,8 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <param name="logLevel">The log level that this is</param>
         /// <param name="message">Message to output</param>
         /// <param name="propertyValues">objects that should be formatted into the outputted message</param>
-        private void Write(string type, ConsoleColor colour, LogLevel logLevel, string message, params object?[] propertyValues)
+        private void Write(string type, ConsoleColor colour, LogLevel logLevel, string message,
+            params object?[] propertyValues)
         {
             if (!LoggingCreator.ShouldProcess(LogLevel, logLevel))
             {
@@ -68,16 +70,18 @@ namespace TinyUpdate.Core.Logging.Loggers
 
             WriteInit(type, colour, logLevel, message, propertyValues);
         }
-
+        
         private readonly List<CancellationTokenSource> _writeGuid = new();
-        private async void WriteInit(string type, ConsoleColor colour, LogLevel logLevel, string message, params object?[] propertyValues)
+        private async void WriteInit(string type, ConsoleColor colour, LogLevel logLevel, string message,
+            params object?[] propertyValues)
         {
             var token = new CancellationTokenSource();
             _writeGuid.Add(token);
             if (_writeGuid.Count > 1)
             {
-                await Task.Delay(-1, token.Token);
+                await token.Token.Wait();
             }
+
             _writeGuid.Remove(token);
 
             var oldColour = Console.ForegroundColor;
@@ -86,6 +90,7 @@ namespace TinyUpdate.Core.Logging.Loggers
             {
                 Console.Write(Environment.NewLine);
             }
+
             Console.Write($"[{type} - {Name}]: ");
 
             Console.ForegroundColor = oldColour;
@@ -93,12 +98,14 @@ namespace TinyUpdate.Core.Logging.Loggers
             _writeGuid.FirstOrDefault()?.Cancel();
         }
 
-        protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck, params object?[] propertyValues)
+        protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck,
+            params object?[] propertyValues)
         {
             WriteMessageInit(message, writeNewLineOnEnd, checkCursor, processWaitCheck, propertyValues);
         }
 
-        private async void WriteMessageInit(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck, params object?[] propertyValues)
+        private async void WriteMessageInit(string message, bool writeNewLineOnEnd, bool checkCursor,
+            bool processWaitCheck, params object?[] propertyValues)
         {
             var token = new CancellationTokenSource();
             if (processWaitCheck)
@@ -106,8 +113,9 @@ namespace TinyUpdate.Core.Logging.Loggers
                 _writeGuid.Add(token);
                 if (_writeGuid.Count > 1)
                 {
-                    await Task.Delay(-1, token.Token);
+                    await token.Token.Wait();
                 }
+
                 _writeGuid.Remove(token);
             }
 
@@ -115,13 +123,13 @@ namespace TinyUpdate.Core.Logging.Loggers
             {
                 Console.Write(Environment.NewLine);
             }
-            
+
             if (string.IsNullOrWhiteSpace(message))
             {
                 Console.WriteLine();
                 return;
             }
-            
+
             var oldColour = Console.ForegroundColor;
             while (message.Length != 0)
             {
@@ -136,7 +144,7 @@ namespace TinyUpdate.Core.Logging.Loggers
                         Console.WriteLine(message);
                         break;
                     }
-                    
+
                     Console.Write(message);
                     break;
                 }
@@ -161,7 +169,7 @@ namespace TinyUpdate.Core.Logging.Loggers
     }
 
     /// <summary>
-    /// Builder to create <see cref="LoggingBuilder"/>
+    /// Builder to create <see cref="ConsoleLogger"/>
     /// </summary>
     public class ConsoleLoggerBuilder : LoggingBuilder
     {

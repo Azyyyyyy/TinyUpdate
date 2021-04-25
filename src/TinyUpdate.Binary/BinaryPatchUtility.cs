@@ -75,6 +75,7 @@ namespace TinyUpdate.Binary
                 Logger.Error("Output stream must be seekable");
                 return false;
             }
+
             if (!output.CanWrite)
             {
                 Logger.Error("Output stream must be writable");
@@ -121,8 +122,8 @@ namespace TinyUpdate.Binary
                 int lastOffset = 0;
                 while (scan < newData.Length)
                 {
-                    progress?.Invoke((((decimal)scan / newData.Length) / 2) + 0.5m);
-                    
+                    progress?.Invoke((((decimal) scan / newData.Length) / 2) + 0.5m);
+
                     int oldScore = 0;
 
                     for (int scsc = scan += len; scan < newData.Length; scan++)
@@ -200,7 +201,7 @@ namespace TinyUpdate.Binary
                         }
 
                         for (int i = 0; i < lenf; i++)
-                            db[dbLen + i] = (byte)(newData[lastScan + i] - oldData[lastPos + i]);
+                            db[dbLen + i] = (byte) (newData[lastScan + i] - oldData[lastPos + i]);
                         for (int i = 0; i < (scan - lenb) - (lastScan + lenf); i++)
                             eb[ebLen + i] = newData[lastScan + lenf + i];
 
@@ -267,7 +268,8 @@ namespace TinyUpdate.Binary
         /// the patch to be opened concurrently.</param>
         /// <param name="output">A <see cref="Stream"/> to which the patched data is written.</param>
         /// <param name="progress">Reports back progress</param>
-        public static async Task<bool> Apply(Stream input, Func<Stream> openPatchStream, Stream output, Action<decimal>? progress)
+        public static async Task<bool> Apply(Stream input, Func<Stream> openPatchStream, Stream output,
+            Action<decimal>? progress)
         {
             /*
             File format:
@@ -292,6 +294,7 @@ namespace TinyUpdate.Binary
                     Logger.Error("Patch stream must be readable.");
                     return false;
                 }
+
                 if (!patchStream.CanSeek)
                 {
                     Logger.Error("Patch stream must be seekable.");
@@ -349,6 +352,7 @@ namespace TinyUpdate.Binary
                     {
                         progress?.Invoke(newSize / newPosition);
                     }
+
                     // read control data
                     for (int i = 0; i < 3; i++)
                     {
@@ -366,7 +370,7 @@ namespace TinyUpdate.Binary
                     // seek old file to the position that the new data is diffed against
                     input.Position = oldPosition;
 
-                    int bytesToCopy = (int)control[0];
+                    int bytesToCopy = (int) control[0];
                     while (bytesToCopy > 0)
                     {
                         int actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
@@ -375,7 +379,7 @@ namespace TinyUpdate.Binary
                         diffStream.ReadExactly(newData, 0, actualBytesToCopy);
 
                         // add old data to diff string
-                        int availableInputBytes = Math.Min(actualBytesToCopy, (int)(input.Length - input.Position));
+                        int availableInputBytes = Math.Min(actualBytesToCopy, (int) (input.Length - input.Position));
                         input.ReadExactly(oldData, 0, availableInputBytes);
 
                         for (int index = 0; index < availableInputBytes; index++)
@@ -397,7 +401,7 @@ namespace TinyUpdate.Binary
                     }
 
                     // read extra string
-                    bytesToCopy = (int)control[1];
+                    bytesToCopy = (int) control[1];
                     while (bytesToCopy > 0)
                     {
                         int actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
@@ -410,7 +414,7 @@ namespace TinyUpdate.Binary
                     }
 
                     // adjust position
-                    oldPosition = (int)(oldPosition + control[2]);
+                    oldPosition = (int) (oldPosition + control[2]);
                 }
             }
 
@@ -425,6 +429,7 @@ namespace TinyUpdate.Binary
                 if (diff != 0)
                     return diff;
             }
+
             return 0;
         }
 
@@ -436,10 +441,12 @@ namespace TinyUpdate.Binary
                 if (oldData[i + oldOffset] != newData[i + newOffset])
                     break;
             }
+
             return i;
         }
 
-        private static int Search(int[] I, byte[] oldData, byte[] newData, int newOffset, int start, int end, out int pos)
+        private static int Search(int[] I, byte[] oldData, byte[] newData, int newOffset, int start, int end,
+            out int pos)
         {
             while (true)
             {
@@ -593,6 +600,7 @@ namespace TinyUpdate.Binary
                 if (buckets[i] == buckets[i - 1] + 1)
                     I[buckets[i]] = -1;
             }
+
             I[0] = -1;
 
             for (int h = 1; I[0] != -(oldData.Length + 1); h += h)
@@ -656,7 +664,7 @@ namespace TinyUpdate.Binary
 
             for (int byteIndex = 0; byteIndex < 8; byteIndex++)
             {
-                buf[offset + byteIndex] = (byte)(valueToWrite % 256);
+                buf[offset + byteIndex] = (byte) (valueToWrite % 256);
                 valueToWrite -= buf[offset + byteIndex];
                 valueToWrite /= 256;
             }
@@ -739,7 +747,8 @@ namespace TinyUpdate.Binary
         /// <summary>
         /// Begins an asynchronous read operation.
         /// </summary>
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback,
+            object? state)
         {
             ThrowIfDisposed();
             return _mStreamBase.BeginRead(buffer, offset, count, callback, state);
@@ -748,7 +757,8 @@ namespace TinyUpdate.Binary
         /// <summary>
         /// Begins an asynchronous write operation.
         /// </summary>
-        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
+        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback,
+            object? state)
         {
             ThrowIfDisposed();
             return _mStreamBase.BeginWrite(buffer, offset, count, callback, state);
@@ -863,6 +873,7 @@ namespace TinyUpdate.Binary
             {
                 _mStreamBase.Dispose();
             }
+
             _disposed = true;
             base.Dispose(disposing);
         }

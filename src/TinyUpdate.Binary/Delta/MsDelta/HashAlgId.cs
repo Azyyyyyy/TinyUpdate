@@ -1,4 +1,4 @@
-﻿namespace TinyUpdate.Binary.MsDelta
+﻿namespace TinyUpdate.Binary.Delta.MsDelta
 {
     internal enum HashAlgId
     {

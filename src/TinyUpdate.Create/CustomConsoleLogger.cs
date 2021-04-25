@@ -1,10 +1,11 @@
-﻿using TinyUpdate.Core.Logging;
+﻿using System;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Logging.Loggers;
 
 namespace TinyUpdate.Create
 {
     /// <summary>
-    /// Custom console logger that only shows warnings + errors
+    /// <see cref="ConsoleLogger"/> which also contains WriteLine and Write as <see cref="Console"/>
     /// </summary>
     public class CustomConsoleLogger : ConsoleLogger
     {
@@ -12,19 +13,19 @@ namespace TinyUpdate.Create
         {
         }
 
-        /// <inheritdoc cref="System.Console.WriteLine(string, object[])"/>
+        /// <inheritdoc cref="Console.WriteLine(string, object[])"/>
         public void WriteLine(string message = "", params object?[] propertyValues)
         {
             WriteMessage(message, true, true, true, propertyValues);
         }
 
-        /// <inheritdoc cref="System.Console.Write(string, object[])"/>
+        /// <inheritdoc cref="Console.Write(string, object[])"/>
         public void Write(string message, params object?[] propertyValues)
         {
             WriteMessage(message, false, false, true, propertyValues);
         }
     }
-    
+
     /// <summary>
     /// Builder to create <see cref="CustomLoggerBuilder"/>
     /// </summary>

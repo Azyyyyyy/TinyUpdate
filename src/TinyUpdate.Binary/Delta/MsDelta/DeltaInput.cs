@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace TinyUpdate.Binary.MsDelta
+namespace TinyUpdate.Binary.Delta.MsDelta
 {
     /// <summary>
     /// Type for input memory blocks

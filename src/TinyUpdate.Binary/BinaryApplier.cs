@@ -21,14 +21,9 @@ namespace TinyUpdate.Binary
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryApplier));
 
-        /// <summary>
-        /// Gets where an certain version of the application would be located
-        /// </summary>
-        /// <param name="version">the <see cref="Version"/> we want the path for</param>
-        /// <returns>What the <see cref="version"/> would be</returns>
+        /// <inheritdoc cref="IUpdateApplier.GetApplicationPath(Version?)"/>
         public string? GetApplicationPath(Version? version) =>
-            version == null ? null :
-            Path.Combine(Global.ApplicationFolder, $"app-{version}");
+            version == null ? null : Path.Combine(Global.ApplicationFolder, $"app-{version}");
 
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
         public string Extension { get; } = ".tuup";
@@ -39,10 +34,10 @@ namespace TinyUpdate.Binary
             //Check that we was the one who made the update (as shown with the file extension)
             if (Path.GetExtension(entry.Filename) != Extension)
             {
-                Logger.Error("{0} is not a update made by {1}, bail...", entry.FileLocation, GetType().Name);
+                Logger.Error("{0} is not a update made by {1}, bail...", entry.FileLocation, nameof(BinaryApplier));
                 return false;
             }
-            
+
             //Get the paths for where the version will be and where the older version is
             var newPath = GetApplicationPath(entry.Version);
             var basePath = GetApplicationPath(Global.ApplicationVersion);
@@ -58,7 +53,7 @@ namespace TinyUpdate.Binary
             /*Delete the folder if it exist, likely that application
              was closed while we was updating*/
             newPath.CheckForFolder();
-            
+
             //Do the update!
             return await ApplyUpdate(basePath, newPath, entry, progress);
         }
@@ -72,7 +67,7 @@ namespace TinyUpdate.Binary
                 Logger.Error("We don't have a update to apply!!");
                 return false;
             }
-            
+
             //Check that we can bounce from each update that needs to be applied
             var updates = updateInfo.Updates.OrderBy(x => x.Version).ToArray();
             var lastUpdateVersion = Global.ApplicationVersion;
@@ -80,21 +75,22 @@ namespace TinyUpdate.Binary
             {
                 if (update.OldVersion != lastUpdateVersion)
                 {
-                    Logger.Error("Can't update to {0} due to update not being created from {1}", update.Version, lastUpdateVersion);
+                    Logger.Error("Can't update to {0} due to update not being created from {1}", update.Version,
+                        lastUpdateVersion);
                     return false;
                 }
 
                 lastUpdateVersion = update.Version;
             }
-            
-            //Get the **newest** version that we have to apply and use 
+
+            //Get the **newest** version that we have to apply and use that for the folder
             var newVersionFolder = GetApplicationPath(updateInfo.NewVersion);
             if (string.IsNullOrWhiteSpace(newVersionFolder))
             {
                 Logger.Error("Can't get folder for the new version");
                 return false;
             }
-            
+
             /*Delete the folder if it exist, likely that application
              was closed while we was updating*/
             newVersionFolder.CheckForFolder();
@@ -106,7 +102,8 @@ namespace TinyUpdate.Binary
             var doneFirstUpdate = false;
             foreach (var updateEntry in updates)
             {
-                /*Base path changes based on if the first update has been done*/
+                /*Base path changes based on if the first update has been
+                 done as we want to start of using the old files we have*/
                 if (!await ApplyUpdate(
                     doneFirstUpdate ? newVersionFolder : GetApplicationPath(Global.ApplicationVersion),
                     newVersionFolder,
@@ -120,7 +117,7 @@ namespace TinyUpdate.Binary
                 updateCounter++;
                 doneFirstUpdate = true;
             }
-            
+
             return true;
         }
 
@@ -129,14 +126,15 @@ namespace TinyUpdate.Binary
         /// <param name="newPath">Where to put the new version of the application into</param>
         /// <param name="entry"></param>
         /// <param name="progress"></param>
-        private static async Task<bool> ApplyUpdate(string basePath, string newPath, ReleaseEntry entry, Action<decimal>? progress = null)
+        private static async Task<bool> ApplyUpdate(string basePath, string newPath, ReleaseEntry entry,
+            Action<decimal>? progress = null)
         {
             if (!File.Exists(entry.FileLocation))
             {
                 Logger.Error("Update file doesn't exist...");
                 return false;
             }
-            
+
             //If we fail then delete the file, it's better to re-download then to get a virus!
             if (!entry.IsValidReleaseEntry(true))
             {
@@ -152,7 +150,8 @@ namespace TinyUpdate.Binary
             {
                 /*This only happens when something is up with the update file,
                   delete and return false*/
-                Logger.Error("Something happened while grabbing files in update file... deleting update file and bailing");
+                Logger.Error(
+                    "Something happened while grabbing files in update file... deleting update file and bailing");
                 zip.Dispose();
                 File.Delete(entry.FileLocation);
                 return false;
@@ -167,9 +166,9 @@ namespace TinyUpdate.Binary
             //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
             var fileCounter = 0m;
             var filesCount = updateEntry.Count + 1;
-            
+
             void UpdateProgress(decimal? fileCount = null) => progress?.Invoke((fileCount ?? fileCounter) / filesCount);
-            
+
             //We want to do the files that didn't change first
             foreach (var file in updateEntry.SameFile)
             {
@@ -207,7 +206,7 @@ namespace TinyUpdate.Binary
 
                 var newFileLocation = Path.Combine(newPath, newFile.FileLocation);
                 var applySuccessful = await ProcessNewFile(newFile, newFileLocation);
-                
+
                 //Check that it applied and is what we are expecting
                 if (!CheckUpdatedFile(applySuccessful, newFileLocation, newFile))
                 {
@@ -219,7 +218,7 @@ namespace TinyUpdate.Binary
                 UpdateProgress();
                 newFile.Stream?.Dispose();
             }
-            
+
             foreach (var deltaFile in updateEntry.DeltaFile)
             {
                 Logger.Debug("Processing {0}", deltaFile.FileLocation);
@@ -230,13 +229,13 @@ namespace TinyUpdate.Binary
                 var originalFile = Path.Combine(basePath, deltaFile.FileLocation);
                 var newFileLocation = Path.Combine(newPath, deltaFile.FileLocation);
 
-                var applySuccessful = await DeltaApplying.ProcessDeltaFile(originalFile, newFileLocation, deltaFile, 
+                var applySuccessful = await DeltaApplying.ProcessDeltaFile(originalFile, newFileLocation, deltaFile,
                     applyProgress => UpdateProgress(fileCounter + applyProgress));
-                
-                /*We up this counter after as a delta update can report the progress of it being applied, upping it before
-                 will make the first delta update jump up the progress more then it should*/
+
+                /*We up this counter after as a delta update can report the progress of it being applied,
+                 upping it before will make the first delta update jump up the progress more then it should*/
                 fileCounter++;
-                
+
                 //Check that it applied and is what we are expecting
                 if (!CheckUpdatedFile(applySuccessful, newFileLocation, deltaFile))
                 {
@@ -256,10 +255,10 @@ namespace TinyUpdate.Binary
                 if (!filesLocation.Contains(file))
                 {
                     Logger.Debug("{0} no-longer exists in version {1}, deleting....", file, entry.Version);
-                    File.Delete(file);                    
+                    File.Delete(file);
                 }
             }
-            
+
             Cleanup();
             return true;
         }
@@ -278,17 +277,17 @@ namespace TinyUpdate.Binary
                 Logger.Error("Applying {0} wasn't successful", fileEntry.FileLocation);
                 return false;
             }
-            
+
             //This file didn't change, assume it's fine
             if (fileEntry.Filesize == 0)
             {
                 Logger.Debug("Filesize is 0, we should be fine");
                 return true;
             }
-            
+
             //Check file size and hash
             var fileStream = File.OpenRead(fileLocation);
-            var isExpectedFile = 
+            var isExpectedFile =
                 fileStream.Length == fileEntry.Filesize &&
                 SHA256Util.CreateSHA256Hash(fileStream) == fileEntry.SHA256;
             fileStream.Dispose();
@@ -300,6 +299,7 @@ namespace TinyUpdate.Binary
                 Logger.Error("Updated file is not what we expect, deleting it!");
                 File.Delete(fileLocation);
             }
+
             return isExpectedFile;
         }
 
@@ -323,16 +323,17 @@ namespace TinyUpdate.Binary
             //We already put the file in place from another update
             if (newFile == originalFile)
             {
+                Logger.Debug("Files given are the same, we should be fine");
                 return true;
             }
 
-            //The file shouldn't yet exist, delete it just in case
+            //The file shouldn't yet exist, delete it just to be safe
             if (File.Exists(newFile))
             {
                 Logger.Warning("There was a file at {0} when there shouldn't been at this stage", newFile);
-                File.Delete(newFile);                
+                File.Delete(newFile);
             }
-            
+
             //Try to create the hard link
             if (HardLinkHelper.CreateHardLink(originalFile, newFile))
             {
@@ -348,12 +349,12 @@ namespace TinyUpdate.Binary
             }
             catch (Exception e)
             {
-                Logger.Error("Couldn't hard link or copy file!! ({0})", newFile);
+                Logger.Error("Couldn't copy {0} to {1}", originalFile, newFile);
                 Logger.Error(e);
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Copies the file that was in the update file
         /// </summary>
@@ -367,7 +368,7 @@ namespace TinyUpdate.Binary
                 Logger.Error("fileEntry's doesn't have a stream, can't copy file that would be at {0}", fileLocation);
                 return false;
             }
-            
+
             var fileStream = File.OpenWrite(fileLocation);
             await fileEntry.Stream.CopyToAsync(fileStream);
             fileStream.Dispose();

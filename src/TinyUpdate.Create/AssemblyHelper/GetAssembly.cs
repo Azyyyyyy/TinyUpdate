@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Create.Helper;
@@ -21,7 +22,7 @@ namespace TinyUpdate.Create.AssemblyHelper
             {
                 return false;
             }
-            
+
             using Stream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read);
             using BinaryReader binaryReader = new BinaryReader(fileStream);
             if (fileStream.Length < 64)
@@ -70,14 +71,15 @@ namespace TinyUpdate.Create.AssemblyHelper
 
             // Read the 15th Data Dictionary RVA field which contains the CLI header RVA.
             // When this is non-zero then the file contains CLI data otherwise not.
-            var dataDictionaryStart = (ushort)(peHeaderPointer + (peFormat == PE32 ? 232 : 248));
+            var dataDictionaryStart = (ushort) (peHeaderPointer + (peFormat == PE32 ? 232 : 248));
             fileStream.Position = dataDictionaryStart;
 
             var cliHeaderRva = binaryReader.ReadUInt32();
             return cliHeaderRva != 0;
         }
-        
-        private static void ShowAssemblyMetadata(Assembly assembly, IReadOnlyCollection<Type> types, string friendlyName, ref int counter)
+
+        private static void ShowAssemblyMetadata(Assembly assembly, IReadOnlyCollection<Type> types,
+            string friendlyName, ref int counter)
         {
             //Shows the assembly that contains the type
             var assemblyName = assembly.GetName().Name;
@@ -86,8 +88,9 @@ namespace TinyUpdate.Create.AssemblyHelper
                 Logger.Warning("Don't have assembly name, skipping...");
                 return;
             }
+
             var message = $"{friendlyName}{ConsoleHelper.ShowS(types.Count)} found in {{0}}";
-                
+
             Logger.WriteLine(message, assemblyName);
             Logger.WriteLine(new string('=', message.Length + assemblyName.Length - 3));
 
@@ -98,20 +101,22 @@ namespace TinyUpdate.Create.AssemblyHelper
                 counter++;
                 Logger.WriteLine($"{counter}) {{0}}", type.FullName);
             }
-            Logger.WriteLine("");
+
+            Logger.WriteLine();
         }
-        
-        //TODO: Make it filter based on what OS we plan to make the update for
-        public static T? GetTypeFromAssembly<T>(string friendlyName, string? automaticallyLoad = null)
+
+        public static T? GetTypeFromAssembly<T>(string friendlyName, string? automaticallyLoad = null,
+            OSPlatform? intendedOS = null)
         {
             Logger.WriteLine($"Finding update {friendlyName}...");
 
             //Get any the type from any assembly that we know
-            var availableTypes = GetAssembliesWithType(Global.NewVersionLocation, typeof(T));
+            var availableTypes = GetAssembliesWithType(Global.NewVersionLocation, typeof(T), intendedOS);
             if (!availableTypes.Any())
             {
                 return default;
             }
+
             Type? ty = null;
 
             //Show any types that we have found
@@ -121,7 +126,7 @@ namespace TinyUpdate.Create.AssemblyHelper
                 ShowAssemblyMetadata(assembly, types, friendlyName, ref counter);
                 ty ??= types.FirstOrDefault(type => type.Name == automaticallyLoad);
             }
-            
+
             //Get the type that they want to use (Auto selecting if we only got one)
             int selectedInt = 1;
             if (ty == null && availableTypes.Values.Select(x => x.Count).Sum(x => x) > 1)
@@ -150,6 +155,7 @@ namespace TinyUpdate.Create.AssemblyHelper
             {
                 return instance;
             }
+
             return default;
         }
 
@@ -172,7 +178,7 @@ namespace TinyUpdate.Create.AssemblyHelper
             {
                 return false;
             }
-            
+
             //assembly manifest
             var assemblyName = GetAssemblyName(file);
             if (string.IsNullOrWhiteSpace(assemblyName?.Name))
@@ -184,9 +190,9 @@ namespace TinyUpdate.Create.AssemblyHelper
             return true;
         }
 
-        private static AssemblyName? GetAssemblyName(string file) => 
-            IsDotNetAssembly(file) ? 
-                AssemblyName.GetAssemblyName(file) 
+        private static AssemblyName? GetAssemblyName(string file) =>
+            IsDotNetAssembly(file)
+                ? AssemblyName.GetAssemblyName(file)
                 : null;
 
         private static Type? SafeGetInterface(this Type type, string name)
@@ -206,12 +212,15 @@ namespace TinyUpdate.Create.AssemblyHelper
         /*When we run this the first time we put any files that contained
          something useful and then re-look at them files, saves time rechecking*/
         private static readonly List<string> CachedFiles = new();
+
         /// <summary>
         /// This goes through every assembly and looks for any that contains the type that we are looking for
         /// </summary>
         /// <param name="applicationLocation">Where the application is stored</param>
         /// <param name="typeToCheckFor">Type to look for</param>
-        private static Dictionary<Assembly, List<Type>> GetAssembliesWithType(string applicationLocation, Type typeToCheckFor)
+        /// <param name="intendedOS">OS that we intended to process for</param>
+        private static Dictionary<Assembly, List<Type>> GetAssembliesWithType(string applicationLocation,
+            Type typeToCheckFor, OSPlatform? intendedOS = null)
         {
             var types = new Dictionary<Assembly, List<Type>>();
             if (!typeToCheckFor.IsInterface)
@@ -224,7 +233,8 @@ namespace TinyUpdate.Create.AssemblyHelper
             var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator))?.GetName().Name;
             if (string.IsNullOrWhiteSpace(coreAssembly))
             {
-                Logger.Error("Couldn't get core assembly, unable to get {0} from other assemblies", typeToCheckFor.Name);
+                Logger.Error("Couldn't get core assembly, unable to get {0} from other assemblies",
+                    typeToCheckFor.Name);
                 return types;
             }
 
@@ -235,10 +245,8 @@ namespace TinyUpdate.Create.AssemblyHelper
             using var mlc = new MetadataLoadContext(resolver);
 
             //Now lets try to find the types
-            foreach (var file in 
-                CachedFiles.Any() ?
-                    CachedFiles.ToArray() :
-                    files)
+            foreach (var file in
+                CachedFiles.Any() ? CachedFiles.ToArray() : files)
             {
                 //Check that it's something we can load in
                 if (!CanLoadFile(file))
@@ -267,6 +275,7 @@ namespace TinyUpdate.Create.AssemblyHelper
                     {
                         types.Add(assembly, new List<Type>());
                     }
+
                     types[assembly].Add(typeInfo);
                 }
             }
@@ -275,20 +284,32 @@ namespace TinyUpdate.Create.AssemblyHelper
             var loadedTypes = new Dictionary<Assembly, List<Type>>();
             foreach (var (assembly, assemblyTypes) in types)
             {
-                var sharedAssemblies = new[] { coreAssembly };
-                var probingDirectories = new [] { applicationLocation };
+                var sharedAssemblies = new[] {coreAssembly};
+                var probingDirectories = new[] {applicationLocation};
 
-                var assemblyLoadContext = new SharedAssemblyLoadContext(sharedAssemblies, probingDirectories, assembly.Location);
+                var assemblyLoadContext =
+                    new SharedAssemblyLoadContext(sharedAssemblies, probingDirectories, assembly.Location);
                 var loadedAssembly = assemblyLoadContext.LoadFromAssemblyPath(assembly.Location);
                 loadedTypes.Add(loadedAssembly, new List<Type>());
                 foreach (var assemblyType in assemblyTypes)
                 {
-                    loadedTypes[loadedAssembly].Add(
-                        loadedAssembly.DefinedTypes.First(x =>
-                            x.FullName == assemblyType.FullName));
+                    var type = loadedAssembly.DefinedTypes.First(x =>
+                        x.FullName == assemblyType.FullName);
+
+                    var osProp = type.GetProperty("IntendedOS");
+                    if (intendedOS != null
+                        && osProp != null
+                        && (!osProp.CanRead
+                            || osProp.GetValue(type) is not OSPlatform osPlatform
+                            || osPlatform != intendedOS))
+                    {
+                        continue;
+                    }
+
+                    loadedTypes[loadedAssembly].Add(type);
                 }
             }
-            
+
             return loadedTypes;
         }
     }

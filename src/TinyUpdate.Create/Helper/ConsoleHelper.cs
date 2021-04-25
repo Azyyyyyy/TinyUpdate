@@ -10,8 +10,10 @@ namespace TinyUpdate.Create.Helper
     public static class ConsoleHelper
     {
         private static readonly CustomConsoleLogger Logger = new(nameof(ConsoleHelper));
-        
-        public static string ShowS(int count) => count > 1 ? "s" : "";
+
+        public static string ShowS(int count) => ShowS(count > 1);
+        public static string ShowS(bool show) => show ? "s" : "";
+
         /// <summary>
         /// Creates a string that displays the contents of <see cref="TimeSpan"/>
         /// </summary>
@@ -23,22 +25,27 @@ namespace TinyUpdate.Create.Helper
             {
                 s += $"{timeSpan:%d} Day{ShowS(timeSpan.Days)}, ";
             }
+
             if (timeSpan.Hours > 0)
             {
                 s += $"{timeSpan:%h} Hour{ShowS(timeSpan.Hours)}, ";
             }
+
             if (timeSpan.Minutes > 0)
             {
                 s += $"{timeSpan:%m} Minute{ShowS(timeSpan.Minutes)}, ";
             }
+
             if (timeSpan.Seconds > 0)
             {
                 s += $"{timeSpan:%s} Second{ShowS(timeSpan.Seconds)}, ";
             }
+
             if (timeSpan.Milliseconds > 0)
             {
                 s += $"{timeSpan:%fff} Millisecond{ShowS(timeSpan.Milliseconds)}, ";
             }
+
             var timeCount = s.Count(x => x == ',');
             if (timeCount > 0)
             {
@@ -53,9 +60,9 @@ namespace TinyUpdate.Create.Helper
             return s;
         }
 
-        public static void ShowSuccess(bool wasSuccessful) => 
+        public static void ShowSuccess(bool wasSuccessful) =>
             Logger.Write(wasSuccessful ? " Success ✓" : " Failed ✖");
-        
+
         public static int RequestNumber(int min, int max)
         {
             while (true)
@@ -65,7 +72,7 @@ namespace TinyUpdate.Create.Helper
                     Logger.Error("You need to give a valid number!!");
                     continue;
                 }
-                
+
                 //Check that it's not higher then what we have
                 if (number < min)
                 {
@@ -108,7 +115,7 @@ namespace TinyUpdate.Create.Helper
                 Logger.Error("Can't create a version from {0}", line);
             }
         }
-        
+
         public static string RequestString(string message)
         {
             while (true)
@@ -126,7 +133,7 @@ namespace TinyUpdate.Create.Helper
                 Logger.Error("You need to put in something!!");
             }
         }
-        
+
         private static readonly string[] NoStrings =
         {
             "no",
@@ -143,7 +150,7 @@ namespace TinyUpdate.Create.Helper
         {
             while (true)
             {
-                Logger.WriteLine("");
+                Logger.WriteLine();
                 Logger.Write(message + (booleanPreferred ? " [Y/n]" : " [N/y]") + ": ");
                 var line = Console.ReadLine()?.ToLower();
 
@@ -152,17 +159,18 @@ namespace TinyUpdate.Create.Helper
                 {
                     return booleanPreferred;
                 }
-                
+
                 //See if what they put in something to show yes or no
                 if (YesStrings.Contains(line))
                 {
                     return true;
                 }
+
                 if (NoStrings.Contains(line))
                 {
                     return false;
                 }
-                
+
                 //They didn't put in something we know, tell them
                 Logger.Error("You need to put in 'y' for yes or 'n' for no");
             }
@@ -179,16 +187,18 @@ namespace TinyUpdate.Create.Helper
                     Logger.Error("You need to put something in!!!");
                     continue;
                 }
+
                 line = string.IsNullOrWhiteSpace(folder) ? line : Path.Combine(folder, line);
 
                 if (File.Exists(line))
                 {
                     return line;
                 }
+
                 Logger.Error("File doesn't exist");
             }
         }
-        
+
         public static string RequestFolder(string message)
         {
             while (true)
@@ -200,11 +210,12 @@ namespace TinyUpdate.Create.Helper
                     Logger.Error("You need to put something in!!!");
                     continue;
                 }
-                
+
                 if (Directory.Exists(line))
                 {
                     return line;
                 }
+
                 Logger.Error("Directory doesn't exist");
             }
         }

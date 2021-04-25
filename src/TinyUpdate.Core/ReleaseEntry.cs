@@ -13,14 +13,14 @@ namespace TinyUpdate.Core
     public class ReleaseEntry
     {
         private readonly ILogging _logger;
-        
+
         public ReleaseEntry(
-            string sha256, 
-            string filename, 
-            long filesize, 
-            bool isDelta, 
-            Version version, 
-            string? filePath = null, 
+            string sha256,
+            string filename,
+            long filesize,
+            bool isDelta,
+            Version version,
+            string? filePath = null,
             Version? oldVersion = null,
             string? tag = null)
         {
@@ -31,9 +31,10 @@ namespace TinyUpdate.Core
                 {
                     throw new Exception("We need the old version in a delta update");
                 }
+
                 OldVersion = oldVersion;
             }
-            
+
             //Check hash and file name/path
             if (!SHA256Util.IsValidSHA256(sha256))
             {
@@ -47,6 +48,7 @@ namespace TinyUpdate.Core
             {
                 throw new InvalidFilePathException(invalidPathChar);
             }
+
             _logger = LoggingCreator.CreateLogger($"{nameof(ReleaseEntry)} ({filename})");
 
             SHA256 = sha256;
@@ -113,7 +115,7 @@ namespace TinyUpdate.Core
                     _logger.Warning("{0} doesn't exist, this release entry isn't valid", FileLocation);
                     return false;
                 }
-                
+
                 using var file = StreamUtil.SafeOpenRead(FileLocation);
                 if (file?.Length != Filesize ||
                     !SHA256Util.CheckSHA256(file, SHA256))
@@ -122,7 +124,7 @@ namespace TinyUpdate.Core
                     return false;
                 }
             }
-            
+
             //Check that this version is higher then what we are running now
             return Global.ApplicationVersion < Version;
         }

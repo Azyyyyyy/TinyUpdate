@@ -14,12 +14,12 @@
         /// We are using HTML for rendering
         /// </summary>
         Html,
-        
+
         /// <summary>
         /// We are using plain text for rendering
         /// </summary>
         Plain,
-        
+
         /// <summary>
         /// We don't know what is being used for rendering
         /// </summary>

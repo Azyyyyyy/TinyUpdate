@@ -20,8 +20,9 @@ namespace TinyUpdate.Core
             {
                 throw new Exception("We somehow can't get the currently running assembly");
             }
+
             ApplicationVersion = runningAssembly.GetName().Version;
-            
+
 
             /*Now grab where the application is installed, checking that the current folder
              is the same as the version number (as this is an hint that we aren't installed 
@@ -43,6 +44,7 @@ namespace TinyUpdate.Core
         public static Version ApplicationVersion { get; set; }
 
         private static string _tempFolder = Path.Combine(Path.GetTempPath(), "TinyUpdate");
+
         /// <summary>
         /// The folder to be used when downloading/creating any files that are only needed for a short period of time
         /// </summary>
@@ -55,6 +57,7 @@ namespace TinyUpdate.Core
                 {
                     throw new InvalidFilePathException(invalidChar);
                 }
+
                 _tempFolder = Path.Combine(value, ApplicationName);
             }
         }
@@ -63,6 +66,7 @@ namespace TinyUpdate.Core
         public static string ApplicationName { get; set; }
 
         private static string _applicationFolder;
+
         /// <summary>
         /// The folder that contains the application files
         /// </summary>

@@ -13,7 +13,7 @@ namespace TinyUpdate.Core
     public class ReleaseFile
     {
         private static readonly ILogging Logging = LoggingCreator.CreateLogger(nameof(ReleaseFile));
-        
+
         public ReleaseFile(string sha256, string name, long size, Version? oldVersion)
         {
             SHA256 = sha256;
@@ -61,7 +61,8 @@ namespace TinyUpdate.Core
             using var textFileStream = file.CreateText();
             foreach (var releaseFile in releaseFiles)
             {
-                await textFileStream.WriteLineAsync($"{releaseFile.SHA256} {releaseFile.Name} {(releaseFile.OldVersion != null ? $"{releaseFile.OldVersion} " : "")}{releaseFile.Size}");
+                await textFileStream.WriteLineAsync(
+                    $"{releaseFile.SHA256} {releaseFile.Name} {(releaseFile.OldVersion != null ? $"{releaseFile.OldVersion} " : "")}{releaseFile.Size}");
             }
 
             return true;
@@ -82,17 +83,17 @@ namespace TinyUpdate.Core
                 {
                     continue;
                 }
-                
+
                 var sha256 = lineS[0];
                 var fileName = lineS[1];
                 Version? oldVersion = null;
-                if (long.TryParse(lineS[lineS.Length - 1], out var fileSize) 
+                if (long.TryParse(lineS[^1], out var fileSize)
                     && SHA256Util.IsValidSHA256(sha256)
                     && (lineS.Length != 4 || Version.TryParse(lineS[2], out oldVersion)))
                 {
                     yield return new ReleaseFile(sha256, fileName, fileSize, oldVersion);
                 }
-                
+
                 //If we got here then we wasn't able to create a release file from the data given
                 Logging.Warning($"Line {line} is not a valid ReleaseFile");
             }

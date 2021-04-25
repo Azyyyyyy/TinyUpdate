@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace TinyUpdate.Binary.MsDelta
+namespace TinyUpdate.Binary.Delta.MsDelta
 {
     /// <summary>
-    /// Flags for when we are applying a <see cref="MsDelta"/> file
+    /// Flags for when we are applying a <see cref="MsDiff"/> file
     /// </summary>
     [Flags]
     internal enum ApplyFlags : long

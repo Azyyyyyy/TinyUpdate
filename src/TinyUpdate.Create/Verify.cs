@@ -22,24 +22,55 @@ namespace TinyUpdate.Create
             {
                 return;
             }
-            
-            //Ask if they want to verify files
+
             if (Global.AskIfUserWantsToVerify)
             {
                 if (!ConsoleHelper.RequestYesOrNo("Do you want us to verify any created updates?", true))
                 {
                     return;
                 }
-                Logger.WriteLine("");
+
+                Logger.WriteLine();
             }
 
             //Grab the applier that we will be using
-            var applier = GetAssembly.GetTypeFromAssembly<IUpdateApplier>("applier", applierType);
+            var applier = GetAssembly.GetTypeFromAssembly<IUpdateApplier>("applier", applierType, Global.IntendedOS);
             if (applier == null)
             {
                 Logger.Error("Can't get applier, can't verify update...");
                 return;
             }
+
+            //Setup
+            SetupForVerifying(applier);
+
+            //Now verify the updates
+            var fullUpdateFileLocation = Program.GetOutputLocation(false, extension);
+            if (Global.CreateFullUpdate && File.Exists(fullUpdateFileLocation))
+            {
+                ConsoleHelper.ShowSuccess(
+                    await VerifyUpdate(fullUpdateFileLocation,
+                        false,
+                        Global.ApplicationOldVersion,
+                        Global.ApplicationNewVersion,
+                        applier));
+                Logger.WriteLine();
+            }
+
+            var deltaUpdateFileLocation = Program.GetOutputLocation(true, extension);
+            if (Global.CreateDeltaUpdate && File.Exists(deltaUpdateFileLocation))
+            {
+                ConsoleHelper.ShowSuccess(
+                    await VerifyUpdate(deltaUpdateFileLocation,
+                        true,
+                        Global.ApplicationOldVersion,
+                        Global.ApplicationNewVersion,
+                        applier));
+            }
+        }
+
+        private static void SetupForVerifying(IUpdateApplier applier)
+        {
             Logger.WriteLine("Setting up for verifying update files");
 
             //Setup Global with what it would have if in the application
@@ -54,58 +85,43 @@ namespace TinyUpdate.Create
             {
                 Directory.Delete(oldVersionLocation, true);
             }
+
             Directory.CreateDirectory(oldVersionLocation);
 
             //Grab the files that we will need to copy
             var folderToCopy = Global.OldVersionLocation ?? Global.NewVersionLocation;
             foreach (var file in Directory.EnumerateFiles(folderToCopy, "*", SearchOption.AllDirectories))
             {
+                //Get where the file will be 
                 var fileLocation = Path.Combine(oldVersionLocation, file[(folderToCopy.Length + 1)..]);
+                if (!File.Exists(fileLocation))
+                {
+                    Logger.Error("File that should exist doesn't ({0})", fileLocation);
+                    return;
+                }
+
                 var folder = Path.GetDirectoryName(fileLocation);
                 if (string.IsNullOrWhiteSpace(folder))
                 {
                     Logger.Error("Can't get folder from the application, can't continue (From file {0})", fileLocation);
                     return;
                 }
-                Directory.CreateDirectory(folder);
-                
-                File.Copy(file, fileLocation);
-            }
 
-            //Now verify the updates
-            var fullUpdateFileLocation = Program.GetOutputLocation(false, extension);
-            if (Global.CreateFullUpdate && File.Exists(fullUpdateFileLocation))
-            {
-                ConsoleHelper.ShowSuccess(
-                    await VerifyUpdate(fullUpdateFileLocation, 
-                        false, 
-                        Global.ApplicationOldVersion, 
-                        Global.ApplicationNewVersion, 
-                        applier));
-                Logger.WriteLine("");
-            }
-            
-            var deltaUpdateFileLocation = Program.GetOutputLocation(true, extension);
-            if (Global.CreateDeltaUpdate && File.Exists(deltaUpdateFileLocation))
-            {
-                ConsoleHelper.ShowSuccess(
-                    await VerifyUpdate(deltaUpdateFileLocation, 
-                        true, 
-                        Global.ApplicationOldVersion, 
-                        Global.ApplicationNewVersion, 
-                        applier));
+                Directory.CreateDirectory(folder);
+                File.Copy(file, fileLocation);
             }
         }
 
-        private static async Task<bool> VerifyUpdate(
-            string updateFile, 
-            bool isDelta, 
-            Version? oldVersion, 
-            Version newVersion, 
-            IUpdateApplier updateApplier)
+        private static async Task<bool> ApplyUpdate(
+            string updateFile,
+            bool isDelta,
+            Version newVersion,
+            Version? oldVersion,
+            IUpdateApplier applier)
         {
             //Grab the hash and size of this update file
-            Logger.WriteLine("Applying update file {0} to test applying and to be able to cross check files", updateFile);
+            Logger.WriteLine("Applying update file {0} to test applying and to be able to cross check files",
+                updateFile);
             await using var updateFileStream = File.OpenRead(updateFile);
             var shaHash = SHA256Util.CreateSHA256Hash(updateFileStream);
             var filesize = updateFileStream.Length;
@@ -113,12 +129,12 @@ namespace TinyUpdate.Create
 
             //Create the release entry
             var entry = new ReleaseEntry(
-                shaHash, 
-                Path.GetFileName(updateFile), 
-                filesize, 
-                isDelta, 
+                shaHash,
+                Path.GetFileName(updateFile),
+                filesize,
+                isDelta,
                 newVersion,
-                Path.GetDirectoryName(updateFile), 
+                Path.GetDirectoryName(updateFile),
                 oldVersion);
 
             //Try to do the update
@@ -126,35 +142,50 @@ namespace TinyUpdate.Create
             var stopwatch = new Stopwatch();
 
             stopwatch.Start();
-            var successful = 
-                await updateApplier.ApplyUpdate(entry, progress => applyProgressBar.Report((double)progress));
+            var successful =
+                await applier.ApplyUpdate(entry, progress => applyProgressBar.Report((double) progress));
             stopwatch.Stop();
             applyProgressBar.Dispose();
-            
             Logger.WriteLine("Processing this update took {0}", ConsoleHelper.TimeSpanToString(stopwatch.Elapsed));
 
+            return successful;
+        }
+
+        private static async Task<bool> VerifyUpdate(
+            string updateFile,
+            bool isDelta,
+            Version? oldVersion,
+            Version newVersion,
+            IUpdateApplier applier)
+        {
             //Error out if we wasn't able to apply update
-            if (!successful)
+            if (!await ApplyUpdate(updateFile, isDelta, newVersion, oldVersion, applier))
             {
                 return false;
             }
-            
+
             //Grab files that we have
-            var newVersionFiles = Directory.GetFiles(Global.NewVersionLocation,"*", SearchOption.AllDirectories);
-            var appliedVersionFiles = Directory.GetFiles(updateApplier.GetApplicationPath(newVersion),"*", SearchOption.AllDirectories);
+            var newVersionFiles = Directory.GetFiles(Global.NewVersionLocation, "*", SearchOption.AllDirectories);
+            var appliedVersionFiles =
+                Directory.GetFiles(applier.GetApplicationPath(newVersion), "*", SearchOption.AllDirectories);
 
             //Check that we got every file that we need/expect
             if (newVersionFiles.LongLength != appliedVersionFiles.LongLength)
             {
                 var hasMoreFiles = appliedVersionFiles.LongLength > newVersionFiles.LongLength;
-                Logger.Error("There are {0} files in the applied version {1}", 
+                Logger.Error("There are {0} files in the applied version {1}",
                     hasMoreFiles ? "more" : "less",
-                    hasMoreFiles ? 
-                        $", files that exist that shouldn't exist:\r\n* {string.Join("\r\n* ", appliedVersionFiles.Except(newVersionFiles))}" :
-                        $", files that should exist:\r\n* {string.Join("\r\n* ", newVersionFiles.Except(appliedVersionFiles))}");
+                    hasMoreFiles
+                        ? $", files that exist that shouldn't exist:\r\n* {string.Join("\r\n* ", appliedVersionFiles.Except(newVersionFiles))}"
+                        : $", files that should exist:\r\n* {string.Join("\r\n* ", newVersionFiles.Except(appliedVersionFiles))}");
                 return false;
             }
-            
+
+            return await CrossCheckFiles(newVersionFiles, appliedVersionFiles);
+        }
+
+        private static async Task<bool> CrossCheckFiles(string[] newVersionFiles, string[] appliedVersionFiles)
+        {
             Logger.WriteLine("Cross checking files");
             double filesCheckedCount = 0;
             using var checkProgressBar = new ProgressBar();
@@ -197,7 +228,7 @@ namespace TinyUpdate.Create
                 filesCheckedCount++;
                 checkProgressBar.Report(filesCheckedCount / newVersionFiles.LongLength);
             }
-            
+
             return true;
         }
     }

@@ -30,7 +30,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     public class SharedAssemblyLoadContext : AssemblyLoadContext
     {
         private static readonly Regex SystemRegex = new Regex("System*", RegexOptions.Compiled);
-        
+
         private readonly List<string> _sharedAssemblies;
         private readonly List<string> _assemblyProbingDirectories = new();
 
@@ -46,20 +46,21 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             string mainLibName)
         {
             _mainLibName = mainLibName;
-            
+
             _sharedAssemblies = sharedAssemblies.ToList();
             _assemblyProbingDirectories.AddRange(assemblyProbingDirectories);
             _assemblyProbingDirectories.Add(Directory.GetCurrentDirectory());
         }
 
-        protected override Assembly Load(AssemblyName assemblyName) 
+        protected override Assembly Load(AssemblyName assemblyName)
         {
             //If it's an assembly that we want to load from default
-            if (assemblyName.Name != null && 
+            if (assemblyName.Name != null &&
                 _sharedAssemblies.Contains(assemblyName.Name))
             {
                 return Default.LoadFromAssemblyName(assemblyName);
             }
+
             return LoadFrom(assemblyName)!;
         }
 
@@ -69,6 +70,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             {
                 return LoadFrom(assemblyName.Name, assemblyName.Version);
             }
+
             return null;
         }
 
@@ -101,7 +103,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
                 {
                     return false;
                 }
-                
+
                 //See if we are loading in the main library, if so then get the information about it 
                 if (assemblyName == _mainLibName)
                 {
@@ -114,6 +116,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
                         _mainLibVersion = Version.Parse(libFrameworkInfo.Substring(versionIndex.Value + 2));
                     }
                 }
+
                 return true;
             }
             catch (Exception e)
@@ -124,7 +127,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             assembly = null;
             return false;
         }
-        
+
         /// <summary>
         /// Grabs the folders that the other libs should be in
         /// </summary>
@@ -135,7 +138,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             {
                 return null;
             }
-            
+
             /*There is four folders that the dll will be in
              netXX - .NET Framework
              netstandardX.X - .NET Standard
@@ -149,23 +152,23 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
                 //.NET Standard lib
                 ".NETStandard" => GetStandardFolders(_mainLibVersion),
-                
+
                 //.NET lib
                 ".NETCoreApp" when _mainLibVersion.Major >= 5 => GetNetFolders(_mainLibVersion),
-                
+
                 //.NET Core lib
                 ".NET" => GetCoreFolders(_mainLibVersion),
                 _ => throw new NotSupportedException("We don't know/support this version of .NET")
             };
         }
-        
+
         private static string[] GetStandardFolders(Version version)
         {
             //.NET Standard stopped at 2.1 as they moved to just working on .NET
             var folders = new Dictionary<string, Version>
             {
-                { "netstandard2.0", new Version(2, 0) },
-                { "netstandard2.1", new Version(2, 1) },
+                {"netstandard2.0", new Version(2, 0)},
+                {"netstandard2.1", new Version(2, 1)},
             };
             return SelectFolders(folders, version);
         }
@@ -175,23 +178,23 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
             //.NET Core stopped at 4.8 as they moved to just working on .NET
             var folders = new Dictionary<string, Version>
             {
-                { "net46", new Version(4, 6) },
-                { "net47", new Version(4, 7) },
-                { "net48", new Version(4, 8) },
+                {"net46", new Version(4, 6)},
+                {"net47", new Version(4, 7)},
+                {"net48", new Version(4, 8)},
             };
             return SelectFolders(folders, version);
         }
-        
+
         private static string[] GetCoreFolders(Version version)
         {
             //.NET Core stopped at 3.1 as they moved to just .NET for naming
             var folders = new Dictionary<string, Version>
             {
-                { "netcoreapp2.0", new Version(2, 0) },
-                { "netcoreapp2.1", new Version(2, 1) },
-                { "netcoreapp2.2", new Version(2, 2) },
-                { "netcoreapp3.0", new Version(3, 0) },
-                { "netcoreapp3.1", new Version(3, 1) },
+                {"netcoreapp2.0", new Version(2, 0)},
+                {"netcoreapp2.1", new Version(2, 1)},
+                {"netcoreapp2.2", new Version(2, 2)},
+                {"netcoreapp3.0", new Version(3, 0)},
+                {"netcoreapp3.1", new Version(3, 1)},
             };
             return SelectFolders(folders, version);
         }
@@ -206,7 +209,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
             return foldersToPass.ToArray();
         }
-        
+
         private static string[] GetNetFolders(Version version)
         {
             //.NET starts at 5.0
@@ -216,7 +219,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
                 $"net{version.Major}.{version.Minor}"
             };
         }
-        
+
         private Assembly? LoadFrom(string assemblyName, Version assemblyVersion)
         {
             //We don't want to handle loading these in
@@ -237,13 +240,17 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
                 var fileNetVersions = GetFolders();
                 if (fileNetVersions != null)
                 {
-                    var files = Directory.GetFiles(assemblyProbingDirectoryRoot, $"{assemblyName}.dll", SearchOption.AllDirectories);
+                    var files = Directory.GetFiles(assemblyProbingDirectoryRoot, $"{assemblyName}.dll",
+                        SearchOption.AllDirectories);
                     var filesOrdered = files.Where(x => fileNetVersions.Any(x.Contains))
                         .OrderByDescending(x => x) //Order by folder names, should bring newest versions first
-                        .ThenByDescending(x => fileNetVersions.IndexOf(y => y?.Contains(x) ?? false)); //Now order by the version folders we expect
+                        .ThenByDescending(x =>
+                            fileNetVersions.IndexOf(y =>
+                                y?.Contains(x) ?? false)); //Now order by the version folders we expect
 
                     //Try to load them in
-                    if (filesOrdered.Any(file => LoadAssembly(Path.GetDirectoryName(file), assemblyName, assemblyVersion, out assembly)))
+                    if (filesOrdered.Any(file =>
+                        LoadAssembly(Path.GetDirectoryName(file), assemblyName, assemblyVersion, out assembly)))
                     {
                         return assembly;
                     }
@@ -251,12 +258,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
                 //Just try to load *something*
                 if (Directory.EnumerateDirectories(assemblyProbingDirectoryRoot, "*", SearchOption.AllDirectories)
-                    .Any(assemblyProbingDirectory => LoadAssembly(assemblyProbingDirectory, assemblyName, assemblyVersion, out assembly)))
+                    .Any(assemblyProbingDirectory =>
+                        LoadAssembly(assemblyProbingDirectory, assemblyName, assemblyVersion, out assembly)))
                 {
                     return assembly;
                 }
             }
-            
+
             return null;
         }
     }

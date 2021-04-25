@@ -31,7 +31,7 @@ namespace TinyUpdate.Core.Logging.Loggers
                 logger.Debug(message, propertyValues);
             }
         }
-        
+
         /// <inheritdoc cref="ILogging.Error(string, object[])"/>
         public void Error(string message, params object?[] propertyValues)
         {

@@ -67,10 +67,11 @@ namespace TinyUpdate.Create
             {
                 _logger.WriteLine();
             }
-            
+
             // If the new text is shorter than the old one: delete overlapping characters
             int overlapCount = _currentText.Length - text.Length;
-            if (Console.CursorLeft != 0 && overlapCount > 0) {
+            if (Console.CursorLeft != 0 && overlapCount > 0)
+            {
                 _logger.Write(new string(' ', overlapCount));
                 _logger.Write(new string('\b', overlapCount));
             }

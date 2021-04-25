@@ -5,7 +5,7 @@ using TinyUpdate.Core.Logging;
 namespace TinyUpdate.Core.Utils
 {
     /// <summary>
-    /// Lets us safely grab streams without 
+    /// Lets us safely grab streams 
     /// </summary>
     public static class StreamUtil
     {

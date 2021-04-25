@@ -60,7 +60,7 @@ namespace TinyUpdate.Core.Logging.Loggers
             }
         }
     }
-    
+
     /// <summary>
     /// Builder to create <see cref="TraceLogger"/>
     /// </summary>

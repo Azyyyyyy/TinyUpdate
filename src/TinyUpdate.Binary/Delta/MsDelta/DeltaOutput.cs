@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TinyUpdate.Binary.MsDelta
+namespace TinyUpdate.Binary.Delta.MsDelta
 {
     /// <summary>
     /// Type for input memory blocks

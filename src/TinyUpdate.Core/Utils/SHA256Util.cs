@@ -13,7 +13,7 @@ namespace TinyUpdate.Core.Utils
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(SHA256Util));
         private static readonly Regex SHA256Regex = new("^[a-fA-F0-9]{64}$", RegexOptions.Compiled);
-        
+
         /// <summary>
         /// Checks the output of a <see cref="Stream"/> to a SHA256 hash that is expected
         /// </summary>
@@ -43,6 +43,7 @@ namespace TinyUpdate.Core.Utils
                 Logger.Information("Do we have the expected SHA256 hash?: {0}", sameHash);
                 return sameHash;
             }
+
             Logger.Warning("We been given an invalid hash, can't check");
             return false;
         }
@@ -58,7 +59,7 @@ namespace TinyUpdate.Core.Utils
             using SHA256Managed sha256 = new();
             return CreateSHA256Hash(sha256.ComputeHash(stream));
         }
-        
+
         /// <summary>
         /// Creates a SHA256 hash from a <see cref="byte"/>[]
         /// </summary>
@@ -72,6 +73,7 @@ namespace TinyUpdate.Core.Utils
                 using SHA256Managed sha256 = new();
                 return CreateSHA256Hash(sha256.ComputeHash(bytes));
             }
+
             return bytes.Aggregate("", (current, b) => current + b.ToString("X2"));
         }
 
