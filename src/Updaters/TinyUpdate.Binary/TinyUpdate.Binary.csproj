@@ -4,12 +4,12 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
-        <PackageOutputPath>../../packages</PackageOutputPath>
+        <PackageOutputPath>../../../packages/Updaters</PackageOutputPath>
     </PropertyGroup>
-    <Import Project="../../Nuget-metadata.csproj" />
+    <Import Project="../../../Nuget-metadata.csproj" />
     
     <ItemGroup>
-      <ProjectReference Include="..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
+      <ProjectReference Include="..\..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
       <PackageReference Include="SharpCompress" Version="0.28.1" />
     </ItemGroup>
 

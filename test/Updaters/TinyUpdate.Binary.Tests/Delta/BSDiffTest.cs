@@ -2,10 +2,11 @@
 using System.Threading.Tasks;
 using NUnit.Framework;
 using TinyUpdate.Binary.Entry;
+using TinyUpdate.Test.Update;
 
 namespace TinyUpdate.Binary.Tests.Delta
 {
-    public class BSDiffTest
+    public class BSDiffTest : IDeltaUpdateTest
     {
         string outputLocation = "C:\\Users\\aaron\\Downloads\\osu.Game.dll";
         string newFileVersion = "C:\\Users\\aaron\\AppData\\Local\\osulazer\\app-2021.416.0\\osu.Game.dll";
