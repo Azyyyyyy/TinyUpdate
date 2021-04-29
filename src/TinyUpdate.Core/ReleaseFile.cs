@@ -14,7 +14,7 @@ namespace TinyUpdate.Core
     {
         private static readonly ILogging Logging = LoggingCreator.CreateLogger(nameof(ReleaseFile));
 
-        public ReleaseFile(string sha256, string name, long size, Version? oldVersion)
+        public ReleaseFile(string sha256, string name, long size, Version? oldVersion = null)
         {
             SHA256 = sha256;
             Name = name;
@@ -42,19 +42,39 @@ namespace TinyUpdate.Core
         /// </summary>
         public Version? OldVersion { get; }
 
+        public override bool Equals(object obj)
+        {
+            return obj is ReleaseFile otherReleaseFile
+                   && Equals(otherReleaseFile);
+        }
+
+        public bool Equals(ReleaseFile otherReleaseFile)
+        {
+            return Name == otherReleaseFile.Name
+                   && Size == otherReleaseFile.Size
+                   && OldVersion == otherReleaseFile.OldVersion
+                   && SHA256 == otherReleaseFile.SHA256;
+        }
+
         /// <summary>
         /// Creates a RELEASE file 
         /// </summary>
         /// <param name="releaseFiles">All the release data to put into the RELEASE file</param>
-        /// <param name="fileLocation">Where the file should be located (Do not give a filename, we add it)</param>
-        /// <returns></returns>
+        /// <param name="fileLocation">Where the file should be located (Do not give a filename, we add that ourselves)</param>
+        /// <returns>If we was able to create a RELEASE file</returns>
         public static async Task<bool> CreateReleaseFile(IEnumerable<ReleaseFile> releaseFiles, string fileLocation)
         {
+            if (!Directory.Exists(fileLocation))
+            {
+                Logging.Error("Directory {0} doesn't exist, failing...", fileLocation);
+                return false;
+            }
+            
             fileLocation = Path.Combine(fileLocation, "RELEASE");
             var file = new FileInfo(fileLocation);
             if (file.Exists)
             {
-                Logging.Warning($"{fileLocation} already exists, going to delete it and recreate it");
+                Logging.Warning("{0} already exists, going to delete it and recreate it", fileLocation);
                 file.Delete();
             }
 
@@ -92,10 +112,11 @@ namespace TinyUpdate.Core
                     && (lineS.Length != 4 || Version.TryParse(lineS[2], out oldVersion)))
                 {
                     yield return new ReleaseFile(sha256, fileName, fileSize, oldVersion);
+                    continue;
                 }
 
                 //If we got here then we wasn't able to create a release file from the data given
-                Logging.Warning($"Line {line} is not a valid ReleaseFile");
+                Logging.Warning("Line {0} is not a valid ReleaseFile", line);
             }
         }
     }

@@ -35,12 +35,19 @@ namespace TinyUpdate.Core
                 OldVersion = oldVersion;
             }
 
+            if (filesize < 0)
+            {
+                throw new Exception("Filesize can't be under 0 bytes!");
+            }
+
             //Check hash and file name/path
             if (!SHA256Util.IsValidSHA256(sha256))
             {
                 throw new Exception("SHA256 hash given is not a valid SHA256 hash");
             }
-            if (!filename.IsValidForFileName(out var invalidChar))
+
+            char? invalidChar = null;
+            if (filename == null || !filename.IsValidForFileName(out invalidChar))
             {
                 throw new InvalidFileNameException(invalidChar);
             }

@@ -6,6 +6,7 @@ using TinyUpdate.Test.Update;
 
 namespace TinyUpdate.Binary.Tests.Delta
 {
+    [Ignore("Need to remake in a way that works everywhere")]
     public class BSDiffTest : IDeltaUpdateTest
     {
         string outputLocation = "C:\\Users\\aaron\\Downloads\\osu.Game.dll";

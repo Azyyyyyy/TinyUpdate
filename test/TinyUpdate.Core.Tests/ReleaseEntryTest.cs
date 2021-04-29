@@ -4,49 +4,66 @@ using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
+using TinyUpdate.Core.Exceptions;
+using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core.Tests
 {
     public class ReleaseEntryTest
     {
-        [SetUp]
-        public void Setup()
+        private async Task RunIsValidReleaseEntryTest(InvalidReleaseEntry invalidReleaseEntry, bool createFile, bool onlyCheckFail = false)
         {
-        }
+            ReleaseEntry releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(createFile, ".tuup");
+            Assert.IsTrue(releaseFile.IsValidReleaseEntry(createFile), 
+                "ReleaseEntry checking failed when we should of passed");
 
+            if (!onlyCheckFail)
+            {
+                releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(createFile, ".tuup", invalidReleaseOptions: invalidReleaseEntry);
+                Assert.IsFalse(releaseFile.IsValidReleaseEntry(createFile), 
+                    "ReleaseEntry checking passed when we should of failed");
+            }
+        }
+        
         [Test]
-        [Ignore("Not added yet")]
         public async Task IsValidReleaseEntry_ApplicationVersionCheck()
         {
-            var releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true, ".tuup");
-            Assert.IsTrue(releaseFile.IsValidReleaseEntry(), "File checking failed, making us return false");
-
-            releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true, ".tuup", invalidReleaseOptions: InvalidReleaseEntry.Version);
-            Assert.IsFalse(releaseFile.IsValidReleaseEntry(), "File checking failed, making us return true");
+            await RunIsValidReleaseEntryTest(InvalidReleaseEntry.Version, false);
         }
         
         [Test]
-        [Ignore("Not added yet")]
         public async Task IsValidReleaseEntry_FilesizeCheck()
         {
+            Assert.ThrowsAsync<Exception>(async () =>
+                await DummyReleaseEntry.MakeDummyReleaseEntry(false, "",
+                    invalidReleaseOptions: InvalidReleaseEntry.Filesize));
+
+            await RunIsValidReleaseEntryTest(InvalidReleaseEntry.Filesize, true, true);
         }
         
         [Test]
-        [Ignore("Not added yet")]
-        public async Task IsValidReleaseEntry_IsDeltaCheck()
-        {
-        }
-        
-        [Test]
-        [Ignore("Not added yet")]
         public async Task IsValidReleaseEntry_SHA256Check()
         {
+            Assert.ThrowsAsync<Exception>(async () => await RunIsValidReleaseEntryTest(InvalidReleaseEntry.SHA256, true));
+
+            await RunIsValidReleaseEntryTest(InvalidReleaseEntry.Data, true);
         }
 
         [Test]
-        [Ignore("Not added yet")]
-        public async Task IsValidReleaseEntry_OldVersionCheck()
+        public void IsValidReleaseEntry_OldVersionCheck()
         {
+            var data = new byte[69];
+            Randomizer.NextBytes(data);
+            var hash = SHA256Util.CreateSHA256Hash(data, true);
+            var version = new Version(1, 2);
+            Assert.DoesNotThrow(() => 
+                new ReleaseEntry(hash, "wew", data.Length, false, version));
+            
+            Assert.Throws<Exception>(() => 
+                new ReleaseEntry(hash, "wew", data.Length, true, version));
+
+            Assert.DoesNotThrow(() => 
+                new ReleaseEntry(hash, "wew", data.Length, true, version, oldVersion: new Version(1, 1)));
         }
         
         [Test]
@@ -54,24 +71,24 @@ namespace TinyUpdate.Core.Tests
         {
             //Check that we fail the file when the file doesn't exist
             var releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(false, ".tuup");
-            Assert.IsFalse(releaseFile.IsValidReleaseEntry(), "File checking failed, Returning true when we should have false");
+            Assert.IsFalse(releaseFile.IsValidReleaseEntry(true), "File checking failed, Returning true when we should have false");
             
             //Check that we check the file correctly when everything is passed as it should be
             releaseFile = await DummyReleaseEntry.MakeDummyReleaseEntry(true, ".tuup");
-            Assert.IsTrue(releaseFile.IsValidReleaseEntry(), "File checking failed, Returning false when we should have true");
+            Assert.IsTrue(releaseFile.IsValidReleaseEntry(true), "File checking failed, Returning false when we should have true");
             
             //Now we make one with a invalid filename name (no filename + invalid name), we should throw when this is the case
-            Assert.ThrowsAsync<Exception>(() => DummyReleaseEntry.MakeDummyReleaseEntry(false, ""), "We didn't throw on a filename that is nothing!");
-            Assert.ThrowsAsync<Exception>(() => DummyReleaseEntry.MakeDummyReleaseEntry(false, CreateInvalidFilename()), "We didn't throw on a filename that is invalid!");
+            Assert.ThrowsAsync<InvalidFileNameException>(async () => await DummyReleaseEntry.MakeDummyReleaseEntry(false, "", ""), "We didn't throw on a filename that is nothing!");
+            Assert.ThrowsAsync<InvalidFileNameException>(async () => await DummyReleaseEntry.MakeDummyReleaseEntry(false, CreateInvalidFilename()), "We didn't throw on a filename that is invalid!");
         }
 
-        private static readonly Random Rnd = new Randomizer();
+        private static Randomizer Randomizer => TestContext.CurrentContext.Random;
         
         /// <summary>
         /// Gets a random <see cref="char"/> from a <see cref="char"/>[]
         /// </summary>
         /// <param name="chars"><see cref="char"/>[] to grab a random <see cref="char"/> from</param>
-        private static char GetRandomChar(IReadOnlyList<char> chars) => chars[Rnd.Next(0, chars.Count - 1)];
+        private static char GetRandomChar(IReadOnlyList<char> chars) => chars[Randomizer.Next(0, chars.Count - 1)];
         
         /// <summary>
         /// Creates a invalid file name

@@ -6,6 +6,7 @@
         Filename,
         Filesize,
         IsDelta,
-        Version
+        Version,
+        Data
     }
 }
