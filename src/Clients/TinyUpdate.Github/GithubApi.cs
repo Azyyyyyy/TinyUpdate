@@ -32,7 +32,7 @@ namespace TinyUpdate.Github
         }
 
 
-        /// <inheritdoc cref="UpdateChecker.CheckForUpdate()"/>
+        /// <inheritdoc cref="UpdateClient.CheckForUpdate()"/>
         /// <param name="organization">The organization that owns the <see cref="repository"/></param>
         /// <param name="repository">The repository name</param>
         public abstract Task<UpdateInfo?> CheckForUpdate(string organization, string repository);

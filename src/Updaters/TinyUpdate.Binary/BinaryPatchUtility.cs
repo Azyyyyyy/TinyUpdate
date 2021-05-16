@@ -301,6 +301,12 @@ namespace TinyUpdate.Binary
                     return false;
                 }
 
+                if (patchStream.Length == 0)
+                {
+                    Logger.Error("Patch stream must contain something");
+                    return false;
+                }
+
                 byte[] header = patchStream.ReadExactly(CHeaderSize);
 
                 // check for appropriate magic

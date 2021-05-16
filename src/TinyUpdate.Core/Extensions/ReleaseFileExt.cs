@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using TinyUpdate.Core.Logging;
 
@@ -34,7 +34,7 @@ namespace TinyUpdate.Core.Extensions
                         releaseFile.SHA256,
                         releaseFile.Name,
                         releaseFile.Size,
-                        fileName.EndsWith("-delta"),
+                        VersionExt.OSRegex.Replace(fileName, string.Empty).EndsWith("-delta"),
                         version,
                         oldVersion: releaseFile.OldVersion,
                         tag: tag);

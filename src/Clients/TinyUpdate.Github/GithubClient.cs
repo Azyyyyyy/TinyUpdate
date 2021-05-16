@@ -13,7 +13,7 @@ namespace TinyUpdate.Github
     /// <summary>
     /// GitHub client to get any updates that need to be applied
     /// </summary>
-    public class GithubClient : UpdateChecker
+    public class GithubClient : UpdateClient
     {
         private readonly string _organization;
         private readonly string _repository;

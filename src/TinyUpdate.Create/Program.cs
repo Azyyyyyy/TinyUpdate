@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -8,6 +9,8 @@ using TinyUpdate.Core.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Runtime.InteropServices;
+using TinyUpdate.Core;
+using TinyUpdate.Core.Utils;
 using TinyUpdate.Create.AssemblyHelper;
 using TinyUpdate.Create.Helper;
 
@@ -134,8 +137,8 @@ namespace TinyUpdate.Create
             Logger.WriteLine();
 
             //Grab the update creator
-            var creator =
-                GetAssembly.GetTypeFromAssembly<IUpdateCreator>("creator", _creatorTypeName, Global.IntendedOS);
+            var creator = GetAssembly.GetTypeFromAssembly<IUpdateCreator>(
+                "creator", _creatorTypeName, Global.IntendedOS);
             if (creator == null)
             {
                 Logger.Error("Unable to create update creator, can't continue....");
@@ -151,6 +154,8 @@ namespace TinyUpdate.Create
             //Get metadata about the application we are making update files for
             GetApplicationMetadata();
 
+            var releaseFiles = new List<ReleaseFile>(2);
+            
             //Create the updates
             var stopwatch = new Stopwatch();
             if (Global.CreateFullUpdate)
@@ -166,8 +171,14 @@ namespace TinyUpdate.Create
                 Logger.WriteLine("Creating the full update took {0}",
                     ConsoleHelper.TimeSpanToString(stopwatch.Elapsed));
                 stopwatch.Restart();
-            }
 
+                if (!AddReleaseFile(ref releaseFiles, creator.Extension, false))
+                {
+                    Logger.Error("Can't create release file entry...");
+                    return;
+                }
+            }
+            
             if (Global.CreateDeltaUpdate)
             {
                 stopwatch.Start();
@@ -180,10 +191,41 @@ namespace TinyUpdate.Create
                 stopwatch.Stop();
                 Logger.WriteLine("Creating the delta update took {0}",
                     ConsoleHelper.TimeSpanToString(stopwatch.Elapsed));
+                
+                if (!AddReleaseFile(ref releaseFiles, creator.Extension, true))
+                {
+                    Logger.Error("Can't create release file entry...");
+                    return;
+                }
+            }
+
+            //TODO: Make it join other release file entries
+            if (!await ReleaseFile.CreateReleaseFile(releaseFiles, Global.OutputLocation))
+            {
+                Logger.Error("Can't create release file....");
+                return;
             }
 
             //and now verify the update files if the user wants to
             await Verify.VerifyUpdateFiles(creator.Extension, _applierTypeName);
+        }
+
+        private static bool AddReleaseFile(ref List<ReleaseFile> releaseFiles, string extension, bool isDelta)
+        {
+            var outputFile = GetOutputLocation(isDelta, extension);
+            var fileStream = StreamUtil.SafeOpenRead(outputFile);
+            if (fileStream == null)
+            {
+                return false;
+            }
+            var updateFileSHA = SHA256Util.CreateSHA256Hash(fileStream);
+            releaseFiles.Add(
+                new ReleaseFile(
+                    updateFileSHA, 
+                    Path.GetFileName(outputFile), 
+                    fileStream.Length, 
+                    isDelta ? Global.ApplicationOldVersion : null));
+            return true;
         }
 
         private static void GetApplicationMetadata()

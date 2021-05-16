@@ -30,7 +30,7 @@ This is fully implemented with Hard Link support and has more modern MsDelta fla
 This is fully implemented with support on both the REST api and the GraphQL api (Note that the GraphQL api needs a personal token that has public_repo)
 
 ## What still needs to be implemented?
-## ``UpdateChecker``'s
+## ``UpdateClient``'s
 * LocalClient - This will be for any update that are stored on a drive
 * WebClient - This will be for any update that are stored on the internet
 

@@ -68,7 +68,7 @@ namespace TinyUpdate.Core
         }
 
         /// <summary>
-        /// Tag that a <see cref="UpdateChecker"/> can use to store some extra data that is needed
+        /// Tag that a <see cref="UpdateClient"/> can use to store some extra data that is needed
         /// </summary>
         public string? Tag { get; }
 

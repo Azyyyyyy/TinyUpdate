@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Create.Helper;
 

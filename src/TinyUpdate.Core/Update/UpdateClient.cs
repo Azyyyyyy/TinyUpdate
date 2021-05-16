@@ -8,12 +8,12 @@ namespace TinyUpdate.Core.Update
     /// <summary>
     /// This is used for finding any updates for this application, downloading the updates and passing the updates to be applied by an <see cref="IUpdateApplier"/>
     /// </summary>
-    public abstract class UpdateChecker
+    public abstract class UpdateClient
     {
         protected readonly ILogging Logger;
         private readonly IUpdateApplier _updateApplier;
 
-        protected UpdateChecker(IUpdateApplier updateApplier)
+        protected UpdateClient(IUpdateApplier updateApplier)
         {
             _updateApplier = updateApplier;
             Logger = LoggingCreator.CreateLogger(GetType().Name);
