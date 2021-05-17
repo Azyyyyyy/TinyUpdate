@@ -1,6 +1,7 @@
 # Tiny Update
 ![](assets/logo-60px.png)
 
+[![Build Status](https://github.com/Azyyyyyy/TinyUpdate/actions/workflows/build_and_test.yml/badge.svg)](https://github.com/Azyyyyyy/TinyUpdate/actions/workflows/build_and_test.yml)
 ## What is this?
 Tiny Update is an Updater that focuses on being easy to use while being feature rich and fast!
 
