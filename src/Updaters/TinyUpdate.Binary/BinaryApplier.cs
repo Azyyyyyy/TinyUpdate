@@ -68,12 +68,29 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
+            //Check that we aren't trying to process both delta and full updates
+            if (updateInfo.Updates.Any(x => x.IsDelta)
+                && updateInfo.Updates.Any(x => !x.IsDelta))
+            {
+                Logger.Error("You can't mix delta and full updates to be installed!!");
+                return false;
+            }
+            
+            //Check that if we are doing a full package then they isn't more then one
+            if (updateInfo.Updates.Count(x => !x.IsDelta) > 1)
+            {
+                Logger.Error("We shouldn't be given more then one full update!!");
+                return false;
+            }
+
             //Check that we can bounce from each update that needs to be applied
             var updates = updateInfo.Updates.OrderBy(x => x.Version).ToArray();
             var lastUpdateVersion = Global.ApplicationVersion;
             foreach (var update in updates)
             {
-                if (update.OldVersion != lastUpdateVersion)
+                //We don't need to do this if we are using a full package
+                if (update.IsDelta
+                    && (update.OldVersion?.Equals(lastUpdateVersion) ?? false))
                 {
                     Logger.Error("Can't update to {0} due to update not being created from {1}", update.Version,
                         lastUpdateVersion);
