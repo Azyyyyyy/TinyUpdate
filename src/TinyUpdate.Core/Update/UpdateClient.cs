@@ -22,8 +22,9 @@ namespace TinyUpdate.Core.Update
         /// <summary>
         /// Finds any updates that haven't been applied to the application
         /// </summary>
+        /// <param name="grabDeltaUpdates">If we should grab delta updates or full updates</param>
         /// <returns><see cref="UpdateInfo"/> with all the updates that are pending</returns>
-        public abstract Task<UpdateInfo?> CheckForUpdate();
+        public abstract Task<UpdateInfo?> CheckForUpdate(bool grabDeltaUpdates = true);
 
         /// <summary>
         /// Gets the changelog for a <see cref="ReleaseEntry"/> that needs to be applied

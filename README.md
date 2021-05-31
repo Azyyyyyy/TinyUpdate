@@ -39,6 +39,5 @@ This is fully implemented with support for REST and for GraphQL (Note that the G
 * Application Loader
 * Installer/Uninstaller
 * Taskbar and start menu shortcut creation
-* ReleaseEntry Filtering
 * Staging for beta's
 * Events on startup for when application was updated
