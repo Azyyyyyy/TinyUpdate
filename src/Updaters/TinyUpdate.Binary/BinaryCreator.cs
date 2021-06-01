@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using TinyUpdate.Binary.Delta;
 using TinyUpdate.Binary.Extensions;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
@@ -28,6 +29,7 @@ namespace TinyUpdate.Binary
         /// <inheritdoc cref="IUpdateCreator.CreateDeltaPackage"/>
         public async Task<bool> CreateDeltaPackage(
             string newVersionLocation,
+            Version newVersion,
             string baseVersionLocation,
             string? deltaUpdateLocation = null,
             int concurrentDeltaCreation = 1,
@@ -51,8 +53,8 @@ namespace TinyUpdate.Binary
                 }
 
                 //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
-                var progressValue = (fileCount - sameFilesLength + extraProgress) /
-                                    (deltaFilesLength + newFilesLength + 1);
+                var progressValue = (fileCount - sameFilesLength + extraProgress + 1) /
+                                    (deltaFilesLength + newFilesLength + 2);
                 if (progressValue != lastProgress)
                 {
                     progress?.Invoke(progressValue);
@@ -72,7 +74,10 @@ namespace TinyUpdate.Binary
 
             void Cleanup()
             {
-                zipArchive.Dispose();
+                lock (zipArchive)
+                {
+                    zipArchive.Dispose();
+                }
                 progress?.Invoke(1);
             }
 
@@ -160,7 +165,7 @@ namespace TinyUpdate.Binary
             //Now process files that changed
             var result = Parallel.ForEach(deltaFiles,
                 new ParallelOptions {MaxDegreeOfParallelism = concurrentDeltaCreation}, 
-                async (deltaFile, state) =>
+                (deltaFile, state) =>
                 {
                     var deltaFileLocation = Path.Combine(newVersionLocation, deltaFile);
                     Logger.Debug("Processing changed file {0}", deltaFile);
@@ -195,6 +200,16 @@ namespace TinyUpdate.Binary
             {
                 return false;
             }
+            
+            //Add the loader into the package
+            if (!AddLoaderFile(zipArchive, newVersion, newVersionLocation))
+            {
+                Logger.Error("Wasn't able to create loader for this application");
+                Cleanup();
+                return false;
+            }
+            fileCount++;
+            UpdateProgress();
 
             //We have created the delta file if we get here, do cleanup and then report as success!
             Logger.Information("We are done with creating the delta file, cleaning up");
@@ -203,7 +218,10 @@ namespace TinyUpdate.Binary
         }
 
         /// <inheritdoc cref="IUpdateCreator.CreateFullPackage"/>
-        public async Task<bool> CreateFullPackage(string applicationLocation, string? fullUpdateLocation = null,
+        public async Task<bool> CreateFullPackage(
+            string applicationLocation, 
+            Version version,
+            string? fullUpdateLocation = null,
             Action<decimal>? progress = null)
         {
             if (!Directory.Exists(applicationLocation))
@@ -229,7 +247,7 @@ namespace TinyUpdate.Binary
                 if (AddNewFile(zipArchive, fileStream, file))
                 {
                     fileCount++;
-                    progress?.Invoke(fileCount / (files.LongLength + 1));
+                    progress?.Invoke(fileCount / (files.LongLength + 2));
                     continue;
                 }
 
@@ -239,6 +257,17 @@ namespace TinyUpdate.Binary
                 progress?.Invoke(1);
                 return false;
             }
+
+            //Add the loader into the package
+            if (!AddLoaderFile(zipArchive, version, applicationLocation))
+            {
+                Logger.Error("Wasn't able to create loader for this application");
+                zipArchive.Dispose();
+                progress?.Invoke(1);
+                return false;
+            }
+            fileCount++;
+            progress?.Invoke(fileCount / (files.LongLength + 2));
 
             zipArchive.Dispose();
             progress?.Invoke(1);
@@ -251,10 +280,8 @@ namespace TinyUpdate.Binary
         /// <returns></returns>
         private ZipArchive CreateZipArchive(string? updateFileLocation = null)
         {
-            //Create the Temp folder in case it doesn't exist
-            Directory.CreateDirectory(Global.TempFolder);
-
             //Create the delta file that will contain all our data
+            Directory.CreateDirectory(Global.TempFolder);
             updateFileLocation ??= Path.Combine(Global.TempFolder, Path.GetRandomFileName() + Extension);
             if (File.Exists(updateFileLocation))
             {
@@ -282,6 +309,31 @@ namespace TinyUpdate.Binary
             return hasChanged;
         }
 
+        private static bool AddLoaderFile(
+            ZipArchive zipArchive, 
+            Version version, 
+            string applicationLocation)
+        {
+            Directory.CreateDirectory(Global.TempFolder);
+
+            //TODO: Grab metadata from .exe and drop it into Loader
+            var iconLocation = Path.Combine(applicationLocation, "app.ico");
+            var successful = ApplicationLoaderCreator.CreateLoader(
+                $"app-{version.ToString(4)}\\{Global.ApplicationName}.exe",
+                File.Exists(iconLocation) ? iconLocation : null,
+                Global.TempFolder,
+                Global.ApplicationName);
+            if (successful 
+                && AddFile(zipArchive, 
+                    File.OpenRead(Path.Combine(Global.TempFolder, Global.ApplicationName + ".exe")),
+                    Global.ApplicationName + ".exe.load", false))
+            {
+                return true;
+            }
+            Logger.Error("Wasn't able to add loader file to list of files");
+            return false;
+        }
+
         /// <summary>
         /// Creates a delta file and then adds it the <see cref="ZipArchive"/>
         /// </summary>
@@ -294,7 +346,8 @@ namespace TinyUpdate.Binary
         private static bool AddDeltaFile(ZipArchive zipArchive, string baseFileLocation,
             string newFileLocation, OSPlatform? intendedOS, Action<decimal>? progress = null)
         {
-            //Create where the delta file can be stored to grab once made 
+            //Create where the delta file can be stored to grab once made
+            Directory.CreateDirectory(Global.TempFolder);
             var tmpDeltaFile = Path.Combine(Global.TempFolder, Path.GetRandomFileName());
 
             //Try to create diff file, outputting extension (and maybe a stream) based on what was used to make it

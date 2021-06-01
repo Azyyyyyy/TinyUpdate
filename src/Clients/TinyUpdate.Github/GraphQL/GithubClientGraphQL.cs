@@ -60,7 +60,7 @@ namespace TinyUpdate.Github.GraphQL
   }
 }";
 
-        public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository)
+        public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates)
         {
             using var response = await GetResponseMessage(new GraphQLQuery(UpdateQuery, $"{{ \"org\": \"{organization}\", \"repo\": \"{repository}\" }}"));
             if (response == null)
@@ -85,7 +85,7 @@ namespace TinyUpdate.Github.GraphQL
             }
             Logger.Information("RELEASES file exists in newest github release, downloading if not already downloaded");
 
-            return await DownloadAndParseReleaseFile(release.TagName, release.ReleaseAssets.Nodes.First().Size, release.ReleaseAssets.Nodes.First().DownloadUrl);
+            return await DownloadAndParseReleaseFile(release.TagName, release.ReleaseAssets.Nodes.First().Size, release.ReleaseAssets.Nodes.First().DownloadUrl, grabDeltaUpdates);
         }
 
         public override async Task<ReleaseNote?> GetChangelog(ReleaseEntry entry, string organization, string repository)

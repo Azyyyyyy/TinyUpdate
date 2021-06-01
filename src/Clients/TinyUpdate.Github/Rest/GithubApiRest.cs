@@ -16,7 +16,7 @@ namespace TinyUpdate.Github.Rest
         {
         }
         
-        public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository)
+        public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates)
         {
             //Get release data
             var releases = await GetGithubReleaseRest(organization, repository);
@@ -35,7 +35,7 @@ namespace TinyUpdate.Github.Rest
             }
             Logger.Information("RELEASES file exists in newest github release, downloading if not already downloaded");
 
-            return await DownloadAndParseReleaseFile(releases.TagName, release.Size, release.BrowserDownloadUrl);
+            return await DownloadAndParseReleaseFile(releases.TagName, release.Size, release.BrowserDownloadUrl, grabDeltaUpdates);
         }
 
         public override async Task<ReleaseNote?> GetChangelog(ReleaseEntry entry, string organization, string repository)

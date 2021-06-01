@@ -36,7 +36,6 @@ This is fully implemented with support for REST and for GraphQL (Note that the G
 * WebClient - This will be for any update that are stored on the internet
 
 ## Missing
-* Application Loader
 * Installer/Uninstaller
 * Taskbar and start menu shortcut creation
 * Staging for beta's

@@ -16,4 +16,9 @@
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
     </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="LoaderTemplate\windows.zip" />
+      <EmbeddedResource Include="LoaderTemplate\windows.zip" />
+    </ItemGroup>
 </Project>

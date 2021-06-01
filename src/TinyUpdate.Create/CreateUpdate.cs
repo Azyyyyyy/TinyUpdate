@@ -22,6 +22,7 @@ namespace TinyUpdate.Create
             var wasUpdateCreated =
                 await updateCreator.CreateDeltaPackage(
                     Global.NewVersionLocation,
+                    Global.ApplicationNewVersion,
                     Global.OldVersionLocation,
                     Program.GetOutputLocation(true, updateCreator.Extension),
                     3,
@@ -39,6 +40,7 @@ namespace TinyUpdate.Create
             var wasUpdateCreated =
                 await updateCreator.CreateFullPackage(
                     Global.NewVersionLocation,
+                    Global.ApplicationNewVersion,
                     Program.GetOutputLocation(false, updateCreator.Extension),
                     progress => progressBar.Report((double) progress));
             progressBar.Dispose();

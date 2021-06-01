@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Core.Extensions
@@ -16,7 +17,8 @@ namespace TinyUpdate.Core.Extensions
         /// </summary>
         /// <param name="releaseFiles">Release files</param>
         /// <param name="tag">Tag to use for any extra data (Normally the tag that is linked to a <see cref="ReleaseFile"/> in services)</param>
-        public static IEnumerable<ReleaseEntry> ToReleaseEntries(this IEnumerable<ReleaseFile> releaseFiles,
+        public static IEnumerable<ReleaseEntry> ToReleaseEntries(
+            this IEnumerable<ReleaseFile> releaseFiles,
             string? tag = null)
         {
             foreach (var releaseFile in releaseFiles)
@@ -39,6 +41,11 @@ namespace TinyUpdate.Core.Extensions
                         oldVersion: releaseFile.OldVersion,
                         tag: tag);
             }
+        }
+
+        public static IEnumerable<ReleaseEntry> FilterReleases(this IEnumerable<ReleaseEntry> releaseFiles, bool haveDelta)
+        {
+            return releaseFiles.Where(x => x.IsDelta == haveDelta && x.Version > Global.ApplicationVersion);
         }
     }
 }

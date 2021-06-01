@@ -32,6 +32,7 @@ namespace TinyUpdate.Test.Update
             //Apply update
             var wasSuccessful = await _updateCreator.CreateDeltaPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
+                new Version("2021.226.0"),
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0",
                 null,
                 progress: obj => _logger.Debug($"Progress: {obj * 100}"));
@@ -47,6 +48,7 @@ namespace TinyUpdate.Test.Update
             Global.ApplicationVersion = Version.Parse("2021.129.0");
             var wasSuccessful = await _updateCreator.CreateFullPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
+                new Version("2021.302.0"),
                 null,
                 obj => _logger.Debug($"Progress: {obj * 100}"));
             Assert.True(wasSuccessful, "Wasn't able to apply update");

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using TinyUpdate.Binary.Delta;
 using TinyUpdate.Core;
@@ -23,7 +24,7 @@ namespace TinyUpdate.Binary
 
         /// <inheritdoc cref="IUpdateApplier.GetApplicationPath(Version?)"/>
         public string? GetApplicationPath(Version? version) =>
-            version == null ? null : Path.Combine(Global.ApplicationFolder, $"app-{version}");
+            version == null ? null : Path.Combine(Global.ApplicationFolder, $"app-{version.ToString(4)}");
 
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
         public string Extension { get; } = ".tuup";
@@ -90,7 +91,7 @@ namespace TinyUpdate.Binary
             {
                 //We don't need to do this if we are using a full package
                 if (update.IsDelta
-                    && (update.OldVersion?.Equals(lastUpdateVersion) ?? false))
+                    && (!update.OldVersion?.Equals(lastUpdateVersion) ?? false))
                 {
                     Logger.Error("Can't update to {0} due to update not being created from {1}", update.Version,
                         lastUpdateVersion);
@@ -276,7 +277,46 @@ namespace TinyUpdate.Binary
                 }
             }
 
+            //TODO: Remove this when we added Linux support
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Logger.Warning($"Loaders haven't been added for {RuntimeInformation.OSDescription} yet");
+            }
+            else if (!ProcessLoaderFile(updateEntry.LoaderFile))
+            {
+                Cleanup();
+                return false;
+            }
+            
             Cleanup();
+            return true;
+        }
+
+        private static bool ProcessLoaderFile(FileEntry loaderFile)
+        {
+            //Drop the loader onto disk now we know that everything was done correctly
+            if (loaderFile.Stream == null)
+            {
+                Logger.Error("We don't have the loader, can't finish update");
+                return false;
+            }
+            
+            var loaderFileLocation = Path.Combine(Global.ApplicationFolder, loaderFile.Filename);
+            File.Delete(loaderFileLocation + ".new"); //In case it exists somehow
+            var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
+
+            loaderFile.Stream.CopyTo(loaderStream);
+            loaderStream.Dispose();
+            loaderFile.Stream.Dispose();
+
+            if (!CheckUpdatedFile(true, loaderFileLocation + ".new", loaderFile))
+            {
+                File.Delete(loaderFileLocation);
+                return false;
+            }
+
+            File.Delete(loaderFileLocation);
+            File.Move(loaderFileLocation + ".new", loaderFileLocation);
             return true;
         }
 

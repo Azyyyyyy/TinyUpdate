@@ -11,7 +11,6 @@ namespace TinyUpdate.Core.Extensions
     {
         private static readonly Regex SuffixRegex = new Regex(@"(-full|-delta)?", RegexOptions.Compiled);
         public static readonly Regex OSRegex = new Regex(@$"(-Linux|-Windows|-OSX)?", RegexOptions.Compiled);
-        public static readonly Regex ZeroRegex = new Regex(@$"(.0)?", RegexOptions.Compiled);
 
         private static readonly Regex VersionRegex =
             new Regex(@"\d+(\.\d+){0,3}(-[A-Za-z][0-9A-Za-z-]*)?$", RegexOptions.Compiled);
@@ -24,7 +23,7 @@ namespace TinyUpdate.Core.Extensions
         {
             var name = SuffixRegex.Replace(fileName, "");
             name = OSRegex.Replace(name, "");
-            name = ZeroRegex.Replace(name, "");
+            name = name.Substring(name.IndexOf('.') + 1);
 
             var version = VersionRegex.Match(name);
             return version.Success ? new Version(version.Value) : null;

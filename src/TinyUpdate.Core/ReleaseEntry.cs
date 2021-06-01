@@ -127,9 +127,11 @@ namespace TinyUpdate.Core
                 if (file?.Length != Filesize ||
                     !SHA256Util.CheckSHA256(file, SHA256))
                 {
+                    file?.Dispose();
                     _logger.Warning("{0} validation failed, this release entry isn't valid", FileLocation);
                     return false;
                 }
+                file.Dispose();
             }
 
             //Check that this version is higher then what we are running now

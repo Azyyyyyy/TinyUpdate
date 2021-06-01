@@ -52,7 +52,7 @@ namespace TinyUpdate.Github
             _httpClient = HttpClientFactory.Create(new HttpClientHandler(), _progressMessageHandler);
         }
 
-        public override Task<UpdateInfo?> CheckForUpdate() => _githubApi.CheckForUpdate(_organization, _repository);
+        public override Task<UpdateInfo?> CheckForUpdate(bool grabDeltaUpdates = true) => _githubApi.CheckForUpdate(_organization, _repository, grabDeltaUpdates);
 
         public override Task<ReleaseNote?> GetChangelog(ReleaseEntry entry) => _githubApi.GetChangelog(entry, _organization, _repository);
 

@@ -155,6 +155,7 @@ namespace TinyUpdate.Create
             GetApplicationMetadata();
 
             var releaseFiles = new List<ReleaseFile>(2);
+            Core.Global.ApplicationName = Global.MainApplicationName;
             
             //Create the updates
             var stopwatch = new Stopwatch();
@@ -178,7 +179,7 @@ namespace TinyUpdate.Create
                     return;
                 }
             }
-            
+
             if (Global.CreateDeltaUpdate)
             {
                 stopwatch.Start();

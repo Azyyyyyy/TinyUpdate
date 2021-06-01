@@ -71,6 +71,12 @@ namespace TinyUpdate.Binary.Entry
                 return;
             }
 
+            if (fileEntry.DeltaExtension == ".load")
+            {
+                LoaderFile = fileEntry;
+                return;
+            }
+
             SameFile.Add(fileEntry);
         }
 
@@ -88,6 +94,11 @@ namespace TinyUpdate.Binary.Entry
         /// Files that aren't in the last update 
         /// </summary>
         public List<FileEntry> NewFile { get; } = new();
+
+        /// <summary>
+        /// File that loads up the application
+        /// </summary>
+        public FileEntry LoaderFile { get; set; }
 
         /// <summary>
         /// Every file that we contain in this update

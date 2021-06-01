@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
@@ -35,7 +36,7 @@ namespace TinyUpdate.Github
         /// <inheritdoc cref="UpdateClient.CheckForUpdate()"/>
         /// <param name="organization">The organization that owns the <see cref="repository"/></param>
         /// <param name="repository">The repository name</param>
-        public abstract Task<UpdateInfo?> CheckForUpdate(string organization, string repository);
+        public abstract Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates);
 
         /// <summary>Gets the changelog for a certain <see cref="ReleaseEntry"/></summary>
         /// <param name="entry">The repository name</param>
@@ -48,7 +49,7 @@ namespace TinyUpdate.Github
         /// <param name="tagName">What the tag that contains the RELEASE file is</param>
         /// <param name="fileSize">How big the RELEASE file should be</param>
         /// <param name="downloadUrl">Where the RELEASE file is</param>
-        protected async Task<UpdateInfo?> DownloadAndParseReleaseFile(string tagName, long fileSize, string downloadUrl)
+        protected async Task<UpdateInfo?> DownloadAndParseReleaseFile(string tagName, long fileSize, string downloadUrl, bool grabDeltaUpdates)
         {
             //Download the RELEASE file if we don't already have it
             var releaseFileLoc = Path.Combine(Global.TempFolder, $"RELEASES-{Global.ApplicationName}-{tagName}");
@@ -72,7 +73,10 @@ namespace TinyUpdate.Github
             }
             
             //Create the UpdateInfo
-            return new UpdateInfo(ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileLoc)).ToReleaseEntries(tagName));
+            return new UpdateInfo(
+                ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileLoc))
+                    .ToReleaseEntries(tagName)
+                    .FilterReleases(grabDeltaUpdates));
         }
     }
 }

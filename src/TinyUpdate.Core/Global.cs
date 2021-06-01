@@ -13,7 +13,6 @@ namespace TinyUpdate.Core
     {
         static Global()
         {
-            //TODO: Replace this with something else, it really doesn't hold up for being used
             //Get the assembly, check that a version number exists and that we can make a Version out of it
             var runningAssembly = Assembly.GetEntryAssembly();
             if (runningAssembly == null)
@@ -21,7 +20,9 @@ namespace TinyUpdate.Core
                 throw new Exception("We somehow can't get the currently running assembly");
             }
 
-            ApplicationVersion = runningAssembly.GetName().Version;
+            var applicationName = runningAssembly.GetName();
+            ApplicationVersion = applicationName.Version;
+            ApplicationName = applicationName.Name;
 
 
             /*Now grab where the application is installed, checking that the current folder
@@ -29,13 +30,15 @@ namespace TinyUpdate.Core
              as we should be), note that we don't want to do this check in a Unit Test*/
             var uri = new UriBuilder(runningAssembly.CodeBase);
             var path = Uri.UnescapeDataString(uri.Path);
-            if (!DebugUtil.IsInUnitTest && Path.GetFileName(Path.GetDirectoryName(path)) != $"app-{ApplicationVersion}")
+#if !DEBUG
+            if (!DebugUtil.IsInUnitTest
+                && Path.GetFileName(Path.GetDirectoryName(path)) != $"app-{ApplicationVersion.ToString(4)}")
             {
-                //throw new Exception("We haven't been installed correctly");
+                throw new Exception("We haven't been installed correctly");
             }
-
-            //ApplicationFolder = Path.GetDirectoryName(Path.GetDirectoryName(path));
-            //_tempFolder = Path.Combine(_tempFolder, Path.GetFileName(ApplicationFolder));
+#endif
+            ApplicationFolder = Path.GetDirectoryName(Path.GetDirectoryName(path));
+            _tempFolder = Path.Combine(_tempFolder, Path.GetFileName(ApplicationFolder));
         }
 
         /// <summary>

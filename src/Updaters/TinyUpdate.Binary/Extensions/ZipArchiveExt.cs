@@ -80,6 +80,17 @@ namespace TinyUpdate.Binary.Extensions
                     continue;
                 }
 
+                //If its this then it will be the loader for the application
+                if (entryEtx == ".load")
+                {
+                    fileEntries.Add(new FileEntry(filename, filepath)
+                    {
+                        Stream = zipEntry.Open(),
+                        DeltaExtension = entryEtx
+                    });
+                    continue;
+                }
+
                 /*This means that we will be finding any checking details
                  that we need to use when applying a patch (if this check returns false)*/
                 if (entryEtx != ".shasum")

@@ -13,7 +13,9 @@ namespace TinyUpdate.Binary.Extensions
         /// <param name="fileEntry">Details about the file</param>
         public static bool IsDeltaFile(this FileEntry fileEntry)
         {
-            return fileEntry.Filesize != 0 && fileEntry.DeltaExtension != ".new";
+            return fileEntry.Filesize != 0 
+                   && fileEntry.DeltaExtension != ".new"
+                   && fileEntry.DeltaExtension != ".load";
         }
 
         /// <summary>
