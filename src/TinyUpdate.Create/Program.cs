@@ -232,7 +232,7 @@ namespace TinyUpdate.Create
         private static void GetApplicationMetadata()
         {
             //Grab the assemblyName
-            var mainApplicationName = Global.MainApplicationFile;
+            var mainApplicationName = Path.GetFileName(Global.MainApplicationFile);
             var fileLocation = Path.Combine(Global.NewVersionLocation, mainApplicationName);
             var assemblyName = GetAssembly.IsDotNetAssembly(fileLocation)
                 ? AssemblyName.GetAssemblyName(fileLocation)
