@@ -1,7 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
@@ -43,13 +44,30 @@ namespace TinyUpdate.Github.Rest
         {
             var releases = await GetGithubRelease(organization, repository);
             return string.IsNullOrWhiteSpace(releases?.Body) ? 
-                null : 
-                new ReleaseNote(
-                    releases?.Body, 
-                    NoteType.Markdown);
+                null :
+                new ReleaseNote(releases.Body, NoteType.Markdown);
         }
-        
-        
+
+        protected override Task<RateLimit> GetRateLimitTime(HttpResponseMessage responseMessage)
+        {
+            var remainingCalls = responseMessage.Headers.FirstOrDefault(x => x.Key == "X-RateLimit-Remaining");
+            var rateLimitTime = responseMessage.Headers.FirstOrDefault(x => x.Key == "X-RateLimit-Reset");
+            //If this is the case then we aren't being rate limited (at least not being reported to us anyway)
+            if (!int.TryParse(remainingCalls.Value.First(), out var remaining) 
+                || remaining != 0)
+            {
+                return Task.FromResult(new RateLimit(false));
+            }
+            
+            if (long.TryParse(rateLimitTime.Value.First(), out var offset))
+            {
+                return Task.FromResult(new RateLimit(true, DateTimeOffset.FromUnixTimeSeconds(offset).DateTime));
+            }
+
+            return Task.FromResult(new RateLimit(false));
+        }
+
+
         private async Task<GithubReleaseRest?> GetGithubRelease(string organization, string repository)
         {
             //Make request for getting the newest update and check that we got something from it
@@ -63,6 +81,7 @@ namespace TinyUpdate.Github.Rest
 
             if (response.IsSuccessStatusCode)
             {
+                Logger.Information("Got response, reading response...");
                 return await JsonSerializer.DeserializeAsync<GithubReleaseRest>(await response.Content.ReadAsStreamAsync());
             }
 

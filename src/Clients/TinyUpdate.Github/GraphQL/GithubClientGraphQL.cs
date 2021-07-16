@@ -36,6 +36,10 @@ namespace TinyUpdate.Github.GraphQL
       }
     }
   }
+  rateLimit {
+    resetAt
+    remaining
+  }
 }";
         
         private const string UpdateQuery = 
@@ -56,6 +60,10 @@ namespace TinyUpdate.Github.GraphQL
         }
       }
     }
+  }
+  rateLimit {
+    resetAt
+    remaining
   }
 }";
 
@@ -99,26 +107,35 @@ namespace TinyUpdate.Github.GraphQL
                 return null;
             }
 
-            var disc = releases.Data.Organization.Repository.Releases.Nodes.First().Description;
-            return string.IsNullOrWhiteSpace(disc) ? 
-                null : 
-                new ReleaseNote(
-                    disc,
-                    NoteType.Markdown);
+            var disc = releases.Data.Organization.Repository.Releases.Nodes.FirstOrDefault()?.Description;
+            return string.IsNullOrWhiteSpace(disc) ?
+                null :
+                new ReleaseNote(disc, NoteType.Markdown);
         }
-        
+
+        protected override async Task<RateLimit> GetRateLimitTime(HttpResponseMessage responseMessage)
+        {
+            var githubRelease = await JsonSerializer.DeserializeAsync<GithubReleaseGraphQL>(await responseMessage.Content.ReadAsStreamAsync());
+            if (githubRelease?.Data.RateLimit.Remaining == 0)
+            {
+                return new RateLimit(true, githubRelease.Data.RateLimit.ResetAt);
+            }
+            return new RateLimit(false);
+        }
+
         private async Task<GithubReleaseGraphQL?> GetGithubRelease(string query, string organization, string repository)
         {
-            var quer = new GraphQLQuery(query, $"{{ \"org\": \"{organization}\", \"repo\": \"{repository}\" }}");
+            var graphQuery = new GraphQLQuery(query, $"{{ \"org\": \"{organization}\", \"repo\": \"{repository}\" }}");
             using var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
-                Content = new StringContent(JsonSerializer.Serialize(quer), Encoding.UTF8, "application/json")
+                Content = new StringContent(JsonSerializer.Serialize(graphQuery), Encoding.UTF8, "application/json")
             };
             
             using var response = await GetResponseMessage(request);
             if (response != null)
             {
+                Logger.Information("Got response, reading response...");
                 return await JsonSerializer.DeserializeAsync<GithubReleaseGraphQL>(await response.Content.ReadAsStreamAsync());
             }
 

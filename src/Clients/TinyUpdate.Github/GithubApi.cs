@@ -58,7 +58,14 @@ namespace TinyUpdate.Github
             if (!File.Exists(releaseFileLoc))
             {
                 Directory.CreateDirectory(Global.TempFolder);
-                using var releaseStream = await HttpClient.GetStreamAsync(downloadUrl);
+                var response = await GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, downloadUrl));
+                if (response == null)
+                {
+                    Logger.Error("Didn't get anything from Github, can't download");
+                    return null;
+                }
+                
+                using var releaseStream = await response.Content.ReadAsStreamAsync();
                 using var releaseFileStream = File.Open(releaseFileLoc, FileMode.CreateNew, FileAccess.ReadWrite);
                 await releaseStream.CopyToAsync(releaseFileStream);
                 fileLength = releaseFileStream.Length;
@@ -79,26 +86,60 @@ namespace TinyUpdate.Github
                     .ToReleaseEntries(tagName)
                     .FilterReleases(grabDeltaUpdates));
         }
-        
+
+        private DateTime? _rateLimitTime;
         protected async Task<HttpResponseMessage?> GetResponseMessage(HttpRequestMessage requestMessage)
         {
-            //TODO: Handle errors
-            //TODO: Handle when we get rate limited
-            //TODO: Add something to not crash when we have no wifi
+            if (_rateLimitTime != null)
+            {
+                if (_rateLimitTime > DateTime.Now)
+                {
+                    Logger.Warning("We are still in the rate limit timeframe (Resets at {0}), not going to try this request", _rateLimitTime);
+                    return null;
+                }
+                //Null it if we no-longer are in the rate limit timeframe
+                _rateLimitTime = null;
+            }
 
+            HttpResponseMessage? response;
+            try
+            {
+                response = await HttpClient.SendAsync(requestMessage);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e);
+                return null;
+            }
+            
             //Check that we got something from it
-            var response = await HttpClient.SendAsync(requestMessage);
             if (response.IsSuccessStatusCode)
             {
                 return response;
             }
 
-            Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            var rateLimit = await GetRateLimitTime(response);
+            if (rateLimit.IsRateLimited)
             {
-                Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+                Logger.Error("We are being rate limited! This will reset at {0}", rateLimit.ResetTime!.Value);
+                _rateLimitTime = rateLimit.ResetTime.Value;
+                return null;
             }
+            
+            Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.Unauthorized:
+                    Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+                    break;
+                case HttpStatusCode.NotFound:
+                    Logger.Error("We detected that the status code was 404, did you misspell or not give a token for accessing a private repo?");
+                    break;
+            }
+
             return null;
         }
+
+        protected abstract Task<RateLimit> GetRateLimitTime(HttpResponseMessage responseMessage);
     }
 }

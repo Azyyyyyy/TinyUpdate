@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Text.Json.Serialization;
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 #pragma warning disable 8618
 
@@ -56,6 +57,18 @@ namespace TinyUpdate.Github.GraphQL
     {
         [JsonPropertyName("organization")]
         public Organization Organization { get; set; }
+
+        [JsonPropertyName("rateLimit")] 
+        public JsonRateLimit RateLimit { get; set; }
+    }
+
+    public class JsonRateLimit
+    {
+        [JsonPropertyName("resetAt")]
+        public DateTime ResetAt { get; set; }
+
+        [JsonPropertyName("remaining")]
+        public int Remaining { get; set; }
     }
 
     public class GithubReleaseGraphQL
