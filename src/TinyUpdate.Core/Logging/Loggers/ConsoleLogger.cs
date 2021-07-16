@@ -96,6 +96,7 @@ namespace TinyUpdate.Core.Logging.Loggers
             WriteMessage(message, true, false, false, propertyValues);
         }
 
+        // ReSharper disable once MemberCanBePrivate.Global
         protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck,
             params object?[] propertyValues)
         {

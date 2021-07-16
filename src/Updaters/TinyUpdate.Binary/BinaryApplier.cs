@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -23,11 +24,12 @@ namespace TinyUpdate.Binary
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryApplier));
 
         /// <inheritdoc cref="IUpdateApplier.GetApplicationPath(Version?)"/>
+        [return: NotNullIfNotNull("version")]
         public string? GetApplicationPath(Version? version) =>
             version == null ? null : Path.Combine(Global.ApplicationFolder, $"app-{version.ToString(4)}");
 
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
-        public string Extension { get; } = ".tuup";
+        public string Extension => ".tuup";
 
         /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ReleaseEntry, Action{decimal})"/>
         public async Task<bool> ApplyUpdate(ReleaseEntry entry, Action<decimal>? progress = null)

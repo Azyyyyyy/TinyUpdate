@@ -98,7 +98,7 @@ namespace TinyUpdate.Binary.Entry
         /// <summary>
         /// File that loads up the application
         /// </summary>
-        public FileEntry LoaderFile { get; set; }
+        public FileEntry LoaderFile { get; private set; } = null!;
 
         /// <summary>
         /// Every file that we contain in this update

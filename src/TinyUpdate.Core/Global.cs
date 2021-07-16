@@ -6,6 +6,7 @@ using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core
 {
+    //TODO: Make this not static
     /// <summary>
     /// Anything that needs to be accessed from anywhere in the library
     /// </summary>

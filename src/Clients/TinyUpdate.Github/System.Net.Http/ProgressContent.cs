@@ -32,7 +32,7 @@ namespace System.Net.Http.Handlers
             }
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             ProgressStream progressStream = new ProgressStream(stream, _handler, _request, response: null);
             return _innerContent.CopyToAsync(progressStream);

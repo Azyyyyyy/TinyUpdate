@@ -48,6 +48,18 @@ namespace TinyUpdate.Core
                    && Equals(otherReleaseFile);
         }
 
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = SHA256.GetHashCode();
+                hashCode = (hashCode * 397) ^ Name.GetHashCode();
+                hashCode = (hashCode * 397) ^ Size.GetHashCode();
+                hashCode = (hashCode * 397) ^ (OldVersion != null ? OldVersion.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
+
         public bool Equals(ReleaseFile otherReleaseFile)
         {
             return Name == otherReleaseFile.Name
@@ -99,7 +111,7 @@ namespace TinyUpdate.Core
                 var lineS = line.Split(' ');
                 /*Check that the line only has 3/4 lines, if not then
                  that means it's not a release file for sure*/
-                if (lineS.Length < 3 || lineS.Length > 4)
+                if (lineS.Length is < 3 or > 4)
                 {
                     continue;
                 }

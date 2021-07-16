@@ -24,13 +24,13 @@ namespace TinyUpdate.Test.Update
         }
 
         [Test]
-        public async Task CreateDeltaPackage()
+        public void CreateDeltaPackage()
         {
             Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
             Global.ApplicationVersion = Version.Parse("2021.129.0");
 
             //Apply update
-            var wasSuccessful = await _updateCreator.CreateDeltaPackage(
+            var wasSuccessful = _updateCreator.CreateDeltaPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 new Version("2021.226.0"),
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0",
@@ -42,11 +42,11 @@ namespace TinyUpdate.Test.Update
         //TODO: Make test for file created (Checking hash and filesize)
         
         [Test]
-        public async Task CreateFullPackage()
+        public void CreateFullPackage()
         {
             Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
             Global.ApplicationVersion = Version.Parse("2021.129.0");
-            var wasSuccessful = await _updateCreator.CreateFullPackage(
+            var wasSuccessful = _updateCreator.CreateFullPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 new Version("2021.302.0"),
                 null,

@@ -31,6 +31,7 @@ namespace TinyUpdate.Core.Update
         /// </summary>
         /// <param name="entry"><see cref="ReleaseEntry"/> to grab a <see cref="ReleaseNote"/> for</param>
         /// <returns>The <see cref="ReleaseNote"/> with all the details of this <see cref="ReleaseEntry"/></returns>
+        // ReSharper disable once MemberCanBeProtected.Global
         public abstract Task<ReleaseNote?> GetChangelog(ReleaseEntry entry);
 
         /// <summary>
@@ -54,6 +55,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="releaseEntry">Update to download</param>
         /// <param name="progress">Progress of downloading update</param>
         /// <returns>If we was able to download the update</returns>
+        // ReSharper disable once MemberCanBeProtected.Global
         public abstract Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<decimal>? progress);
 
         /// <summary>

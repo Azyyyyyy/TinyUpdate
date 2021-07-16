@@ -7,7 +7,7 @@ namespace TinyUpdate.Core.Update
     /// <summary>
     /// Handles creating and applying delta files to files
     /// </summary>
-    public interface IDeltaUpdate : ISpecificOS
+    public interface IDeltaUpdate : ISpecificOs
     {
         /// <summary>
         /// What the extension is for creates created by this <see cref="IDeltaUpdate"/>

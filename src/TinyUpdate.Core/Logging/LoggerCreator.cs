@@ -15,6 +15,7 @@ namespace TinyUpdate.Core.Logging
         /// <summary>
         /// How much logging we should process when not set in the <see cref="ILogging"/>
         /// </summary>
+        // ReSharper disable once MemberCanBePrivate.Global
         public static LogLevel GlobalLevel { get; set; } = LogLevel.Info;
 
         /// <summary>

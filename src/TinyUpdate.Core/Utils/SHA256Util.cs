@@ -3,6 +3,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using TinyUpdate.Core.Logging;
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace TinyUpdate.Core.Utils
 {

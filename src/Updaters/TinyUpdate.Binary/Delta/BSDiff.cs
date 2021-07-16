@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using TinyUpdate.Core;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
@@ -18,8 +19,8 @@ namespace TinyUpdate.Binary.Delta
         /// <inheritdoc cref="IDeltaUpdate.Extension"/>
         public string Extension => ".bsdiff";
 
-        /// <inheritdoc cref="IDeltaUpdate.IntendedOS"/>
-        public OSPlatform? IntendedOS => null;
+        /// <inheritdoc cref="ISpecificOs.IntendedOs"/>
+        public OSPlatform? IntendedOs => null;
 
         /// <inheritdoc cref="IDeltaUpdate.ApplyDeltaFile"/>
         public async Task<bool> ApplyDeltaFile(

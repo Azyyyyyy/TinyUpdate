@@ -62,7 +62,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
         /// <summary>Allow the source, target and delta files to exceed the default size limit.</summary>
         IgnoreFileSizeLimit = 131072,
 
-        /// <summary>Allow options buffer or file to exceeed its default size limit</summary>
+        /// <summary>Allow options buffer or file to exceed its default size limit</summary>
         IgnoreOptionsSizeLimit = 262144,
 
         /// <summary>Transform instructions of source ARM PE</summary>

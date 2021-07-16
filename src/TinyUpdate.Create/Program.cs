@@ -64,7 +64,7 @@ namespace TinyUpdate.Create
             rootCommand.Handler = CommandHandler
                 .Create<bool, bool, DirectoryInfo?, DirectoryInfo?, DirectoryInfo?, string, bool, bool, string?, string?
                     , string?>(
-                    async (delta, full, outputLocation, newVersionLocation, oldVersionLocation, applicationFile,
+                    (delta, full, outputLocation, newVersionLocation, oldVersionLocation, applicationFile,
                         skipVerifying, verify, applierType, creatorType, intendedOs) =>
                     {
                         Global.CreateDeltaUpdate = delta;
@@ -162,7 +162,7 @@ namespace TinyUpdate.Create
             if (Global.CreateFullUpdate)
             {
                 stopwatch.Start();
-                if (!await CreateUpdate.CreateFullUpdate(creator))
+                if (!CreateUpdate.CreateFullUpdate(creator))
                 {
                     Logger.Error("Wasn't able to create full update, exiting....");
                     return;
@@ -183,7 +183,7 @@ namespace TinyUpdate.Create
             if (Global.CreateDeltaUpdate)
             {
                 stopwatch.Start();
-                if (!await CreateUpdate.CreateDeltaUpdate(creator))
+                if (!CreateUpdate.CreateDeltaUpdate(creator))
                 {
                     Logger.Error("Wasn't able to create delta update, exiting....");
                     return;

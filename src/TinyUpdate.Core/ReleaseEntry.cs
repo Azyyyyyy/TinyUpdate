@@ -46,8 +46,7 @@ namespace TinyUpdate.Core
                 throw new Exception("SHA256 hash given is not a valid SHA256 hash");
             }
 
-            char? invalidChar = null;
-            if (filename == null || !filename.IsValidForFileName(out invalidChar))
+            if (!filename.IsValidForFileName(out var invalidChar))
             {
                 throw new InvalidFileNameException(invalidChar);
             }

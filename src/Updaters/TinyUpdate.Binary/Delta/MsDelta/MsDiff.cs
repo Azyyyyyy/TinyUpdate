@@ -15,8 +15,8 @@ namespace TinyUpdate.Binary.Delta.MsDelta
         /// <inheritdoc cref="IDeltaUpdate.Extension"/>
         public string Extension => ".diff";
 
-        /// <inheritdoc cref="IDeltaUpdate.IntendedOS"/>
-        public OSPlatform? IntendedOS => OSPlatform.Windows;
+        /// <inheritdoc cref="ISpecificOs.IntendedOs"/>
+        public OSPlatform? IntendedOs => OSPlatform.Windows;
 
         /// <inheritdoc cref="IDeltaUpdate.CreateDeltaFile"/>
         public bool CreateDeltaFile(

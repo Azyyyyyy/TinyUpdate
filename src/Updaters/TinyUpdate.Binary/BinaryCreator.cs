@@ -26,7 +26,7 @@ namespace TinyUpdate.Binary
         public string Extension => ".tuup";
 
         /// <inheritdoc cref="IUpdateCreator.CreateDeltaPackage"/>
-        public async Task<bool> CreateDeltaPackage(
+        public bool CreateDeltaPackage(
             string newVersionLocation,
             Version newVersion,
             string baseVersionLocation,
@@ -45,8 +45,8 @@ namespace TinyUpdate.Binary
 
             void UpdateProgress(decimal extraProgress = 0)
             {
-                if (deltaFilesLength + newFilesLength == 0 ||
-                    fileCount == 0)
+                if (deltaFilesLength + newFilesLength == 0 
+                    || fileCount == 0)
                 {
                     return;
                 }
@@ -217,7 +217,7 @@ namespace TinyUpdate.Binary
         }
 
         /// <inheritdoc cref="IUpdateCreator.CreateFullPackage"/>
-        public async Task<bool> CreateFullPackage(
+        public bool CreateFullPackage(
             string applicationLocation, 
             Version version,
             string? fullUpdateLocation = null,
@@ -339,18 +339,18 @@ namespace TinyUpdate.Binary
         /// <param name="zipArchive"><see cref="ZipArchive"/> to add the file too</param>
         /// <param name="baseFileLocation">Old file</param>
         /// <param name="newFileLocation">New file</param>
-        /// <param name="intendedOS">What OS this delta file will be intended for</param>
+        /// <param name="intendedOs">What OS this delta file will be intended for</param>
         /// <param name="progress">Progress of creating delta file (If possible)</param>
         /// <returns>If we was able to create the delta file</returns>
         private static bool AddDeltaFile(ZipArchive zipArchive, string baseFileLocation,
-            string newFileLocation, OSPlatform? intendedOS, Action<decimal>? progress = null)
+            string newFileLocation, OSPlatform? intendedOs, Action<decimal>? progress = null)
         {
             //Create where the delta file can be stored to grab once made
             Directory.CreateDirectory(Global.TempFolder);
             var tmpDeltaFile = Path.Combine(Global.TempFolder, Path.GetRandomFileName());
 
             //Try to create diff file, outputting extension (and maybe a stream) based on what was used to make it
-            if (!DeltaCreation.CreateDeltaFile(baseFileLocation, newFileLocation, tmpDeltaFile, intendedOS,
+            if (!DeltaCreation.CreateDeltaFile(baseFileLocation, newFileLocation, tmpDeltaFile, intendedOs,
                 out var extension, out var deltaFileStream))
             {
                 //Wasn't able to, report back as fail

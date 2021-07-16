@@ -36,7 +36,7 @@ namespace TinyUpdate.Core.Extensions
                         releaseFile.SHA256,
                         releaseFile.Name,
                         releaseFile.Size,
-                        VersionExt.OSRegex.Replace(fileName, string.Empty).EndsWith("-delta"),
+                        VersionExt.OsRegex.Replace(fileName, string.Empty).EndsWith("-delta"),
                         version,
                         oldVersion: releaseFile.OldVersion,
                         tag: tag);

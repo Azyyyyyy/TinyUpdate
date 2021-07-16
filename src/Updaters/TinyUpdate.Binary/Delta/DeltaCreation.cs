@@ -24,7 +24,7 @@ namespace TinyUpdate.Binary.Delta
         /// <param name="baseFileLocation">Where the older version of the file exists</param>
         /// <param name="newFileLocation">Where the newer version of the file exists</param>
         /// <param name="deltaFileLocation">Where the delta file should be stored (If we are unable to store it in a stream)</param>
-        /// <param name="intendedOS">What OS this delta file will be intended for</param>
+        /// <param name="intendedOs">What OS this delta file will be intended for</param>
         /// <param name="extension">Extension of the delta file</param>
         /// <param name="deltaFileStream">The contents of the delta file</param>
         /// <param name="progress">Progress of making the delta file (If we can report the progress back)</param>
@@ -32,7 +32,7 @@ namespace TinyUpdate.Binary.Delta
             string baseFileLocation,
             string newFileLocation,
             string deltaFileLocation,
-            OSPlatform? intendedOS,
+            OSPlatform? intendedOs,
             out string extension,
             out Stream? deltaFileStream,
             Action<decimal>? progress = null)
@@ -43,9 +43,9 @@ namespace TinyUpdate.Binary.Delta
             {
                 /*Skip if we know that this creator is not going
                  to work on the intended OS*/
-                if (intendedOS != null
-                    && deltaUpdater.IntendedOS != null
-                    && intendedOS != deltaUpdater.IntendedOS)
+                if (intendedOs != null
+                    && deltaUpdater.IntendedOs != null
+                    && intendedOs != deltaUpdater.IntendedOs)
                 {
                     continue;
                 }
@@ -56,8 +56,6 @@ namespace TinyUpdate.Binary.Delta
                     extension = deltaUpdater.Extension;
                     return true;
                 }
-
-                deltaFileStream = null;
             }
 
             return false;

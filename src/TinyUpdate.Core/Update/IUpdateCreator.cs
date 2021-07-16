@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace TinyUpdate.Core.Update
 {
@@ -20,7 +19,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="intendedOS">OS that this update is intended for</param>
         /// <param name="progress">Reports back the progress of creating the update file</param>
         /// <returns>If we was able to create the package</returns>
-        public Task<bool> CreateDeltaPackage(
+        public bool CreateDeltaPackage(
             string newVersionLocation, 
             Version newVersion,
             string baseVersionLocation,
@@ -37,7 +36,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="version">What version this application currently is</param>
         /// <param name="progress">Reports back the progress of creating the update file</param>
         /// <returns>If we was able to create the package</returns>
-        public Task<bool> CreateFullPackage(
+        public bool CreateFullPackage(
             string applicationLocation, 
             Version version,
             string? fullUpdateLocation = null,

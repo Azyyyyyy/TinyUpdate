@@ -4,7 +4,7 @@ namespace TinyUpdate.Core.Logging.Loggers
 {
     public class EmptyLogger : ILogging
     {
-        public string Name { get; } = "";
+        public string Name => "";
         public LogLevel? LogLevel { get; set; }
 
         public void Debug(string message, params object?[] propertyValues)

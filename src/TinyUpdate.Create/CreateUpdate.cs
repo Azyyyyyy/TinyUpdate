@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Create.Helper;
 
@@ -9,7 +8,7 @@ namespace TinyUpdate.Create
     {
         private static readonly CustomConsoleLogger Logger = new(nameof(CreateUpdate));
 
-        public static async Task<bool> CreateDeltaUpdate(IUpdateCreator updateCreator)
+        public static bool CreateDeltaUpdate(IUpdateCreator updateCreator)
         {
             if (Global.OldVersionLocation == null)
             {
@@ -20,7 +19,7 @@ namespace TinyUpdate.Create
             Logger.WriteLine("Creating Delta update");
             var progressBar = new ProgressBar();
             var wasUpdateCreated =
-                await updateCreator.CreateDeltaPackage(
+                updateCreator.CreateDeltaPackage(
                     Global.NewVersionLocation,
                     Global.ApplicationNewVersion,
                     Global.OldVersionLocation,
@@ -33,12 +32,12 @@ namespace TinyUpdate.Create
             return wasUpdateCreated;
         }
 
-        public static async Task<bool> CreateFullUpdate(IUpdateCreator updateCreator)
+        public static bool CreateFullUpdate(IUpdateCreator updateCreator)
         {
             Logger.WriteLine("Creating Full update");
             var progressBar = new ProgressBar();
             var wasUpdateCreated =
-                await updateCreator.CreateFullPackage(
+                updateCreator.CreateFullPackage(
                     Global.NewVersionLocation,
                     Global.ApplicationNewVersion,
                     Program.GetOutputLocation(false, updateCreator.Extension),
