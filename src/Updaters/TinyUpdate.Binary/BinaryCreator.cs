@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using TinyUpdate.Binary.Delta;
 using TinyUpdate.Binary.Extensions;
 using TinyUpdate.Core;
-using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
@@ -33,7 +32,7 @@ namespace TinyUpdate.Binary
             string baseVersionLocation,
             string? deltaUpdateLocation = null,
             int concurrentDeltaCreation = 1,
-            OSPlatform? intendedOS = null,
+            OSPlatform? intendedOs = null,
             Action<decimal>? progress = null)
         {
             //To keep track of progress
@@ -173,7 +172,7 @@ namespace TinyUpdate.Binary
                     //Try to add the file as a delta file
                     if (AddDeltaFile(zipArchive,
                         Path.Combine(baseVersionLocation, deltaFile),
-                        deltaFileLocation, intendedOS, UpdateProgress))
+                        deltaFileLocation, intendedOs, UpdateProgress))
                     {
                         Interlocked.Increment(ref fileCount);
                         UpdateProgress();

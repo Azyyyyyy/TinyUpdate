@@ -1,5 +1,7 @@
 ﻿using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
@@ -12,17 +14,15 @@ namespace TinyUpdate.Github.Rest
     /// </summary>
     public class GithubApiRest : GithubApi
     {
-        public GithubApiRest() : base("https://api.github.com")
-        {
-        }
+        public GithubApiRest() : base("https://api.github.com") { }
         
         public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates)
         {
             //Get release data
-            var releases = await GetGithubReleaseRest(organization, repository);
+            var releases = await GetGithubRelease(organization, repository);
             if (releases == null)
             {
-                Logger.Error("We can't use what was returned from GitHub API");
+                Logger.Error("We didn't get any files reported back from github");
                 return null;
             }
 
@@ -33,14 +33,15 @@ namespace TinyUpdate.Github.Rest
                 Logger.Error("We can't find any RELEASES file in the newest github release");
                 return null;
             }
-            Logger.Information("RELEASES file exists in newest github release, downloading if not already downloaded");
 
+            //Download the release file for us to go through it!
+            Logger.Information("RELEASES file found in newest github release, downloading if it doesn't yet exist on disk");
             return await DownloadAndParseReleaseFile(releases.TagName, release.Size, release.BrowserDownloadUrl, grabDeltaUpdates);
         }
 
         public override async Task<ReleaseNote?> GetChangelog(ReleaseEntry entry, string organization, string repository)
         {
-            var releases = await GetGithubReleaseRest(organization, repository);
+            var releases = await GetGithubRelease(organization, repository);
             return string.IsNullOrWhiteSpace(releases?.Body) ? 
                 null : 
                 new ReleaseNote(
@@ -49,15 +50,17 @@ namespace TinyUpdate.Github.Rest
         }
         
         
-        private async Task<GithubReleaseRest?> GetGithubReleaseRest(string organization, string repository)
+        private async Task<GithubReleaseRest?> GetGithubRelease(string organization, string repository)
         {
-            //TODO: Handle errors
-            //TODO: Handle when we get rate limited
-            //TODO: Add something to not crash when we have no wifi
-            
-            //Make request for getting the newest update and
-            //Check that we got something from it
-            using var response = await HttpClient.GetAsync($"/repos/{organization}/{repository}/releases/latest");
+            //Make request for getting the newest update and check that we got something from it
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"/repos/{organization}/{repository}/releases/latest");
+            using var response = await GetResponseMessage(request);
+            if (response == null)
+            {
+                Logger.Error("Didn't get anything from Github");
+                return null;
+            }
+
             if (response.IsSuccessStatusCode)
             {
                 return await JsonSerializer.DeserializeAsync<GithubReleaseRest>(await response.Content.ReadAsStreamAsync());
@@ -68,7 +71,6 @@ namespace TinyUpdate.Github.Rest
             {
                 Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
             }
-
             return null;
         }
     }

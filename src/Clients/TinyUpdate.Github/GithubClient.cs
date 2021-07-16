@@ -11,7 +11,7 @@ using TinyUpdate.Github.Rest;
 namespace TinyUpdate.Github
 {
     /// <summary>
-    /// GitHub client to get any updates that need to be applied
+    /// GitHub client for grabbing updates using their apis!
     /// </summary>
     public class GithubClient : UpdateClient
     {
@@ -26,29 +26,29 @@ namespace TinyUpdate.Github
         /// <summary>
         /// Creates a github client
         /// </summary>
-        /// <param name="updateApplier"></param>
-        /// <param name="organization">Organization that contains the application code</param>
+        /// <param name="updateApplier">Update Applier that will apply updates after being downloaded</param>
+        /// <param name="organization">Organization that contains the application update files</param>
         /// <param name="repository">Application's repository</param>
-        /// <param name="useGraphQL">If we want to the <see cref="GithubApiGraphQL"/> for grabbing data from github (Will require <see cref="personalToken"/> which has public_repo)</param>
-        /// <param name="personalToken">Personal token is using <see cref="GithubApiGraphQL"/></param>
+        /// <param name="useGraphQl">If we should use <see cref="GithubApiGraphQL"/> when accessing their api (Will require a <see cref="personalToken"/> which has public_repo)</param>
+        /// <param name="personalToken">Personal token for accessing the repo</param>
         public GithubClient(
             IUpdateApplier updateApplier,
             string organization,
             string repository,
-            bool useGraphQL = false,
+            bool useGraphQl = false,
             string? personalToken = null)
             : base(updateApplier)
         {
             _organization = organization;
             _repository = repository;
-            var canUseGraphQL = !string.IsNullOrWhiteSpace(personalToken);
-            if (useGraphQL && !canUseGraphQL)
+            var canUseGraphQl = useGraphQl && !string.IsNullOrWhiteSpace(personalToken);
+            if (!canUseGraphQl)
             {
                 Logger.Warning("No personal token was given, going to fall back to REST");
             }
             
             //Get what api we should use and setup httpClient
-            _githubApi = useGraphQL && canUseGraphQL ? new GithubApiGraphQL(personalToken) : new GithubApiRest();
+            _githubApi = canUseGraphQl ? new GithubApiGraphQL(personalToken) : new GithubApiRest();
             _httpClient = HttpClientFactory.Create(new HttpClientHandler(), _progressMessageHandler);
         }
 
@@ -65,7 +65,7 @@ namespace TinyUpdate.Github
             }
             
             var requestToCheck = $"response-content-disposition=attachment%3B%20filename%3D{releaseEntry.Filename}";
-            void ReportProgress(object sender, HttpProgressEventArgs args)
+            void ReportProgress(object? sender, HttpProgressEventArgs args)
             {
                 if (sender is HttpRequestMessage message
                     && message.RequestUri.Query.Contains(requestToCheck))
@@ -81,8 +81,8 @@ namespace TinyUpdate.Github
             _progressMessageHandler.HttpReceiveProgress -= ReportProgress;
 
             //Check the file
-            Logger.Debug("successfullyDownloaded: {0}", successfullyDownloaded);
-            Logger.Information("Checking {0} now it should be downloaded", releaseEntry.Filename);
+            Logger.Debug("Successfully downloaded {0}", successfullyDownloaded);
+            Logger.Information("Checking {0} now it has been downloaded", releaseEntry.Filename);
             if (successfullyDownloaded && releaseEntry.IsValidReleaseEntry(true))
             {
                 return true;
@@ -115,7 +115,6 @@ namespace TinyUpdate.Github
             
                 using var releaseFileStream = File.Open(releaseEntry.FileLocation, FileMode.CreateNew, FileAccess.ReadWrite);
                 await releaseStream.CopyToAsync(releaseFileStream);
-
                 return true;
             }
             catch (Exception e)

@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Core.Logging.Loggers
 {
@@ -73,6 +69,17 @@ namespace TinyUpdate.Core.Logging.Loggers
         private void WriteInit(string type, ConsoleColor colour, LogLevel logLevel, string message,
             params object?[] propertyValues)
         {
+            //If the output is being outputted then we will not have colouring,
+            //no need to do all the fancy logic for colouring
+            if (Console.IsOutputRedirected)
+            {
+                lock (Console.Out)
+                {
+                    Console.WriteLine($"[{type} - {Name}]: " + string.Format(message, propertyValues));
+                    return;
+                }
+            }
+
             lock (Console.Out)
             {
                 var oldColour = Console.ForegroundColor;

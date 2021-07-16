@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using TinyUpdate.Core.Logging.Loggers;
 
@@ -30,10 +31,29 @@ namespace TinyUpdate.Core.Logging
         /// Creates <see cref="ILogging"/>
         /// </summary>
         /// <param name="name">Name of the class that is requesting an <see cref="ILogging"/></param>
-        public static ILogging CreateLogger(string name) =>
-            new WrapperLogger(name,
+        public static ILogging CreateLogger(string name)
+        {
+            var logger = new WrapperLogger(name,
                 LogBuilders.Any() ? LogBuilders.ToArray() : new LoggingBuilder[] {new EmptyLoggerBuilder()});
+            Loggers.Add(logger);
+            return logger;
+        }
 
+        private static readonly List<ILogging> Loggers = new List<ILogging>();
+        /// <summary>
+        /// This lets you manually dispose any loggers that also have <see cref="IDisposable"/>
+        /// </summary>
+        public static void DisposeLoggers()
+        {
+            foreach (var logger in Loggers)
+            {
+                if (logger is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+        
         /// <summary>
         /// Adds a <see cref="LoggingBuilder"/> that will be used when creating a <see cref="ILogging"/> from <see cref="CreateLogger"/>
         /// </summary>

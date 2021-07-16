@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
@@ -11,7 +11,7 @@ using TinyUpdate.Core.Update;
 namespace TinyUpdate.Github
 {
     /// <summary>
-    /// Base class to use when making a Api to talk with Github
+    /// Base class for talking to github and understanding what is used
     /// </summary>
     public abstract class GithubApi
     {
@@ -33,14 +33,14 @@ namespace TinyUpdate.Github
         }
 
 
-        /// <inheritdoc cref="UpdateClient.CheckForUpdate()"/>
+        /// <inheritdoc cref="UpdateClient.CheckForUpdate"/>
         /// <param name="organization">The organization that owns the <see cref="repository"/></param>
         /// <param name="repository">The repository name</param>
         public abstract Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates);
 
-        /// <summary>Gets the changelog for a certain <see cref="ReleaseEntry"/></summary>
-        /// <param name="entry">The repository name</param>
-        /// <inheritdoc cref="CheckForUpdate"/>
+        /// <inheritdoc cref="UpdateClient.GetChangelog(ReleaseEntry)"/>
+        /// <param name="organization">The organization that owns the <see cref="repository"/></param>
+        /// <param name="repository">The repository name</param>
         public abstract Task<ReleaseNote?> GetChangelog(ReleaseEntry entry, string organization, string repository);
         
         /// <summary>
@@ -48,7 +48,8 @@ namespace TinyUpdate.Github
         /// </summary>
         /// <param name="tagName">What the tag that contains the RELEASE file is</param>
         /// <param name="fileSize">How big the RELEASE file should be</param>
-        /// <param name="downloadUrl">Where the RELEASE file is</param>
+        /// <param name="downloadUrl">The URI with the the RELEASE file</param>
+        /// <param name="grabDeltaUpdates">If we want to grab only delta updates from the RELEASE file (If false we only grab full update files)</param>
         protected async Task<UpdateInfo?> DownloadAndParseReleaseFile(string tagName, long fileSize, string downloadUrl, bool grabDeltaUpdates)
         {
             //Download the RELEASE file if we don't already have it
@@ -64,7 +65,7 @@ namespace TinyUpdate.Github
             }
             fileLength ??= new FileInfo(releaseFileLoc).Length;
             
-            //Just do a sanity check of the file
+            //Just do a sanity check of the file size
             if (fileLength != fileSize)
             {
                 Logger.Error("RELEASE file isn't the length as expected, deleting and returning null...");
@@ -77,6 +78,27 @@ namespace TinyUpdate.Github
                 ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileLoc))
                     .ToReleaseEntries(tagName)
                     .FilterReleases(grabDeltaUpdates));
+        }
+        
+        protected async Task<HttpResponseMessage?> GetResponseMessage(HttpRequestMessage requestMessage)
+        {
+            //TODO: Handle errors
+            //TODO: Handle when we get rate limited
+            //TODO: Add something to not crash when we have no wifi
+
+            //Check that we got something from it
+            var response = await HttpClient.SendAsync(requestMessage);
+            if (response.IsSuccessStatusCode)
+            {
+                return response;
+            }
+
+            Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+            }
+            return null;
         }
     }
 }

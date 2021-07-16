@@ -1,25 +1,26 @@
 ﻿using System;
+using System.Linq;
 
 namespace TinyUpdate.Core.Logging.Loggers
 {
     /// <summary>
     /// Logger that wraps around multiple loggers (Building the loggers itself)
     /// </summary>
-    internal class WrapperLogger : ILogging
+    internal class WrapperLogger : ILogging, IDisposable
     {
         private readonly ILogging[] _loggers;
 
         public WrapperLogger(string name, params LoggingBuilder[] builders)
         {
             _loggers = new ILogging[builders.LongLength];
-            for (int i = 0; i < builders.LongLength; i++)
+            for (var i = 0; i < builders.LongLength; i++)
             {
                 _loggers[i] = builders[i].CreateLogger(name);
             }
         }
 
         /// <inheritdoc cref="ILogging.Name"/>
-        public string Name { get; } = nameof(WrapperLogger);
+        public string Name => nameof(WrapperLogger);
 
         public LogLevel? LogLevel { get; set; }
 
@@ -65,6 +66,14 @@ namespace TinyUpdate.Core.Logging.Loggers
             foreach (var logger in _loggers)
             {
                 logger.Warning(message, propertyValues);
+            }
+        }
+
+        public void Dispose()
+        {
+            foreach (var disposable in _loggers.Select(x => x as IDisposable))
+            {
+                disposable?.Dispose();
             }
         }
     }
