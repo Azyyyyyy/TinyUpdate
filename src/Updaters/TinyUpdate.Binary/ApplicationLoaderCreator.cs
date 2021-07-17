@@ -74,8 +74,8 @@ namespace TinyUpdate.Binary
             //Build
             //TODO: Make it find cmake & VS Build tools
             var toolsFile =
-                @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Preview\VC\Auxiliary\Build\vcvars64.bat";
-            var cmakeLocation = @"D:\aaron\Downloads\cmake-3.21.0-rc3-windows-x86_64\bin\cmake.exe";
+                @"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat";
+            var cmakeLocation = @"C:\Users\aaron\Downloads\cmake-3.21.0-windows-x86_64\bin\cmake.exe";
             var buildFolder = Path.Combine(templateFolder, "cmake-build");
 
             //TODO: Make this OS dependent

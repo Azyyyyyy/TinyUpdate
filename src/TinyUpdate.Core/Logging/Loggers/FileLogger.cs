@@ -31,7 +31,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Trace))
             {
-                _fileWriter.Value.WriteLine("[DEBUG] " + message + $" ({Name})", propertyValues);
+                _fileWriter.Value.WriteLine("[DEBUG] " + message, propertyValues);
             }
         }
 
@@ -40,7 +40,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Error))
             {
-                _fileWriter.Value.WriteLine("[ERROR] " + message + $" ({Name})", propertyValues);
+                _fileWriter.Value.WriteLine("[ERROR] " + message, propertyValues);
             }
         }
 
@@ -55,7 +55,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Info))
             {
-                _fileWriter.Value.WriteLine("[INFO] " + message + $" ({Name})", propertyValues);
+                _fileWriter.Value.WriteLine("[INFO] " + message, propertyValues);
             }
         }
 
@@ -64,7 +64,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Warn))
             {
-                _fileWriter.Value.WriteLine("[WARN] " + message + $" ({Name})", propertyValues);
+                _fileWriter.Value.WriteLine("[WARN] " + message, propertyValues);
             }
         }
 
