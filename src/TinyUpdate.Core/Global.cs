@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Reflection;
 using TinyUpdate.Core.Exceptions;
@@ -31,7 +31,8 @@ namespace TinyUpdate.Core
              as we should be), note that we don't want to do this check in a Unit Test*/
             var uri = new UriBuilder(runningAssembly.CodeBase);
             var path = Uri.UnescapeDataString(uri.Path);
-#if !DEBUG
+//Disabled this for now
+#if false
             if (!DebugUtil.IsInUnitTest
                 && Path.GetFileName(Path.GetDirectoryName(path)) != $"app-{ApplicationVersion.ToString(4)}")
             {

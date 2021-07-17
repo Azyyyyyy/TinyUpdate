@@ -30,6 +30,7 @@ namespace TinyUpdate.Binary
             string newVersionLocation,
             Version newVersion,
             string baseVersionLocation,
+            Version oldVersion,
             string? deltaUpdateLocation = null,
             int concurrentDeltaCreation = 1,
             OSPlatform? intendedOs = null,
@@ -200,8 +201,9 @@ namespace TinyUpdate.Binary
                 return false;
             }
             
+            //TODO: Diff this as well, no need to keep
             //Add the loader into the package
-            if (!AddLoaderFile(zipArchive, newVersion, newVersionLocation))
+            if (!AddLoaderFile(zipArchive, oldVersion, newVersion, newVersionLocation))
             {
                 Logger.Error("Wasn't able to create loader for this application");
                 Cleanup();
@@ -258,7 +260,7 @@ namespace TinyUpdate.Binary
             }
 
             //Add the loader into the package
-            if (!AddLoaderFile(zipArchive, version, applicationLocation))
+            if (!AddLoaderFile(zipArchive, null, version, applicationLocation))
             {
                 Logger.Error("Wasn't able to create loader for this application");
                 zipArchive.Dispose();
@@ -309,21 +311,23 @@ namespace TinyUpdate.Binary
         }
 
         private static bool AddLoaderFile(
-            ZipArchive zipArchive, 
-            Version version, 
+            ZipArchive zipArchive,
+            Version? oldVersion,
+            Version newVersion,
             string applicationLocation)
         {
             Directory.CreateDirectory(Global.TempFolder);
 
+            //TODO: Find old loader and diff if found
             //TODO: Grab metadata from .exe and drop it into Loader
             var iconLocation = Path.Combine(applicationLocation, "app.ico");
             var successful = ApplicationLoaderCreator.CreateLoader(
-                $"app-{version.ToString(4)}\\{Global.ApplicationName}.exe",
+                $"app-{newVersion.ToString(4)}\\{Global.ApplicationName}.exe",
                 File.Exists(iconLocation) ? iconLocation : null,
                 Global.TempFolder,
                 Global.ApplicationName);
-            if (successful 
-                && AddFile(zipArchive, 
+            if (successful
+                && AddFile(zipArchive,
                     File.OpenRead(Path.Combine(Global.TempFolder, Global.ApplicationName + ".exe")),
                     Global.ApplicationName + ".exe.load", false))
             {
