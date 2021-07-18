@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using TinyUpdate.Binary.Delta;
 using TinyUpdate.Binary.Extensions;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
@@ -201,9 +202,8 @@ namespace TinyUpdate.Binary
                 return false;
             }
             
-            //TODO: Diff this as well, no need to keep
-            //Add the loader into the package
-            if (!AddLoaderFile(zipArchive, oldVersion, newVersion, newVersionLocation))
+            if (!AddLoaderFile(zipArchive, newVersion, newVersionLocation, 
+                oldVersion, deltaUpdateLocation))
             {
                 Logger.Error("Wasn't able to create loader for this application");
                 Cleanup();
@@ -260,7 +260,7 @@ namespace TinyUpdate.Binary
             }
 
             //Add the loader into the package
-            if (!AddLoaderFile(zipArchive, null, version, applicationLocation))
+            if (!AddLoaderFile(zipArchive, version, applicationLocation))
             {
                 Logger.Error("Wasn't able to create loader for this application");
                 zipArchive.Dispose();
@@ -310,15 +310,23 @@ namespace TinyUpdate.Binary
             return hasChanged;
         }
 
-        private static bool AddLoaderFile(
+        //TODO: Diff this as well, no need to keep
+        //Add the whole loader in the package if the
+        //only changed thing is the pathing
+        private bool AddLoaderFile(
             ZipArchive zipArchive,
-            Version? oldVersion,
             Version newVersion,
-            string applicationLocation)
+            string applicationLocation,
+            Version? oldVersion = null,
+            string? outputLocation = null)
         {
+            string loaderLocation = Path.Combine(Global.TempFolder, Global.ApplicationName + ".exe");
+            bool addFile() => AddFile(zipArchive,
+                File.OpenRead(loaderLocation),
+                Global.ApplicationName + ".exe.load", false);
+            
             Directory.CreateDirectory(Global.TempFolder);
 
-            //TODO: Find old loader and diff if found
             //TODO: Grab metadata from .exe and drop it into Loader
             var iconLocation = Path.Combine(applicationLocation, "app.ico");
             var successful = ApplicationLoaderCreator.CreateLoader(
@@ -326,15 +334,31 @@ namespace TinyUpdate.Binary
                 File.Exists(iconLocation) ? iconLocation : null,
                 Global.TempFolder,
                 Global.ApplicationName);
-            if (successful
-                && AddFile(zipArchive,
-                    File.OpenRead(Path.Combine(Global.TempFolder, Global.ApplicationName + ".exe")),
-                    Global.ApplicationName + ".exe.load", false))
+
+            if (!successful)
             {
-                return true;
+                Logger.Error("Wasn't able to add loader file to list of files");
+                return false;
             }
-            Logger.Error("Wasn't able to add loader file to list of files");
-            return false;
+            if (oldVersion == null || !Directory.Exists(applicationLocation))
+            {
+                return addFile();
+            }
+
+            //If we get here then we might also have the old loader, try to diff it
+            foreach (var file in Directory.EnumerateFiles(applicationLocation, "*" + Extension))
+            {
+                if (file.ToVersion() == oldVersion)
+                {
+                    var stream = File.OpenRead(file);
+                    using var fileArch = new ZipArchive(stream, ZipArchiveMode.Read);
+                    var loaderFileIndex = fileArch.Entries.IndexOf(x => x.Name == Global.ApplicationName + ".exe.load");
+                    var fileEntry = fileArch.Entries[loaderFileIndex];
+                    AddDeltaFile(zipArchive, null, loaderLocation, null);
+                }
+            }
+            //Global.TempFolder
+            return true;
         }
 
         /// <summary>
