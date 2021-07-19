@@ -32,8 +32,8 @@ namespace TinyUpdate.Binary
             Version newVersion,
             string baseVersionLocation,
             Version oldVersion,
+            string outputFolder,
             string? deltaUpdateLocation = null,
-            int concurrentDeltaCreation = 1,
             OSPlatform? intendedOs = null,
             Action<decimal>? progress = null)
         {
@@ -165,7 +165,6 @@ namespace TinyUpdate.Binary
 
             //Now process files that changed
             var result = Parallel.ForEach(deltaFiles,
-                new ParallelOptions {MaxDegreeOfParallelism = concurrentDeltaCreation}, 
                 (deltaFile, state) =>
                 {
                     var deltaFileLocation = Path.Combine(newVersionLocation, deltaFile);
@@ -203,7 +202,7 @@ namespace TinyUpdate.Binary
             }
             
             if (!AddLoaderFile(zipArchive, newVersion, newVersionLocation, 
-                oldVersion, deltaUpdateLocation))
+                oldVersion, outputFolder))
             {
                 Logger.Error("Wasn't able to create loader for this application");
                 Cleanup();
@@ -340,25 +339,57 @@ namespace TinyUpdate.Binary
                 Logger.Error("Wasn't able to add loader file to list of files");
                 return false;
             }
-            if (oldVersion == null || !Directory.Exists(applicationLocation))
+            if (oldVersion == null || !Directory.Exists(outputLocation))
             {
                 return addFile();
             }
 
             //If we get here then we might also have the old loader, try to diff it
-            foreach (var file in Directory.EnumerateFiles(applicationLocation, "*" + Extension))
+            foreach (var file in Directory.EnumerateFiles(outputLocation, "*" + Extension))
             {
-                if (file.ToVersion() == oldVersion)
+                if (Path.GetFileNameWithoutExtension(file).ToVersion() != oldVersion)
                 {
-                    var stream = File.OpenRead(file);
-                    using var fileArch = new ZipArchive(stream, ZipArchiveMode.Read);
-                    var loaderFileIndex = fileArch.Entries.IndexOf(x => x.Name == Global.ApplicationName + ".exe.load");
-                    var fileEntry = fileArch.Entries[loaderFileIndex];
-                    AddDeltaFile(zipArchive, null, loaderLocation, null);
+                    continue;
                 }
+
+                Stream? stream = null;
+                ZipArchive fileArch;
+                try
+                {
+                    stream = File.OpenRead(file);
+                    fileArch = new ZipArchive(stream, ZipArchiveMode.Read);
+                }
+                catch (Exception e)
+                {
+                    stream?.Dispose();
+                    Logger.Error(e);
+                    continue;
+                }
+
+                //We want to grab if it contains the full loader, can't do it with a diffed version
+                var loaderFileIndex = fileArch.Entries.IndexOf(x => x?.Name == Global.ApplicationName + ".exe.load");
+                if (loaderFileIndex == -1)
+                {
+                    fileArch.Dispose();
+                    continue;
+                }
+
+                var fileEntry = fileArch.Entries[loaderFileIndex];
+                var tmpFile = Path.Combine(Global.TempFolder, Path.GetFileNameWithoutExtension(fileEntry.Name));
+                fileEntry.ExtractToFile(tmpFile, true);
+
+                var deltaSuccessful = AddDeltaFile(zipArchive, tmpFile, loaderLocation, extensionEnd: "load");
+                File.Delete(tmpFile);
+                if (!deltaSuccessful)
+                {
+                    Logger.Warning("Wasn't able to diff loader, just going to add the load in as normal");
+                }
+                fileArch.Dispose();
+                return deltaSuccessful || addFile();
             }
-            //Global.TempFolder
-            return true;
+            
+            //If we get here then we can't do any kind of diff logic
+            return addFile();
         }
 
         /// <summary>
@@ -369,9 +400,10 @@ namespace TinyUpdate.Binary
         /// <param name="newFileLocation">New file</param>
         /// <param name="intendedOs">What OS this delta file will be intended for</param>
         /// <param name="progress">Progress of creating delta file (If possible)</param>
+        /// <param name="extensionEnd">What to add onto the end of the extension (If needed)</param>
         /// <returns>If we was able to create the delta file</returns>
         private static bool AddDeltaFile(ZipArchive zipArchive, string baseFileLocation,
-            string newFileLocation, OSPlatform? intendedOs, Action<decimal>? progress = null)
+            string newFileLocation, OSPlatform? intendedOs = null, Action<decimal>? progress = null, string? extensionEnd = null)
         {
             //Create where the delta file can be stored to grab once made
             Directory.CreateDirectory(Global.TempFolder);
@@ -409,7 +441,7 @@ namespace TinyUpdate.Binary
             var addSuccessful = AddFile(
                 zipArchive,
                 deltaFileStream,
-                baseFileLocation.GetRelativePath(newFileLocation) + extension,
+                baseFileLocation.GetRelativePath(newFileLocation) + extension + extensionEnd,
                 filesize: newFilesize,
                 sha256Hash: hash);
 

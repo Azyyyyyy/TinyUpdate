@@ -71,7 +71,7 @@ namespace TinyUpdate.Binary.Entry
                 return;
             }
 
-            if (fileEntry.DeltaExtension == ".load")
+            if (fileEntry.DeltaExtension.EndsWith("load"))
             {
                 LoaderFile = fileEntry;
                 return;

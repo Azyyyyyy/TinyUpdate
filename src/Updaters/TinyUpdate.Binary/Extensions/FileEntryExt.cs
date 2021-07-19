@@ -15,7 +15,7 @@ namespace TinyUpdate.Binary.Extensions
         {
             return fileEntry.Filesize != 0 
                    && fileEntry.DeltaExtension != ".new"
-                   && fileEntry.DeltaExtension != ".load";
+                   && !fileEntry.DeltaExtension.EndsWith("load");
         }
 
         /// <summary>

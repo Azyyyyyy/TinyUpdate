@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using TinyUpdate.Core.Logging;
@@ -21,7 +23,7 @@ namespace TinyUpdate.Binary.Extensions
         public static IEnumerable<string> RemovePath(this IEnumerable<string> enumerable, string path)
         {
             return enumerable.Select(file =>
-                file.Substring(path.Length + 1));
+                file[(path.Length + 1)..]);
         }
 
         /// <summary>
@@ -31,16 +33,39 @@ namespace TinyUpdate.Binary.Extensions
         /// <param name="newFile">Second file to base the path on</param>
         public static string GetRelativePath(this string baseFile, string newFile)
         {
-            var basePath = baseFile;
-            var newPath = newFile;
-            while (!newPath.Contains(basePath))
+            //If the pathing is completely the same then just grab the filename ¯\_(ツ)_/¯
+            if (baseFile == newFile)
             {
-                basePath = basePath.Substring(basePath.IndexOf(Path.DirectorySeparatorChar) + 1);
+                return Path.GetFileName(newFile);
+            }
+            
+            var basePath = baseFile;
+
+            var count = Math.Min(baseFile.Length, newFile.Length);
+            if (baseFile.Length > newFile.Length)
+            {
+                baseFile = baseFile[^newFile.Length..];
+            }
+            else
+            {
+                newFile = newFile[^baseFile.Length..];
             }
 
-            newPath = newFile.Replace(basePath, "");
-            newPath = newFile.Substring(newPath.Length);
-            return newPath;
+            var index = count - 1;
+            for (;0 <= index; index--)
+            {
+                if (baseFile[index] != newFile[index])
+                {
+                    break;
+                }
+            }
+            Debug.Assert(index != -1, "We tried to compare two strings that are the same!");
+            
+            basePath = basePath[index..];
+            basePath = basePath[0] != Path.DirectorySeparatorChar ? 
+                basePath[(basePath.IndexOf(Path.DirectorySeparatorChar) + 1)..] : basePath[1..];
+
+            return basePath;
         }
 
         /// <summary>

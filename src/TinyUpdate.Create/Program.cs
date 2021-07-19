@@ -273,10 +273,7 @@ namespace TinyUpdate.Create
             Path.Combine(Global.OutputLocation,
                 $"{Global.MainApplicationName}.{Global.ApplicationNewVersion}-{(deltaFile ? "delta" : "full")}{(Global.IntendedOS != null ? $"-{Global.IntendedOS}" : "")}{extension}");
 
-        private static void ShowHeader()
-        {
-            Logger.WriteLine(
-                @"
+        private const string TinyUpdateText = @"
   _____  _                _   _             _         _        
  |_   _|(_) _ __   _   _ | | | | _ __    __| |  __ _ | |_  ___ 
    | |  | || '_ \ | | | || | | || '_ \  / _` | / _` || __|/ _ \
@@ -284,7 +281,19 @@ namespace TinyUpdate.Create
    |_|  |_||_| |_| \__, | \___/ | .__/  \__,_| \__,_| \__|\___|
                    |___/        |_|                            
 
-");
+";
+        private static void ShowHeader()
+        {
+            var oldColour = Console.ForegroundColor;
+            var rnd = new Random();
+            foreach (var line in TinyUpdateText.Split('\n'))
+            {
+                Console.ForegroundColor = (ConsoleColor) rnd.Next(16);
+                Logger.WriteLine(line);
+            }
+
+            Console.ForegroundColor = oldColour;
+            Logger.WriteLine();
         }
 
         private static void GetUpdateType()

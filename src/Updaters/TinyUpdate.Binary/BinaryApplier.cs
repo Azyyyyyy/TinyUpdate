@@ -193,7 +193,7 @@ namespace TinyUpdate.Binary
             foreach (var file in updateEntry.SameFile)
             {
                 fileCounter++;
-                Logger.Debug("Processing {0}", file.FileLocation);
+                Logger.Debug("Processing unchanged file ({0})", file.FileLocation);
 
                 //Create folder (if it exists)
                 newPath.CreateDirectory(file.FolderPath);
@@ -219,7 +219,7 @@ namespace TinyUpdate.Binary
             foreach (var newFile in updateEntry.NewFile)
             {
                 fileCounter++;
-                Logger.Debug("Processing {0}", newFile.FileLocation);
+                Logger.Debug("Processing new file ({0})", newFile.FileLocation);
 
                 //Create folder (if it exists)
                 newPath.CreateDirectory(newFile.FolderPath);
@@ -241,7 +241,7 @@ namespace TinyUpdate.Binary
 
             foreach (var deltaFile in updateEntry.DeltaFile)
             {
-                Logger.Debug("Processing {0}", deltaFile.FileLocation);
+                Logger.Debug("Processing changed file ({0})", deltaFile.FileLocation);
 
                 //Create folder (if it exists)
                 newPath.CreateDirectory(deltaFile.FolderPath);
@@ -284,7 +284,7 @@ namespace TinyUpdate.Binary
             {
                 Logger.Warning($"Loaders haven't been added for {RuntimeInformation.OSDescription} yet");
             }
-            else if (!ProcessLoaderFile(updateEntry.LoaderFile))
+            else if (!await ProcessLoaderFile(updateEntry.LoaderFile))
             {
                 Cleanup();
                 return false;
@@ -294,7 +294,7 @@ namespace TinyUpdate.Binary
             return true;
         }
 
-        private static bool ProcessLoaderFile(FileEntry loaderFile)
+        private static async Task<bool> ProcessLoaderFile(FileEntry loaderFile)
         {
             //Drop the loader onto disk now we know that everything was done correctly
             if (loaderFile.Stream == null)
@@ -305,12 +305,27 @@ namespace TinyUpdate.Binary
             
             var loaderFileLocation = Path.Combine(Global.ApplicationFolder, loaderFile.Filename);
             File.Delete(loaderFileLocation + ".new"); //In case it exists somehow
-            var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
 
-            loaderFile.Stream.CopyTo(loaderStream);
+            if (loaderFile.DeltaExtension != ".load")
+            {
+                loaderFile.DeltaExtension =
+                    loaderFile.DeltaExtension[..^4];
+                if (!await DeltaApplying.ProcessDeltaFile(loaderFileLocation, loaderFileLocation + ".new", loaderFile))
+                {
+                    File.Delete(loaderFileLocation + ".new");
+                    return false;
+                }
+                File.Delete(loaderFileLocation);
+                File.Move(loaderFileLocation + ".new", loaderFileLocation);
+                return true;
+            }
+
+            //If we get here then it's not been given to us as a delta file, process as normal
+            var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
+            await loaderFile.Stream.CopyToAsync(loaderStream);
             loaderStream.Dispose();
             loaderFile.Stream.Dispose();
-
+            
             if (!CheckUpdatedFile(true, loaderFileLocation + ".new", loaderFile))
             {
                 File.Delete(loaderFileLocation);

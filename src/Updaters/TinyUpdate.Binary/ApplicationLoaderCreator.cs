@@ -7,6 +7,7 @@ using System.Management;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Binary
@@ -127,7 +128,7 @@ namespace TinyUpdate.Binary
             };
 
             //Setup grabbing output for us if needed
-            var buildLog = File.CreateText(Path.Combine(templateFolder, ""));
+            var buildLog = File.CreateText(Path.Combine(templateFolder, DateTime.Now.ToFileName() + ".log"));
             buildProcess.OutputDataReceived += (sender, args) => buildLog.WriteLineAsync(args.Data);
             buildProcess.ErrorDataReceived += (sender, args) => buildLog.WriteLineAsync(args.Data);
 
@@ -151,6 +152,7 @@ namespace TinyUpdate.Binary
                 Logger.Warning("Loader file already exists in output. Deleting old loader");
                 File.Delete(outputFile);
             }
+
             File.Move(Path.Combine(buildFolder, "ApplicationLoader.exe"), outputFile);
             return true;
         }

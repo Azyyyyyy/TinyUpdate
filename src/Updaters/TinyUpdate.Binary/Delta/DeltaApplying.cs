@@ -17,12 +17,11 @@ namespace TinyUpdate.Binary.Delta
         /// Processes a file that has a delta update
         /// </summary>
         /// <param name="originalFile">Where the original file is</param>
-        /// <param name="newFile">Where the file file needs to be</param>
-        /// <param name="file">Details about how we the update was made</param>
-        /// <param name="progress">Progress of applying update</param>
-        /// <returns>If we was able to process the file</returns>
-        public static async Task<bool> ProcessDeltaFile(string originalFile, string newFile, FileEntry file,
-            Action<decimal>? progress = null)
+        /// <param name="newFile">Where the updated file should be placed on disk</param>
+        /// <param name="file">Details about the update</param>
+        /// <param name="progress">Progress for applying the update</param>
+        /// <returns>If the file was successfully updated</returns>
+        public static async Task<bool> ProcessDeltaFile(string originalFile, string newFile, FileEntry file, Action<decimal>? progress = null)
         {
             Logger.Debug("File was updated, applying delta update");
 

@@ -159,20 +159,20 @@ namespace TinyUpdate.Create.AssemblyHelper
             return default;
         }
 
+        private static readonly string[] BlacklistedFiles =
+        {
+            "TinyUpdate.Core.dll",
+            "mscorlib.dll",
+            "ucrtbase.dll",
+            "netstandard.dll",
+            "System.Private.CoreLib.dll"
+        };
+        
         private static bool CanLoadFile(string file)
         {
-            string[] blacklistedFiles =
-            {
-                "TinyUpdate.Core.dll",
-                "mscorlib.dll",
-                "ucrtbase.dll",
-                "netstandard.dll",
-                "System.Private.CoreLib.dll"
-            };
-
             //Don't try to load the file if it's any of these files or not an PE file
             var fileName = Path.GetFileName(file);
-            if (blacklistedFiles.Contains(fileName)
+            if (BlacklistedFiles.Contains(fileName)
                 || ApiFileRegex.IsMatch(fileName)
                 || !IsDotNetAssembly(file))
             {
@@ -218,9 +218,9 @@ namespace TinyUpdate.Create.AssemblyHelper
         /// </summary>
         /// <param name="applicationLocation">Where the application is stored</param>
         /// <param name="typeToCheckFor">Type to look for</param>
-        /// <param name="intendedOS">OS that we intended to process for</param>
+        /// <param name="intendedOs">OS that we intended to process for</param>
         private static Dictionary<Assembly, List<Type>> GetAssembliesWithType(string applicationLocation,
-            Type typeToCheckFor, OSPlatform? intendedOS = null)
+            Type typeToCheckFor, OSPlatform? intendedOs = null)
         {
             var types = new Dictionary<Assembly, List<Type>>();
             if (!typeToCheckFor.IsInterface)
@@ -297,11 +297,11 @@ namespace TinyUpdate.Create.AssemblyHelper
                         x.FullName == assemblyType.FullName);
 
                     var osProp = type.GetProperty("IntendedOS");
-                    if (intendedOS != null
+                    if (intendedOs != null
                         && osProp != null
                         && (!osProp.CanRead
                             || osProp.GetValue(type) is not OSPlatform osPlatform
-                            || osPlatform != intendedOS))
+                            || osPlatform != intendedOs))
                     {
                         continue;
                     }

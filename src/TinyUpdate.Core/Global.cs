@@ -49,7 +49,6 @@ namespace TinyUpdate.Core
         public static Version ApplicationVersion { get; set; }
 
         private static string _tempFolder = Path.Combine(Path.GetTempPath(), "TinyUpdate");
-
         /// <summary>
         /// The folder to be used when downloading/creating any files that are only needed for a short period of time
         /// </summary>

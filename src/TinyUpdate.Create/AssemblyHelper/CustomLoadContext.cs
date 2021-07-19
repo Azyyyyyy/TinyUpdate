@@ -112,8 +112,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
                     var versionIndex = libFrameworkInfo?.IndexOf("=v");
                     if (versionIndex.HasValue && !string.IsNullOrWhiteSpace(libFrameworkInfo))
                     {
-                        _mainLibFramework = libFrameworkInfo.Substring(0, versionIndex.Value - 8);
-                        _mainLibVersion = Version.Parse(libFrameworkInfo.Substring(versionIndex.Value + 2));
+                        _mainLibFramework = libFrameworkInfo[..(versionIndex.Value - 8)];
+                        _mainLibVersion = Version.Parse(libFrameworkInfo[(versionIndex.Value + 2)..]);
                     }
                 }
 
@@ -222,10 +222,20 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
         private Assembly? LoadFrom(string assemblyName, Version assemblyVersion)
         {
-            //We don't want to handle loading these in
-            if (assemblyName == "netstandard" || assemblyName == "mscorlib" || SystemRegex.IsMatch(assemblyName))
+            //We don't want to handle loading these in because we already will have them
+            if (assemblyName is "netstandard" or "mscorlib")
             {
                 return null;
+            }
+
+            //If it's a system assembly then we want to load from default if possible
+            if (SystemRegex.IsMatch(assemblyName))
+            {
+                var assemblyIndex = Default.Assemblies.IndexOf(x => x?.GetName().Name == assemblyName);
+                if (assemblyIndex != -1)
+                {
+                    return Default.Assemblies.ElementAt(assemblyIndex);
+                }
             }
 
             foreach (string assemblyProbingDirectoryRoot in _assemblyProbingDirectories)

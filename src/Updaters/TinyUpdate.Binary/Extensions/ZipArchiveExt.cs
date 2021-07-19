@@ -33,7 +33,7 @@ namespace TinyUpdate.Binary.Extensions
         /// <param name="zip"><see cref="ZipArchive"/> that contains all the files</param>
         public static async IAsyncEnumerable<FileEntry?> GetFilesFromPackage(this ZipArchive zip)
         {
-            var fileEntries = new List<FileEntry>();
+            var fileEntries = new List<FileEntry>(zip.Entries.Count);
             foreach (var zipEntry in zip.Entries)
             {
                 //Get file extension, if it doesn't have one then we don't
@@ -46,7 +46,7 @@ namespace TinyUpdate.Binary.Extensions
 
                 //Get the filename + path so we can find the entry if it exists (or create if it doesn't)
                 var filename =
-                    zipEntry.Name.Substring(0, zipEntry.Name.LastIndexOf(entryEtx, StringComparison.Ordinal));
+                    zipEntry.Name[..zipEntry.Name.LastIndexOf(entryEtx, StringComparison.Ordinal)];
                 var filepath = Path.GetDirectoryName(zipEntry.FullName);
 
                 //Get the index of the entry for adding new data (if it exists)
@@ -81,7 +81,7 @@ namespace TinyUpdate.Binary.Extensions
                 }
 
                 //If its this then it will be the loader for the application
-                if (entryEtx == ".load")
+                if (entryEtx.EndsWith("load"))
                 {
                     fileEntries.Add(new FileEntry(filename, filepath)
                     {

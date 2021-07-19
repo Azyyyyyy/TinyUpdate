@@ -24,8 +24,8 @@ namespace TinyUpdate.Create
                     Global.ApplicationNewVersion,
                     Global.OldVersionLocation,
                     Global.ApplicationOldVersion!,
+                    Global.OutputLocation,
                     Program.GetOutputLocation(true, updateCreator.Extension),
-                    3,
                     progress: progress => progressBar.Report((double) progress));
             progressBar.Dispose();
 

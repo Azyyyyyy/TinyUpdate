@@ -22,7 +22,7 @@ namespace TinyUpdate.Core.Extensions
         {
             var name = SuffixRegex.Replace(fileName, "");
             name = OsRegex.Replace(name, "");
-            name = name.Substring(name.IndexOf('.') + 1);
+            name = name[(name.IndexOf('.') + 1)..];
 
             var version = VersionRegex.Match(name);
             return version.Success ? new Version(version.Value) : null;

@@ -14,7 +14,7 @@ namespace System
     /// int lastElement = someArray[^1]; // lastElement = 5
     /// </code>
     /// </remarks>
-    internal readonly struct Index : IEquatable<Index>
+    public readonly struct Index : IEquatable<Index>
     {
         private readonly int _value;
 
@@ -25,7 +25,7 @@ namespace System
         /// If the Index constructed from the end, index value 1 means pointing at the last element and index value 0 means pointing at beyond last element.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Index(int value, bool fromEnd = false)
+        public Index(int value, bool fromEnd = false)
         {
             if (value < 0)
             {
@@ -151,7 +151,7 @@ namespace System
     /// int[] subArray2 = someArray[1..^0]; // { 2, 3, 4, 5 }
     /// </code>
     /// </remarks>
-    internal readonly struct Range : IEquatable<Range>
+    public readonly struct Range : IEquatable<Range>
     {
         /// <summary>Represent the inclusive start index of the Range.</summary>
         public Index Start { get; }
