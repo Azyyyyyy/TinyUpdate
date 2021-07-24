@@ -34,8 +34,8 @@ namespace TinyUpdate.Test.Update
         [NonParallelizable]
         public async Task ApplyUpdate_UpdateInfoDelta()
         {
-            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            Global.ApplicationVersion = Version.Parse("2021.129.0");
+            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
             
             var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
             var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
@@ -63,8 +63,8 @@ namespace TinyUpdate.Test.Update
         
         private async Task<bool> ApplyUpdate(string fileLocation)
         {
-            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            Global.ApplicationVersion = Version.Parse("2021.129.0");
+            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
 
             var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
             var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);

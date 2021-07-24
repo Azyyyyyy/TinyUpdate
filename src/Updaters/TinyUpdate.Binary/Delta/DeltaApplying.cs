@@ -16,17 +16,24 @@ namespace TinyUpdate.Binary.Delta
         /// <summary>
         /// Processes a file that has a delta update
         /// </summary>
+        /// <param name="tempFolder">Where the temp folder is located</param>
         /// <param name="originalFile">Where the original file is</param>
         /// <param name="newFile">Where the updated file should be placed on disk</param>
         /// <param name="file">Details about the update</param>
         /// <param name="progress">Progress for applying the update</param>
         /// <returns>If the file was successfully updated</returns>
-        public static async Task<bool> ProcessDeltaFile(string originalFile, string newFile, FileEntry file, Action<decimal>? progress = null)
+        public static async Task<bool> ProcessDeltaFile(string tempFolder, string originalFile, string newFile, FileEntry file, Action<decimal>? progress = null)
         {
             Logger.Debug("File was updated, applying delta update");
 
-            var deltaUpdater = DeltaCreation.DeltaUpdaters.First(x => x.Extension == file.DeltaExtension);
-            return await deltaUpdater.ApplyDeltaFile(originalFile, newFile, file.Filename, file.Stream, progress);
+            var deltaUpdater = DeltaCreation.DeltaUpdaters.FirstOrDefault(x => x.Extension == file.DeltaExtension);
+            if (deltaUpdater != null)
+            {
+                return await deltaUpdater.ApplyDeltaFile(tempFolder, originalFile, newFile, file.Filename, file.Stream, progress);
+            }
+
+            Logger.Error("Wasn't able to find what was responsible for creating this diff file (File: {0}, Extension: {1})", file.Filename, file.DeltaExtension);
+            return false;
         }
     }
 }

@@ -48,7 +48,7 @@ namespace TinyUpdate.Github
             }
             
             //Get what api we should use and setup httpClient
-            _githubApi = canUseGraphQl ? new GithubApiGraphQL(personalToken) : new GithubApiRest();
+            _githubApi = canUseGraphQl ? new GithubApiGraphQL(personalToken, ref ApplicationMetadata) : new GithubApiRest(ref ApplicationMetadata);
             _httpClient = HttpClientFactory.Create(new HttpClientHandler(), _progressMessageHandler);
         }
 
@@ -59,7 +59,7 @@ namespace TinyUpdate.Github
         public override async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<decimal>? progress)
         {
             //If this is the case then we already have the file and it's what we expect, no point in downloading it again
-            if (releaseEntry.IsValidReleaseEntry(true))
+            if (releaseEntry.IsValidReleaseEntry(ApplicationMetadata.ApplicationVersion, true))
             {
                 return true;
             }
@@ -83,7 +83,7 @@ namespace TinyUpdate.Github
             //Check the file
             Logger.Debug("Successfully downloaded {0}", successfullyDownloaded);
             Logger.Information("Checking {0} now it has been downloaded", releaseEntry.Filename);
-            if (successfullyDownloaded && releaseEntry.IsValidReleaseEntry(true))
+            if (successfullyDownloaded && releaseEntry.IsValidReleaseEntry(ApplicationMetadata.ApplicationVersion, true))
             {
                 return true;
             }

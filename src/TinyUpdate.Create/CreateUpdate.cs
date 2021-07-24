@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Create.Helper;
 
@@ -20,6 +21,7 @@ namespace TinyUpdate.Create
             var progressBar = new ProgressBar();
             var wasUpdateCreated =
                 updateCreator.CreateDeltaPackage(
+                    Global.ApplicationMetadata,
                     Global.NewVersionLocation,
                     Global.ApplicationNewVersion,
                     Global.OldVersionLocation,
@@ -39,6 +41,7 @@ namespace TinyUpdate.Create
             var progressBar = new ProgressBar();
             var wasUpdateCreated =
                 updateCreator.CreateFullPackage(
+                    Global.ApplicationMetadata,
                     Global.NewVersionLocation,
                     Global.ApplicationNewVersion,
                     Program.GetOutputLocation(false, updateCreator.Extension),

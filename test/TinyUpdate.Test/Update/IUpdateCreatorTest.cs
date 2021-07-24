@@ -26,8 +26,8 @@ namespace TinyUpdate.Test.Update
         [Test]
         public void CreateDeltaPackage()
         {
-            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            Global.ApplicationVersion = Version.Parse("2021.129.0");
+            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
 
             //Apply update
             var wasSuccessful = _updateCreator.CreateDeltaPackage(
@@ -45,8 +45,8 @@ namespace TinyUpdate.Test.Update
         [Test]
         public void CreateFullPackage()
         {
-            Global.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            Global.ApplicationVersion = Version.Parse("2021.129.0");
+            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
             var wasSuccessful = _updateCreator.CreateFullPackage(
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 new Version("2021.302.0"),

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using TinyUpdate.Core.Logging;
@@ -15,17 +16,32 @@ namespace TinyUpdate.Binary.Extensions
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(PathExt));
 
         /// <summary>
-        /// Removes path from string
+        /// This returns the folder that the application should be in based on the version
         /// </summary>
-        /// <param name="enumerable">file paths that contain the path</param>
+        [return: NotNullIfNotNull("version")]
+        public static string? GetApplicationFolder(this Version? version) =>
+            version == null ? null : $"app-{version.ToString(4)}";
+
+        /// <summary>
+        /// Removes path from strings
+        /// </summary>
+        /// <param name="enumerable">file paths that contains the path</param>
         /// <param name="path">Path to remove</param>
         /// <returns>file paths without <see cref="path"/></returns>
-        public static IEnumerable<string> RemovePath(this IEnumerable<string> enumerable, string path)
-        {
-            return enumerable.Select(file =>
-                file[(path.Length + 1)..]);
-        }
+        public static IEnumerable<string> RemovePath(this IEnumerable<string> enumerable, string path) =>
+            enumerable.Select(file => file.RemovePath(path));
 
+        /// <summary>
+        /// Removes path from string
+        /// </summary>
+        /// <param name="str">file that contains the path</param>
+        /// <param name="path">Path to remove</param>
+        /// <returns>file path without <see cref="path"/></returns>
+        public static string RemovePath(this string str, string path)
+        {
+            return str[(path.Length + 1)..];
+        }
+        
         /// <summary>
         /// Gets the relative path for two files
         /// </summary>
@@ -69,10 +85,10 @@ namespace TinyUpdate.Binary.Extensions
         }
 
         /// <summary>
-        /// This checks if this folder exists and if it does, it will delete it and recreate it
+        /// This checks if the folder exists, deleting and recreating the folder if it does
         /// </summary>
-        /// <param name="folder">Folder to check for</param>
-        public static void CheckForFolder(this string folder)
+        /// <param name="folder">Folder to check</param>
+        public static void RemakeFolder(this string folder)
         {
             /*Create the folder that's going to contain this update
              deleting the folder if it already exists*/

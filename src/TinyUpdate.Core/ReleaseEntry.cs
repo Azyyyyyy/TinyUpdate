@@ -20,7 +20,7 @@ namespace TinyUpdate.Core
             long filesize,
             bool isDelta,
             Version version,
-            string? filePath = null,
+            string folderPath,
             Version? oldVersion = null,
             string? tag = null)
         {
@@ -50,7 +50,7 @@ namespace TinyUpdate.Core
             {
                 throw new InvalidFileNameException(invalidChar);
             }
-            if (filePath != null && !filePath.IsValidForFilePath(out var invalidPathChar))
+            if (!folderPath.IsValidForFilePath(out var invalidPathChar))
             {
                 throw new InvalidFilePathException(invalidPathChar);
             }
@@ -62,7 +62,7 @@ namespace TinyUpdate.Core
             Filesize = filesize;
             IsDelta = isDelta;
             Version = version;
-            FileLocation = Path.Combine(filePath ?? Global.TempFolder, Filename);
+            FileLocation = Path.Combine(folderPath, Filename);
             Tag = tag;
         }
 
@@ -109,8 +109,9 @@ namespace TinyUpdate.Core
         /// <summary>
         /// Reports if this <see cref="ReleaseEntry"/> is valid and can be applied
         /// </summary>
+        /// <param name="applicationVersion">What is the application version is</param>
         /// <param name="checkFile">If we should also check the update file and not just the metadata we have about it and if it's currently on disk</param>
-        public virtual bool IsValidReleaseEntry(bool checkFile = false)
+        public virtual bool IsValidReleaseEntry(Version applicationVersion, bool checkFile = false)
         {
             //If we want to check the file then we want to check the SHA256 + file size
             if (checkFile)
@@ -134,7 +135,7 @@ namespace TinyUpdate.Core
             }
 
             //Check that this version is higher then what we are running now
-            return Global.ApplicationVersion < Version;
+            return applicationVersion < Version;
         }
     }
 }

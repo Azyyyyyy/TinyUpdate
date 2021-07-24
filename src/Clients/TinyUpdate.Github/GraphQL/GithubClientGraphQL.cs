@@ -16,8 +16,8 @@ namespace TinyUpdate.Github.GraphQL
     // ReSharper disable once InconsistentNaming
     internal class GithubApiGraphQL : GithubApi
     {
-        public GithubApiGraphQL(string personalToken)
-            : base("https://api.github.com/graphql")
+        public GithubApiGraphQL(string personalToken, ref ApplicationMetadata applicationMetadata) 
+            : base(ref applicationMetadata, "https://api.github.com/graphql")
         {
             //Personal token needs to be base64
             var basicValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(personalToken));

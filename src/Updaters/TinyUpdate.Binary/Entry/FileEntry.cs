@@ -33,7 +33,7 @@ namespace TinyUpdate.Binary.Entry
         /// <summary>
         /// The SHA256 hash that <see cref="Filename"/> is expected to be once applied to disk
         /// </summary>
-        public string? SHA256 { get; set; }
+        public string SHA256 { get; set; }
 
         /// <summary>
         /// The size that <see cref="Filename"/> is expected to be once applied to disk

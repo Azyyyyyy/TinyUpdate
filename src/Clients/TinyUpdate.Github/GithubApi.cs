@@ -17,30 +17,35 @@ namespace TinyUpdate.Github
     {
         protected readonly HttpClient HttpClient;
         protected readonly ILogging Logger;
-        
+        private readonly ApplicationMetadata _applicationMetadata;
+
         /// <summary>
         /// Api constructor
         /// </summary>
+        /// <param name="applicationMetadata">Metadata about the application we are grabbing updates for</param>
         /// <param name="apiEndpoint">Base endpoint to use</param>
-        protected GithubApi(string apiEndpoint)
+        protected GithubApi(ref ApplicationMetadata applicationMetadata, string apiEndpoint)
         {
+            _applicationMetadata = applicationMetadata ?? throw new ArgumentNullException(nameof(applicationMetadata));
             Logger = LoggingCreator.CreateLogger(GetType().Name);
             HttpClient = new HttpClient
             {
                 BaseAddress = new Uri(apiEndpoint)
             };
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{Global.ApplicationName}-{Global.ApplicationVersion}");
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{applicationMetadata.ApplicationName}-{applicationMetadata.ApplicationVersion}");
         }
 
 
         /// <inheritdoc cref="UpdateClient.CheckForUpdate"/>
         /// <param name="organization">The organization that owns the <see cref="repository"/></param>
         /// <param name="repository">The repository name</param>
+        // ReSharper disable once InvalidXmlDocComment
         public abstract Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates);
 
         /// <inheritdoc cref="UpdateClient.GetChangelog(ReleaseEntry)"/>
         /// <param name="organization">The organization that owns the <see cref="repository"/></param>
         /// <param name="repository">The repository name</param>
+        // ReSharper disable once InvalidXmlDocComment
         public abstract Task<ReleaseNote?> GetChangelog(ReleaseEntry entry, string organization, string repository);
         
         /// <summary>
@@ -53,11 +58,11 @@ namespace TinyUpdate.Github
         protected async Task<UpdateInfo?> DownloadAndParseReleaseFile(string tagName, long fileSize, string downloadUrl, bool grabDeltaUpdates)
         {
             //Download the RELEASE file if we don't already have it
-            var releaseFileLoc = Path.Combine(Global.TempFolder, $"RELEASES-{Global.ApplicationName}-{tagName}");
+            var releaseFileLoc = Path.Combine(_applicationMetadata.TempFolder, $"RELEASES-{_applicationMetadata.ApplicationName}-{tagName}");
             long? fileLength = null;
             if (!File.Exists(releaseFileLoc))
             {
-                Directory.CreateDirectory(Global.TempFolder);
+                Directory.CreateDirectory(_applicationMetadata.TempFolder);
                 var response = await GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, downloadUrl));
                 if (response == null)
                 {
@@ -84,7 +89,7 @@ namespace TinyUpdate.Github
             return new UpdateInfo(
                 ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileLoc))
                     .ToReleaseEntries(tagName)
-                    .FilterReleases(grabDeltaUpdates));
+                    .FilterReleases(grabDeltaUpdates, _applicationMetadata.ApplicationVersion), _applicationMetadata.ApplicationVersion);
         }
 
         private DateTime? _rateLimitTime;
@@ -130,10 +135,10 @@ namespace TinyUpdate.Github
             switch (response.StatusCode)
             {
                 case HttpStatusCode.Unauthorized:
-                    Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+                    Logger.Error("We detected that the status code was 401; have you given a valid personal token? (You need the token to have public_repo)");
                     break;
                 case HttpStatusCode.NotFound:
-                    Logger.Error("We detected that the status code was 404, did you misspell or not give a token for accessing a private repo?");
+                    Logger.Error("We detected that the status code was 404; did you misspell or not give a token for accessing a private repo?");
                     break;
             }
 

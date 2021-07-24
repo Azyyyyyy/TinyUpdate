@@ -20,6 +20,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
 
         /// <inheritdoc cref="IDeltaUpdate.CreateDeltaFile"/>
         public bool CreateDeltaFile(
+            string tempFolder,
             string baseFileLocation,
             string newFileLocation,
             string deltaFileLocation,
@@ -39,6 +40,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
 
         /// <inheritdoc cref="IDeltaUpdate.ApplyDeltaFile"/>
         public async Task<bool> ApplyDeltaFile(
+            string tempFolder,
             string originalFile,
             string newFile,
             string? deltaFile,
@@ -58,9 +60,9 @@ namespace TinyUpdate.Binary.Delta.MsDelta
             }
 
             //Create Temp folder if it doesn't exist
-            Directory.CreateDirectory(Global.TempFolder);
+            Directory.CreateDirectory(tempFolder);
 
-            var tmpDeltaFile = Path.Combine(Global.TempFolder, deltaFile);
+            var tmpDeltaFile = Path.Combine(tempFolder, deltaFile);
             //Delete the tmp file if it already exists, likely from the last update
             if (File.Exists(tmpDeltaFile))
             {
@@ -83,7 +85,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
             string? tmpBaseFile = null;
             if (originalFile == newFile)
             {
-                tmpBaseFile = Path.Combine(Global.TempFolder, Path.GetRandomFileName());
+                tmpBaseFile = Path.Combine(tempFolder, Path.GetRandomFileName());
                 File.Copy(originalFile, tmpBaseFile);
                 originalFile = tmpBaseFile;
             }

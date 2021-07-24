@@ -9,12 +9,12 @@ namespace TinyUpdate.Core.Update
     /// </summary>
     public class UpdateInfo
     {
-        public UpdateInfo(IEnumerable<ReleaseEntry> updates)
+        public UpdateInfo(IEnumerable<ReleaseEntry> updates, Version applicationVersion)
         {
             Updates = updates.ToArray();
 
             //See if there is any update that is newer then the current version
-            HasUpdate = Updates.Any(x => x.Version > Global.ApplicationVersion);
+            HasUpdate = Updates.Any(x => x.Version > applicationVersion);
 
             //Get the newest version if we have an update to apply
             if (HasUpdate)

@@ -24,6 +24,7 @@ namespace TinyUpdate.Binary.Delta
 
         /// <inheritdoc cref="IDeltaUpdate.ApplyDeltaFile"/>
         public async Task<bool> ApplyDeltaFile(
+            string tempFolder,
             string originalFile,
             string newFile,
             string deltaFile,
@@ -87,6 +88,7 @@ namespace TinyUpdate.Binary.Delta
         /// <inheritdoc cref="IDeltaUpdate.CreateDeltaFile"/>
         public bool CreateDeltaFile
         (string baseFileLocation,
+            string tempFolder,
             string newFileLocation,
             string deltaFileLocation,
             out Stream? deltaFileStream,

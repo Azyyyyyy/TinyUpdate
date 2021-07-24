@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,9 +17,11 @@ namespace TinyUpdate.Core.Extensions
         /// Creates a <see cref="ReleaseEntry"/> from <see cref="ReleaseFile"/>'s
         /// </summary>
         /// <param name="releaseFiles">Release files</param>
+        /// <param name="folderLocation">Where the release will be located</param>
         /// <param name="tag">Tag to use for any extra data (Normally the tag that is linked to a <see cref="ReleaseFile"/> in services)</param>
         public static IEnumerable<ReleaseEntry> ToReleaseEntries(
             this IEnumerable<ReleaseFile> releaseFiles,
+            string folderLocation,
             string? tag = null)
         {
             foreach (var releaseFile in releaseFiles)
@@ -38,14 +41,15 @@ namespace TinyUpdate.Core.Extensions
                         releaseFile.Size,
                         VersionExt.OsRegex.Replace(fileName, string.Empty).EndsWith("-delta"),
                         version,
-                        oldVersion: releaseFile.OldVersion,
-                        tag: tag);
+                        folderLocation,
+                        releaseFile.OldVersion,
+                        tag);
             }
         }
 
-        public static IEnumerable<ReleaseEntry> FilterReleases(this IEnumerable<ReleaseEntry> releaseFiles, bool haveDelta)
+        public static IEnumerable<ReleaseEntry> FilterReleases(this IEnumerable<ReleaseEntry> releaseFiles, bool haveDelta, Version applicationVersion)
         {
-            return releaseFiles.Where(x => x.IsDelta == haveDelta && x.Version > Global.ApplicationVersion);
+            return releaseFiles.Where(x => x.IsDelta == haveDelta && x.Version > applicationVersion);
         }
     }
 }

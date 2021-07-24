@@ -24,10 +24,8 @@ namespace TinyUpdate.Core.Utils
         public static bool CheckSHA256(Stream stream, string expectedSHA256)
         {
             stream.Seek(0, SeekOrigin.Begin);
-
-            //Make a byte[] that can be used for hashing
-            using SHA256Managed sha256 = new();
-            return CheckSHA256(sha256.ComputeHash(stream), expectedSHA256);
+            var hash = CreateSHA256Hash(stream);
+            return hash == expectedSHA256;
         }
 
         /// <summary>
@@ -65,17 +63,14 @@ namespace TinyUpdate.Core.Utils
         /// Creates a SHA256 hash from a <see cref="byte"/>[]
         /// </summary>
         /// <param name="bytes"><see cref="byte"/>[] to use for creating SHA256 hash</param>
-        /// <param name="fileContents">If <see cref="bytes"/> is the contents of a file</param>
-        public static string CreateSHA256Hash(byte[] bytes, bool fileContents = false)
+        public static string CreateSHA256Hash(byte[] bytes)
         {
-            //If this is from file contents then we want to make it into something we can make a hash for
-            if (fileContents)
+            string result = "";
+            foreach (var b in bytes)
             {
-                using SHA256Managed sha256 = new();
-                return CreateSHA256Hash(sha256.ComputeHash(bytes));
+                result = result + b.ToString("X2");
             }
-
-            return bytes.Aggregate("", (current, b) => current + b.ToString("X2"));
+            return result;
         }
 
         /// <summary>

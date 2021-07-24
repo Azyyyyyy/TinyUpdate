@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Management;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using TinyUpdate.Core;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 
@@ -23,12 +21,13 @@ namespace TinyUpdate.Binary
         /// <summary>
         /// Creates the loader that will be needed for loading the application
         /// </summary>
+        /// <param name="tmpFolder">Where the temp folder is</param>
         /// <param name="path">The relative path to the application</param>
         /// <param name="iconLocation">Where the icon is for this application</param>
         /// <param name="outputLocation">Where to put the loader</param>
         /// <param name="applicationName">The application name</param>
         /// <returns>If the loader was created</returns>
-        public static bool CreateLoader(string path, string? iconLocation, string outputLocation, string applicationName)
+        public static bool CreateLoader(string tmpFolder, string path, string? iconLocation, string outputLocation, string applicationName)
         {
             //Only needed for now, hopefully we will make it work on other OS's later on
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -46,7 +45,7 @@ namespace TinyUpdate.Binary
                 return false;
             }
             
-            var templateFolder = Path.Combine(Global.TempFolder, applicationName, "Loader Template");
+            var templateFolder = Path.Combine(tmpFolder, applicationName, "Loader Template");
             if (Directory.Exists(templateFolder))
             {
                 Directory.Delete(templateFolder, true);

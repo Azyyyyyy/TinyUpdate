@@ -21,6 +21,7 @@ namespace TinyUpdate.Binary.Delta
         /// <summary>
         /// Creates a delta file by going through the different ways of creating delta files
         /// </summary>
+        /// <param name="tempFolder">Where the temp folder is located</param>
         /// <param name="baseFileLocation">Where the older version of the file exists</param>
         /// <param name="newFileLocation">Where the newer version of the file exists</param>
         /// <param name="deltaFileLocation">Where the delta file should be stored (If we are unable to store it in a stream)</param>
@@ -29,6 +30,7 @@ namespace TinyUpdate.Binary.Delta
         /// <param name="deltaFileStream">The contents of the delta file</param>
         /// <param name="progress">Progress of making the delta file (If we can report the progress back)</param>
         public static bool CreateDeltaFile(
+            string tempFolder,
             string baseFileLocation,
             string newFileLocation,
             string deltaFileLocation,
@@ -50,7 +52,7 @@ namespace TinyUpdate.Binary.Delta
                     continue;
                 }
 
-                if (deltaUpdater.CreateDeltaFile(baseFileLocation, newFileLocation, deltaFileLocation,
+                if (deltaUpdater.CreateDeltaFile(tempFolder, baseFileLocation, newFileLocation, deltaFileLocation,
                     out deltaFileStream, progress))
                 {
                     extension = deltaUpdater.Extension;

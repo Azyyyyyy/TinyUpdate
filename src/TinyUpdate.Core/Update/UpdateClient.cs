@@ -12,10 +12,12 @@ namespace TinyUpdate.Core.Update
     {
         protected readonly ILogging Logger;
         private readonly IUpdateApplier _updateApplier;
+        protected ApplicationMetadata ApplicationMetadata;
 
         protected UpdateClient(IUpdateApplier updateApplier)
         {
             _updateApplier = updateApplier;
+            ApplicationMetadata = new ApplicationMetadata();
             Logger = LoggingCreator.CreateLogger(GetType().Name);
         }
 
@@ -92,12 +94,12 @@ namespace TinyUpdate.Core.Update
             return true;
         }
 
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ReleaseEntry, Action{decimal})"/>
+        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{decimal})"/>
         public async Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, Action<decimal>? progress) =>
-            await _updateApplier.ApplyUpdate(releaseEntry, progress);
+            await _updateApplier.ApplyUpdate(ApplicationMetadata, releaseEntry, progress);
 
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(UpdateInfo, Action{decimal})"/>
+        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, UpdateInfo, Action{decimal})"/>
         public Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress) =>
-            _updateApplier.ApplyUpdate(updateInfo, progress);
+            _updateApplier.ApplyUpdate(ApplicationMetadata, updateInfo, progress);
     }
 }

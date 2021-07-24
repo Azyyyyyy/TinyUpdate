@@ -20,10 +20,10 @@ namespace TinyUpdate.Core.Tests
             string sha256 = null;
             var isDelta = false;
             version ??= new Version(
-                Global.ApplicationVersion.Major + 1,
-                Global.ApplicationVersion.Minor,
-                Global.ApplicationVersion.Build >= 0 ? Global.ApplicationVersion.Build : 0,
-                Global.ApplicationVersion.Revision >= 0 ? Global.ApplicationVersion.Revision : 0);
+                ApplicationMetadata.ApplicationVersion.Major + 1,
+                ApplicationMetadata.ApplicationVersion.Minor,
+                ApplicationMetadata.ApplicationVersion.Build >= 0 ? ApplicationMetadata.ApplicationVersion.Build : 0,
+                ApplicationMetadata.ApplicationVersion.Revision >= 0 ? ApplicationMetadata.ApplicationVersion.Revision : 0);
 
             var getRandomData = true;
             //Create some dummy content so we can make a SHA256 hash to work with
@@ -38,7 +38,7 @@ namespace TinyUpdate.Core.Tests
             }
             filesize = dummyContent.Length;
 
-            var dummyReleaseFileLocation = Path.Combine(Global.TempFolder, filename);
+            var dummyReleaseFileLocation = Path.Combine(ApplicationMetadata.TempFolder, filename);
             if (File.Exists(dummyReleaseFileLocation))
             {
                 File.Delete(dummyReleaseFileLocation);
@@ -46,7 +46,7 @@ namespace TinyUpdate.Core.Tests
             //Put the dummy content onto the disk if we are told to
             if (createFile)
             {
-                Directory.CreateDirectory(Global.TempFolder);
+                Directory.CreateDirectory(ApplicationMetadata.TempFolder);
                 await using var dummyReleaseFile = File.OpenWrite(dummyReleaseFileLocation);
                 await dummyReleaseFile.WriteAsync(dummyContent, 0, dummyContent.Length);
             }

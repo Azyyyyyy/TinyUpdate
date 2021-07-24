@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -34,7 +34,7 @@ namespace TinyUpdate.Create
             }
 
             //Grab the applier that we will be using
-            var applier = GetAssembly.GetTypeFromAssembly<IUpdateApplier>("applier", applierType, Global.IntendedOS);
+            var applier = GetAssembly.GetTypeFromAssembly<IUpdateApplier>("applier", applierType, Global.IntendedOs);
             if (applier == null)
             {
                 Logger.Error("Can't get applier, can't verify update...");
@@ -73,14 +73,10 @@ namespace TinyUpdate.Create
         {
             Logger.WriteLine("Setting up for verifying update files");
 
-            //Setup Global with what it would have if in the application
-            var applicationLocation = Path.Combine(Core.Global.TempFolder, Global.MainApplicationName);
-            Directory.CreateDirectory(applicationLocation);
-            Core.Global.ApplicationFolder = applicationLocation;
-            Core.Global.ApplicationVersion = Global.ApplicationOldVersion ?? new Version(0, 0, 0, 1);
+            Directory.CreateDirectory(Global.ApplicationMetadata.ApplicationFolder);
 
             //Delete the old version if it exists, likely here from verifying update files last time
-            var oldVersionLocation = applier.GetApplicationPath(Core.Global.ApplicationVersion);
+            var oldVersionLocation = applier.GetApplicationPath(Global.ApplicationMetadata.ApplicationFolder, Global.ApplicationMetadata.ApplicationVersion);
             if (Directory.Exists(oldVersionLocation))
             {
                 Directory.Delete(oldVersionLocation, true);
@@ -137,7 +133,7 @@ namespace TinyUpdate.Create
 
             stopwatch.Start();
             var successful =
-                await applier.ApplyUpdate(entry, progress => applyProgressBar.Report((double) progress));
+                await applier.ApplyUpdate(Global.ApplicationMetadata, entry, progress => applyProgressBar.Report((double) progress));
             stopwatch.Stop();
             applyProgressBar.Dispose();
             Logger.WriteLine("Processing this update took {0}", ConsoleHelper.TimeSpanToString(stopwatch.Elapsed));
@@ -161,7 +157,7 @@ namespace TinyUpdate.Create
             //Grab files that we have
             var newVersionFiles = Directory.GetFiles(Global.NewVersionLocation, "*", SearchOption.AllDirectories);
             var appliedVersionFiles =
-                Directory.GetFiles(applier.GetApplicationPath(newVersion), "*", SearchOption.AllDirectories);
+                Directory.GetFiles(applier.GetApplicationPath(Global.ApplicationMetadata.ApplicationFolder, newVersion), "*", SearchOption.AllDirectories);
 
             //Check that we got every file that we need/expect
             if (newVersionFiles.LongLength != appliedVersionFiles.LongLength)

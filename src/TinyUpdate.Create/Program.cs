@@ -77,7 +77,7 @@ namespace TinyUpdate.Create
                         Global.MainApplicationFile = applicationFile;
                         Global.SkipVerify = skipVerifying;
                         Global.AskIfUserWantsToVerify = !verify && !skipVerifying;
-                        Global.IntendedOS = !string.IsNullOrWhiteSpace(intendedOs)
+                        Global.IntendedOs = !string.IsNullOrWhiteSpace(intendedOs)
                             ? OSPlatform.Create(intendedOs)
                             : null;
                         _applierTypeName = applierType;
@@ -138,7 +138,7 @@ namespace TinyUpdate.Create
 
             //Grab the update creator
             var creator = GetAssembly.GetTypeFromAssembly<IUpdateCreator>(
-                "creator", _creatorTypeName, Global.IntendedOS);
+                "creator", _creatorTypeName, Global.IntendedOs);
             if (creator == null)
             {
                 Logger.Error("Unable to create update creator, can't continue....");
@@ -153,12 +153,16 @@ namespace TinyUpdate.Create
 
             //Get metadata about the application we are making update files for
             GetApplicationMetadata();
+            Global.ApplicationMetadata.ApplicationVersion = Global.ApplicationOldVersion ?? new Version(0, 0, 0, 1);
+            Global.ApplicationMetadata.TempFolder = Path.GetTempPath();
 
-            var releaseFiles = new List<ReleaseFile>(2);
-            Core.Global.ApplicationName = Global.MainApplicationName;
-            
+            var folder = Path.Combine(Global.ApplicationMetadata.TempFolder, Global.ApplicationMetadata.ApplicationName);
+            Directory.CreateDirectory(folder);
+            Global.ApplicationMetadata.ApplicationFolder = folder;
+
             //Create the updates
             var stopwatch = new Stopwatch();
+            var releaseFiles = new List<ReleaseFile>(2);
             if (Global.CreateFullUpdate)
             {
                 stopwatch.Start();
@@ -200,7 +204,7 @@ namespace TinyUpdate.Create
                 }
             }
 
-            //TODO: Make it join other release file entries
+            //TODO: Make it join other release file entries exist
             if (!await ReleaseFile.CreateReleaseFile(releaseFiles, Global.OutputLocation))
             {
                 Logger.Error("Can't create release file....");
@@ -239,8 +243,8 @@ namespace TinyUpdate.Create
                 : null;
 
             Global.ApplicationNewVersion = assemblyName?.Version;
-            Global.MainApplicationName = assemblyName?.Name;
-            if (Global.CreateDeltaUpdate && Global.OldVersionLocation != null && Global.MainApplicationName != null)
+            Global.ApplicationMetadata.ApplicationName = assemblyName?.Name;
+            if (Global.CreateDeltaUpdate && Global.OldVersionLocation != null && Global.ApplicationMetadata.ApplicationName != null)
             {
                 fileLocation = Path.Combine(Global.OldVersionLocation, mainApplicationName);
                 Global.ApplicationOldVersion =
@@ -253,7 +257,7 @@ namespace TinyUpdate.Create
             Global.ApplicationNewVersion ??=
                 ConsoleHelper.RequestVersion(
                     "Couldn't get application version, what is the new version of the application");
-            Global.MainApplicationName ??=
+            Global.ApplicationMetadata.ApplicationName ??=
                 ConsoleHelper.RequestString("Couldn't get application name, what is the application name");
             if (Global.CreateDeltaUpdate && Global.ApplicationOldVersion == null)
             {
@@ -263,7 +267,7 @@ namespace TinyUpdate.Create
             }
 
             //Show that we got thee information
-            Logger.WriteLine("Application Name: {0}", Global.MainApplicationName);
+            Logger.WriteLine("Application Name: {0}", Global.ApplicationMetadata.ApplicationName);
             Logger.WriteLine("Application new version: {0}", Global.ApplicationNewVersion);
             Logger.WriteLine("Application old version: {0}", Global.ApplicationOldVersion);
             Logger.WriteLine();
@@ -271,7 +275,7 @@ namespace TinyUpdate.Create
 
         public static string GetOutputLocation(bool deltaFile, string extension) =>
             Path.Combine(Global.OutputLocation,
-                $"{Global.MainApplicationName}.{Global.ApplicationNewVersion}-{(deltaFile ? "delta" : "full")}{(Global.IntendedOS != null ? $"-{Global.IntendedOS}" : "")}{extension}");
+                $"{Global.ApplicationMetadata.ApplicationName}.{Global.ApplicationNewVersion}-{(deltaFile ? "delta" : "full")}{(Global.IntendedOs != null ? $"-{Global.IntendedOs}" : "")}{extension}");
 
         private const string TinyUpdateText = @"
   _____  _                _   _             _         _        

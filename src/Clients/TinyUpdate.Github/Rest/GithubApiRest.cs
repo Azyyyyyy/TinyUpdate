@@ -14,7 +14,8 @@ namespace TinyUpdate.Github.Rest
     /// </summary>
     public class GithubApiRest : GithubApi
     {
-        public GithubApiRest() : base("https://api.github.com") { }
+        public GithubApiRest(ref ApplicationMetadata applicationMetadata) 
+            : base(ref applicationMetadata, "https://api.github.com") { }
         
         public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates)
         {
