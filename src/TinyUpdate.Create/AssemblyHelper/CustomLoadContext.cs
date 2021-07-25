@@ -201,7 +201,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
         private static string[] SelectFolders(Dictionary<string, Version> folders, Version version)
         {
-            var foldersToPass = new List<string>();
+            var foldersToPass = new List<string>(folders.Count);
             for (int i = 0; folders.Count > i && version >= folders.ElementAt(i).Value; i++)
             {
                 foldersToPass.Add(folders.ElementAt(i).Key);

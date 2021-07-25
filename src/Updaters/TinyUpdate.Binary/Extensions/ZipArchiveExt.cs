@@ -54,7 +54,7 @@ namespace TinyUpdate.Binary.Extensions
 
                 //This means that the file is the binary that contains the patch, we want to get a stream to it
                 if (entryEtx == ".new"
-                    || DeltaCreation.DeltaUpdaters.Any(x => x.Extension == entryEtx))
+                    || DeltaUpdaters.Updaters.Any(x => x.Extension == entryEtx))
                 {
                     /*If we don't have the details about this update yet then just give the stream
                      we can always dispose of the stream if we find out that we don't need it*/

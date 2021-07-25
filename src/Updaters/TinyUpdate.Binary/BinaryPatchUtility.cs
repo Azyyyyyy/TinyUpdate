@@ -67,7 +67,7 @@ namespace TinyUpdate.Binary
         /// <param name="newData">The new binary data.</param>
         /// <param name="output">A <see cref="Stream"/> to which the patch will be written.</param>
         /// <param name="progress">Reports back progress making delta file</param>
-        public static bool Create(byte[] oldData, byte[] newData, Stream output, Action<decimal>? progress = null)
+        public static bool Create(byte[] oldData, byte[] newData, Stream output, Action<double>? progress = null)
         {
             // check arguments
             if (!output.CanSeek)
@@ -102,7 +102,7 @@ namespace TinyUpdate.Binary
             output.Write(header, 0, header.Length);
 
             var I = SuffixSort(oldData);
-            progress?.Invoke(0.5m);
+            progress?.Invoke(0.5d);
 
             byte[] db = new byte[newData.Length];
             byte[] eb = new byte[newData.Length];
@@ -122,7 +122,7 @@ namespace TinyUpdate.Binary
                 int lastOffset = 0;
                 while (scan < newData.Length)
                 {
-                    progress?.Invoke((((decimal) scan / newData.Length) / 2) + 0.5m);
+                    progress?.Invoke((double)scan / newData.Length / 2 + 0.5d);
 
                     int oldScore = 0;
 
@@ -269,7 +269,7 @@ namespace TinyUpdate.Binary
         /// <param name="output">A <see cref="Stream"/> to which the patched data is written.</param>
         /// <param name="progress">Reports back progress</param>
         public static async Task<bool> Apply(Stream input, Func<Stream> openPatchStream, Stream output,
-            Action<decimal>? progress)
+            Action<double>? progress)
         {
             /*
             File format:
@@ -351,7 +351,7 @@ namespace TinyUpdate.Binary
                 var buffer = new byte[8];
 
                 int oldPosition = 0;
-                var newPosition = 0m;
+                var newPosition = 0d;
                 while (newPosition < newSize)
                 {
                     if (newPosition != 0)

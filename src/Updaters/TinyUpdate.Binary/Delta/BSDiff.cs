@@ -25,56 +25,54 @@ namespace TinyUpdate.Binary.Delta
         /// <inheritdoc cref="IDeltaUpdate.ApplyDeltaFile"/>
         public async Task<bool> ApplyDeltaFile(
             string tempFolder,
-            string originalFile,
-            string newFile,
-            string deltaFile,
-            Stream? deltaStream,
-            Action<decimal>? progress = null)
+            string originalFileLocation,
+            string newFileLocation,
+            string deltaFileName,
+            Stream deltaFileStream,
+            Action<double>? progress = null)
         {
             Stream? inputStream = null;
             /*If this is the same file then we
              want to copy it to mem and not read from disk*/
-            if (deltaFile == originalFile)
+            if (deltaFileName == originalFileLocation)
             {
                 inputStream = new MemoryStream();
-                var fileStream = StreamUtil.SafeOpenRead(originalFile);
+                using var fileStream = StreamUtil.SafeOpenRead(originalFileLocation);
                 if (fileStream == null)
                 {
-                    _logger.Error("Wasn't able to grab {0} for applying a BSDiff update", originalFile);
+                    _logger.Error("Wasn't able to grab {0} for applying a BSDiff update", originalFileLocation);
                     return false;
                 }
 
                 await fileStream.CopyToAsync(inputStream);
-                fileStream.Dispose();
                 inputStream.Seek(0, SeekOrigin.Begin);
             }
 
             //Create streams for old file and where the new file will be
-            var outputStream = File.OpenWrite(newFile);
-            inputStream ??= StreamUtil.SafeOpenRead(originalFile);
+            var outputStream = File.OpenWrite(newFileLocation);
+            inputStream ??= StreamUtil.SafeOpenRead(originalFileLocation);
 
             //Check streams that can be null
             if (inputStream == null)
             {
-                _logger.Error("Wasn't able to grab {0} for applying a BSDiff update", originalFile);
+                _logger.Error("Wasn't able to grab {0} for applying a BSDiff update", originalFileLocation);
                 return false;
             }
 
-            if (deltaStream == null)
+            //Create a memory stream if seeking is not possible as that is needed
+            if (!deltaFileStream.CanSeek)
             {
-                _logger.Error("fileEntry doesn't have a stream, can't make BSDiff update");
-                return false;
+                var patchMemStream = new MemoryStream();
+                await deltaFileStream.CopyToAsync(patchMemStream);
+                deltaFileStream.Dispose();
+                deltaFileStream = patchMemStream;
             }
-
-            //Create a memory stream as we really need to be able to seek
-            var patchMemStream = new MemoryStream();
-            await deltaStream.CopyToAsync(patchMemStream);
             var successfulUpdate = await BinaryPatchUtility.Apply(inputStream, () =>
             {
                 //Copy the files over in a memory stream
                 var memStream = new MemoryStream();
-                patchMemStream.Seek(0, SeekOrigin.Begin);
-                patchMemStream.CopyTo(memStream);
+                deltaFileStream.Seek(0, SeekOrigin.Begin);
+                deltaFileStream.CopyTo(memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
 
                 return memStream;
@@ -82,25 +80,25 @@ namespace TinyUpdate.Binary.Delta
 
             outputStream.Dispose();
             inputStream.Dispose();
+            deltaFileStream.Dispose();
             return successfulUpdate;
         }
 
         /// <inheritdoc cref="IDeltaUpdate.CreateDeltaFile"/>
-        public bool CreateDeltaFile
-        (string baseFileLocation,
+        public bool CreateDeltaFile(
             string tempFolder,
+            string originalFileLocation,
             string newFileLocation,
             string deltaFileLocation,
             out Stream? deltaFileStream,
-            Action<decimal>? progress = null)
+            Action<double>? progress = null)
         {
-            var tmpDeltaFileStream = new MemoryStream();
+            deltaFileStream = new MemoryStream();
 
             var success = BinaryPatchUtility.Create(
-                File.ReadAllBytes(baseFileLocation),
+                File.ReadAllBytes(originalFileLocation),
                 File.ReadAllBytes(newFileLocation),
-                tmpDeltaFileStream, progress);
-            deltaFileStream = tmpDeltaFileStream;
+                deltaFileStream, progress);
 
             if (!success)
             {

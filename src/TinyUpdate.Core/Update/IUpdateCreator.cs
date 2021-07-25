@@ -30,7 +30,7 @@ namespace TinyUpdate.Core.Update
             string outputFolder,
             string? deltaUpdateLocation = null, 
             OSPlatform? intendedOs = null,
-            Action<decimal>? progress = null);
+            Action<double>? progress = null);
 
         /// <summary>
         /// Creates a full package from the application folder
@@ -46,7 +46,7 @@ namespace TinyUpdate.Core.Update
             string applicationLocation, 
             Version version,
             string? fullUpdateLocation = null,
-            Action<decimal>? progress = null);
+            Action<double>? progress = null);
 
         /// <summary>
         /// Extension to be used on this kind of update file

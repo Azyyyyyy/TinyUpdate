@@ -12,7 +12,13 @@ namespace TinyUpdate.Core.Update
     {
         protected readonly ILogging Logger;
         private readonly IUpdateApplier _updateApplier;
-        protected ApplicationMetadata ApplicationMetadata;
+
+        protected ApplicationMetadata _applicationMetadata;
+        public ApplicationMetadata ApplicationMetadata
+        {
+            get => _applicationMetadata;
+            set => _applicationMetadata = value;
+        }
 
         protected UpdateClient(IUpdateApplier updateApplier)
         {
@@ -58,7 +64,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="progress">Progress of downloading update</param>
         /// <returns>If we was able to download the update</returns>
         // ReSharper disable once MemberCanBeProtected.Global
-        public abstract Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<decimal>? progress);
+        public abstract Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress);
 
         /// <summary>
         /// Downloads all updates from a <see cref="UpdateInfo"/> that are going to be applied
@@ -66,7 +72,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="updateInfo">Updates to download</param>
         /// <param name="progress">Progress of downloading updates</param>
         /// <returns>If we was able to download the updates</returns>
-        public virtual async Task<bool> DownloadUpdate(UpdateInfo updateInfo, Action<decimal>? progress)
+        public virtual async Task<bool> DownloadUpdate(UpdateInfo updateInfo, Action<double>? progress)
         {
             var updates = updateInfo.Updates.OrderBy(x => x.Version).ThenByDescending(x => x.IsDelta).ToArray();
 
@@ -94,12 +100,22 @@ namespace TinyUpdate.Core.Update
             return true;
         }
 
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{decimal})"/>
-        public async Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, Action<decimal>? progress) =>
+        /// <summary>
+        /// Applies one update to the application 
+        /// </summary>
+        /// <param name="releaseEntry">Update to apply</param>
+        /// <param name="progress">The progress of this update</param>
+        /// <returns>If this update was successfully applied</returns>
+        public async Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, Action<double>? progress) =>
             await _updateApplier.ApplyUpdate(ApplicationMetadata, releaseEntry, progress);
 
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, UpdateInfo, Action{decimal})"/>
-        public Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<decimal>? progress) =>
+        /// <summary>
+        /// Applies a bunch of updates to the application 
+        /// </summary>
+        /// <param name="updateInfo">Updates to apply</param>
+        /// <param name="progress">The progress of this update</param>
+        /// <returns>If this update was successfully applied</returns>
+        public Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<double>? progress) =>
             _updateApplier.ApplyUpdate(ApplicationMetadata, updateInfo, progress);
     }
 }

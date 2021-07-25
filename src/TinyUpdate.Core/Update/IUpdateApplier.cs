@@ -16,7 +16,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="entry">Update to apply</param>
         /// <param name="progress">The progress of this update</param>
         /// <returns>If this update was successfully applied</returns>
-        Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, ReleaseEntry entry, Action<decimal>? progress = null);
+        Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, ReleaseEntry entry, Action<double>? progress = null);
 
         /// <summary>
         /// Applies a bunch of updates to the application 
@@ -25,7 +25,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="updateInfo">Updates to apply</param>
         /// <param name="progress">The progress of this update</param>
         /// <returns>If this update was successfully applied</returns>
-        Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, UpdateInfo updateInfo, Action<decimal>? progress = null);
+        Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, UpdateInfo updateInfo, Action<double>? progress = null);
 
         /// <summary>
         /// Gets where an certain version of the application would be located

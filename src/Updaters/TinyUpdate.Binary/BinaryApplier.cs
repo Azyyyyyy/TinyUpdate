@@ -32,8 +32,8 @@ namespace TinyUpdate.Binary
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
         public string Extension => ".tuup";
 
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{decimal})"/>
-        public async Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, ReleaseEntry entry, Action<decimal>? progress = null)
+        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{double})"/>
+        public async Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, ReleaseEntry entry, Action<double>? progress = null)
         {
             //Check that we made the update (by using the file extension)
             if (Path.GetExtension(entry.Filename) != Extension)
@@ -62,8 +62,8 @@ namespace TinyUpdate.Binary
             return await ApplyUpdate(applicationMetadata, basePath, newPath, entry, progress);
         }
 
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, UpdateInfo, Action{decimal})"/>
-        public async Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, UpdateInfo updateInfo, Action<decimal>? progress = null)
+        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, UpdateInfo, Action{double})"/>
+        public async Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, UpdateInfo updateInfo, Action<double>? progress = null)
         {
             //Check that we have some kind of update to apply
             if (!updateInfo.HasUpdate)
@@ -118,7 +118,7 @@ namespace TinyUpdate.Binary
 
             /*Go through every update we have, reporting the
              progress by how many updates we have*/
-            var updateCounter = 0m;
+            var updateCounter = 0d;
             var doneFirstUpdate = false;
             Version? lastSuccessfulUpdate = null;
             foreach (var updateEntry in updates)
@@ -146,7 +146,7 @@ namespace TinyUpdate.Binary
             return true;
         }
 
-        private static void Cleanup(IEnumerable<FileEntry> updateEntries, Action<decimal>? progress)
+        private static void Cleanup(IEnumerable<FileEntry> updateEntries, Action<double>? progress)
         {
             foreach (var fileEntry in updateEntries)
             {
@@ -156,12 +156,12 @@ namespace TinyUpdate.Binary
         }
 
         private static void UpdateProgress(
-            Action<decimal>? progress, 
-            decimal fileCounter, 
-            decimal filesCount, 
-            decimal? fileCount = null) => progress?.Invoke((fileCount ?? fileCounter) / filesCount);
+            Action<double>? progress, 
+            double fileCounter, 
+            double filesCount, 
+            double? fileCount = null) => progress?.Invoke((fileCount ?? fileCounter) / filesCount);
 
-        /// <inheritdoc cref="ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{decimal})"/>
+        /// <inheritdoc cref="ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{double})"/>
         /// <param name="basePath">Path where we grab any old files that can be reused from</param>
         /// <param name="newPath">Where to put the new version of the application into</param>
         [SuppressMessage("ReSharper", "InvalidXmlDocComment", Justification = "Missing Comments are in interface class")]
@@ -170,7 +170,7 @@ namespace TinyUpdate.Binary
             string basePath,
             string newPath,
             ReleaseEntry entry,
-            Action<decimal>? progress = null)
+            Action<double>? progress = null)
         {
             if (!File.Exists(entry.FileLocation))
             {
@@ -198,7 +198,7 @@ namespace TinyUpdate.Binary
             }
             
             //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
-            var fileCounter = 0m;
+            var fileCounter = 0d;
             var filesCount = updateEntry.Count + 1;
 
             //We want to do the files that didn't change first
@@ -341,9 +341,8 @@ namespace TinyUpdate.Binary
             }
 
             //If we get here then we don't have it as a delta file, process as normal
-            var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
+            using var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
             await loaderFile.Stream.CopyToAsync(loaderStream);
-            loaderStream.Dispose();
             loaderFile.Stream.Dispose();
             
             return CheckLoaderAndReturn(loaderFileLocation, loaderFile);

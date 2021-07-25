@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace TinyUpdate.Core.Update
@@ -9,9 +8,9 @@ namespace TinyUpdate.Core.Update
     /// </summary>
     public class UpdateInfo
     {
-        public UpdateInfo(IEnumerable<ReleaseEntry> updates, Version applicationVersion)
+        public UpdateInfo(Version applicationVersion, params ReleaseEntry[] updates)
         {
-            Updates = updates.ToArray();
+            Updates = updates;
 
             //See if there is any update that is newer then the current version
             HasUpdate = Updates.Any(x => x.Version > applicationVersion);

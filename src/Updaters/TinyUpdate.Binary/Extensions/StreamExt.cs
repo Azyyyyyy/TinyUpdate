@@ -20,9 +20,7 @@ namespace TinyUpdate.Binary.Extensions
             var textStream = new StreamReader(fileStream);
             var text = await textStream.ReadToEndAsync();
 
-            //Dispose the streams
             textStream.Dispose();
-            fileStream.Dispose();
 
             //Return nothing if we don't have anything
             if (string.IsNullOrWhiteSpace(text))

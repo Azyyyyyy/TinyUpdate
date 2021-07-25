@@ -46,9 +46,9 @@ namespace TinyUpdate.Github
             {
                 Logger.Warning("No personal token was given, going to fall back to REST");
             }
-            
+
             //Get what api we should use and setup httpClient
-            _githubApi = canUseGraphQl ? new GithubApiGraphQL(personalToken, ref ApplicationMetadata) : new GithubApiRest(ref ApplicationMetadata);
+            _githubApi = canUseGraphQl ? new GithubApiGraphQL(personalToken, this) : new GithubApiRest(this);
             _httpClient = HttpClientFactory.Create(new HttpClientHandler(), _progressMessageHandler);
         }
 
@@ -56,7 +56,7 @@ namespace TinyUpdate.Github
 
         public override Task<ReleaseNote?> GetChangelog(ReleaseEntry entry) => _githubApi.GetChangelog(entry, _organization, _repository);
 
-        public override async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<decimal>? progress)
+        public override async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress)
         {
             //If this is the case then we already have the file and it's what we expect, no point in downloading it again
             if (releaseEntry.IsValidReleaseEntry(ApplicationMetadata.ApplicationVersion, true))
@@ -70,7 +70,7 @@ namespace TinyUpdate.Github
                 if (sender is HttpRequestMessage message
                     && message.RequestUri.Query.Contains(requestToCheck))
                 {
-                    progress?.Invoke((decimal) args.BytesTransferred / releaseEntry.Filesize);
+                    progress?.Invoke((double) args.BytesTransferred / releaseEntry.Filesize);
                 }
             }
 
@@ -100,7 +100,7 @@ namespace TinyUpdate.Github
             return false;
         }
 
-        private async Task<bool> DownloadUpdateInter(ReleaseEntry releaseEntry, Action<decimal>? progress)
+        private async Task<bool> DownloadUpdateInter(ReleaseEntry releaseEntry, Action<double>? progress)
         {
             try
             {

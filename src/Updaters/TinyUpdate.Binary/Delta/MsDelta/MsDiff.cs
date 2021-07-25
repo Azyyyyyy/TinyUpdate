@@ -21,11 +21,11 @@ namespace TinyUpdate.Binary.Delta.MsDelta
         /// <inheritdoc cref="IDeltaUpdate.CreateDeltaFile"/>
         public bool CreateDeltaFile(
             string tempFolder,
-            string baseFileLocation,
+            string originalFileLocation,
             string newFileLocation,
             string deltaFileLocation,
             out Stream? deltaFileStream,
-            Action<decimal>? progress = null)
+            Action<double>? progress = null)
         {
             deltaFileStream = null;
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -34,18 +34,18 @@ namespace TinyUpdate.Binary.Delta.MsDelta
                 return false;
             }
 
-            return CreateDelta(FileTypeSet.ExecutablesLatest, GetCreateFlags(), CreateFlags.None, baseFileLocation,
+            return CreateDelta(FileTypeSet.ExecutablesLatest, GetCreateFlags(), CreateFlags.None, originalFileLocation,
                 newFileLocation, null, null, new DeltaInput(), IntPtr.Zero, HashAlgId.Crc32, deltaFileLocation);
         }
 
         /// <inheritdoc cref="IDeltaUpdate.ApplyDeltaFile"/>
         public async Task<bool> ApplyDeltaFile(
             string tempFolder,
-            string originalFile,
-            string newFile,
-            string? deltaFile,
-            Stream? deltaStream,
-            Action<decimal>? progress = null)
+            string originalFileLocation,
+            string newFileLocation,
+            string deltaFileName,
+            Stream deltaFileStream,
+            Action<double>? progress = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -53,7 +53,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(deltaFile))
+            if (string.IsNullOrWhiteSpace(deltaFileName))
             {
                 _logger.Error("Wasn't given a file location for the delta file");
                 return false;
@@ -62,37 +62,32 @@ namespace TinyUpdate.Binary.Delta.MsDelta
             //Create Temp folder if it doesn't exist
             Directory.CreateDirectory(tempFolder);
 
-            var tmpDeltaFile = Path.Combine(tempFolder, deltaFile);
+            var tmpDeltaFile = Path.Combine(tempFolder, deltaFileName);
             //Delete the tmp file if it already exists, likely from the last update
             if (File.Exists(tmpDeltaFile))
             {
                 File.Delete(tmpDeltaFile);
             }
 
-            if (deltaStream == null)
-            {
-                _logger.Error("fileEntry's doesn't have a stream, can't make MSDiff update");
-                return false;
-            }
-
             //Put the delta file onto disk
             var tmpFileStream = File.OpenWrite(tmpDeltaFile);
-            await deltaStream.CopyToAsync(tmpFileStream);
+            await deltaFileStream.CopyToAsync(tmpFileStream);
             tmpFileStream.Dispose();
+            deltaFileStream.Dispose();
 
             //If baseFile + outputLocation are the same, copy it to a tmp file
             //and then give it that (deleting it after)
             string? tmpBaseFile = null;
-            if (originalFile == newFile)
+            if (originalFileLocation == newFileLocation)
             {
                 tmpBaseFile = Path.Combine(tempFolder, Path.GetRandomFileName());
-                File.Copy(originalFile, tmpBaseFile);
-                originalFile = tmpBaseFile;
+                File.Copy(originalFileLocation, tmpBaseFile);
+                originalFileLocation = tmpBaseFile;
             }
 
             //Make the updated file!
-            File.Create(newFile).Dispose();
-            var wasApplySuccessful = ApplyDelta(ApplyFlags.None, originalFile, tmpDeltaFile, newFile);
+            File.Create(newFileLocation).Dispose();
+            var wasApplySuccessful = ApplyDelta(ApplyFlags.None, originalFileLocation, tmpDeltaFile, newFileLocation);
 
             //Delete tmp files
             File.Delete(tmpDeltaFile);

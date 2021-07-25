@@ -22,11 +22,16 @@ namespace TinyUpdate.Binary.Delta
         /// <param name="file">Details about the update</param>
         /// <param name="progress">Progress for applying the update</param>
         /// <returns>If the file was successfully updated</returns>
-        public static async Task<bool> ProcessDeltaFile(string tempFolder, string originalFile, string newFile, FileEntry file, Action<decimal>? progress = null)
+        public static async Task<bool> ProcessDeltaFile(string tempFolder, string originalFile, string newFile, FileEntry file, Action<double>? progress = null)
         {
+            if (file.Stream == null)
+            {
+                Logger.Warning("{0} was updated but we don't have the delta stream for it!", file.Filename);
+                return false;
+            }
             Logger.Debug("File was updated, applying delta update");
 
-            var deltaUpdater = DeltaCreation.DeltaUpdaters.FirstOrDefault(x => x.Extension == file.DeltaExtension);
+            var deltaUpdater = DeltaUpdaters.GetUpdater(file.DeltaExtension);
             if (deltaUpdater != null)
             {
                 return await deltaUpdater.ApplyDeltaFile(tempFolder, originalFile, newFile, file.Filename, file.Stream, progress);

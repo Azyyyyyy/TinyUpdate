@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using TinyUpdate.Binary.Delta.MsDelta;
-using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Binary.Delta
 {
@@ -11,13 +9,6 @@ namespace TinyUpdate.Binary.Delta
     /// </summary>
     public static class DeltaCreation
     {
-        //TODO: Change how we grab theses
-        internal static readonly IDeltaUpdate[] DeltaUpdaters =
-        {
-            new MsDiff(),
-            new BSDiff()
-        };
-
         /// <summary>
         /// Creates a delta file by going through the different ways of creating delta files
         /// </summary>
@@ -37,11 +28,11 @@ namespace TinyUpdate.Binary.Delta
             OSPlatform? intendedOs,
             out string extension,
             out Stream? deltaFileStream,
-            Action<decimal>? progress = null)
+            Action<double>? progress = null)
         {
             extension = "";
             deltaFileStream = null;
-            foreach (var deltaUpdater in DeltaUpdaters)
+            foreach (var deltaUpdater in DeltaUpdaters.Updaters)
             {
                 /*Skip if we know that this creator is not going
                  to work on the intended OS*/
@@ -52,8 +43,13 @@ namespace TinyUpdate.Binary.Delta
                     continue;
                 }
 
-                if (deltaUpdater.CreateDeltaFile(tempFolder, baseFileLocation, newFileLocation, deltaFileLocation,
-                    out deltaFileStream, progress))
+                if (deltaUpdater.CreateDeltaFile(
+                    tempFolder, 
+                    baseFileLocation, 
+                    newFileLocation, 
+                    deltaFileLocation,
+                    out deltaFileStream, 
+                    progress))
                 {
                     extension = deltaUpdater.Extension;
                     return true;

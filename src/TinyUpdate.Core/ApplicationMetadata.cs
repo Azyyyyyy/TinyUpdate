@@ -26,19 +26,18 @@ namespace TinyUpdate.Core
             var applicationName = runningAssembly.GetName();
             ApplicationVersion = applicationName.Version;
             ApplicationName = applicationName.Name;
-            
-            var uri = new UriBuilder(runningAssembly.CodeBase);
-            var path = Uri.UnescapeDataString(uri.Path);
 
-            //TODO: Do this more in a more efficient way
-            ApplicationFolder = Path.GetDirectoryName(Path.GetDirectoryName(path)) ?? "";
+            var folder = runningAssembly.Location;
+            folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
+            folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
+            ApplicationFolder = folder;
             _tempFolder = Path.Combine(_tempFolder, Path.GetFileName(ApplicationFolder));
         }
 
         /// <summary>
         /// The <see cref="Version"/> that the application is currently running at
         /// </summary>
-        public Version ApplicationVersion { get; set; }
+        public Version ApplicationVersion { get; set; } = new Version();
 
         private string _tempFolder = Path.Combine(Path.GetTempPath(), "TinyUpdate");
         /// <summary>
@@ -58,8 +57,20 @@ namespace TinyUpdate.Core
             }
         }
 
-        //TODO: Check for name being File path/name safe
-        public string ApplicationName { get; set; }
+        private string _applicationName;
+        public string ApplicationName
+        {
+            get => _applicationName;
+            set
+            {
+                if (!value.IsValidForFileName(out var invalidChar))
+                {
+                    throw new InvalidFileNameException(invalidChar);
+                }
+
+                _applicationName = value;
+            }
+        }
 
         private string _applicationFolder;
         /// <summary>
@@ -70,13 +81,12 @@ namespace TinyUpdate.Core
             get => _applicationFolder;
             set
             {
-                if (Directory.Exists(value))
+                if (!Directory.Exists(value))
                 {
-                    _applicationFolder = value;
-                    return;
+                    throw new Exception("Folder doesn't exist");
                 }
 
-                throw new Exception("Folder doesn't exist");
+                _applicationFolder = value;
             }
         }
     }

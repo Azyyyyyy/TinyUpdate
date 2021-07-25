@@ -113,7 +113,7 @@ namespace TinyUpdate.Create
 
         private static string? _applierTypeName;
         private static string? _creatorTypeName;
-
+        
         private static async Task Run()
         {
             //Show header and get what kind of update we are doing 

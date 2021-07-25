@@ -273,7 +273,7 @@ namespace TinyUpdate.Create.AssemblyHelper
                     //Add the type to the list from this assembly 
                     if (!types.ContainsKey(assembly))
                     {
-                        types.Add(assembly, new List<Type>());
+                        types.Add(assembly, new List<Type>(1));
                     }
 
                     types[assembly].Add(typeInfo);
@@ -290,7 +290,7 @@ namespace TinyUpdate.Create.AssemblyHelper
                 var assemblyLoadContext =
                     new SharedAssemblyLoadContext(sharedAssemblies, probingDirectories, assembly.Location);
                 var loadedAssembly = assemblyLoadContext.LoadFromAssemblyPath(assembly.Location);
-                loadedTypes.Add(loadedAssembly, new List<Type>());
+                loadedTypes.Add(loadedAssembly, new List<Type>(assemblyTypes.Count));
                 foreach (var assemblyType in assemblyTypes)
                 {
                     var type = loadedAssembly.DefinedTypes.First(x =>

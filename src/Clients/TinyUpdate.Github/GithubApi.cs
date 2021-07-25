@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -17,22 +18,23 @@ namespace TinyUpdate.Github
     {
         protected readonly HttpClient HttpClient;
         protected readonly ILogging Logger;
-        private readonly ApplicationMetadata _applicationMetadata;
+        private readonly GithubClient _githubClient;
+        private ApplicationMetadata _applicationMetadata => _githubClient.ApplicationMetadata;
 
         /// <summary>
         /// Api constructor
         /// </summary>
-        /// <param name="applicationMetadata">Metadata about the application we are grabbing updates for</param>
+        /// <param name="githubClient">Client that owns this Api</param>
         /// <param name="apiEndpoint">Base endpoint to use</param>
-        protected GithubApi(ref ApplicationMetadata applicationMetadata, string apiEndpoint)
+        protected GithubApi(GithubClient githubClient, string apiEndpoint)
         {
-            _applicationMetadata = applicationMetadata ?? throw new ArgumentNullException(nameof(applicationMetadata));
+            _githubClient = githubClient ?? throw new ArgumentNullException(nameof(githubClient));
             Logger = LoggingCreator.CreateLogger(GetType().Name);
             HttpClient = new HttpClient
             {
                 BaseAddress = new Uri(apiEndpoint)
             };
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{applicationMetadata.ApplicationName}-{applicationMetadata.ApplicationVersion}");
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{_applicationMetadata.ApplicationName}-{_applicationMetadata.ApplicationVersion}");
         }
 
 
@@ -86,10 +88,10 @@ namespace TinyUpdate.Github
             }
             
             //Create the UpdateInfo
-            return new UpdateInfo(
+            return new UpdateInfo(_applicationMetadata.ApplicationVersion,
                 ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileLoc))
                     .ToReleaseEntries(tagName)
-                    .FilterReleases(grabDeltaUpdates, _applicationMetadata.ApplicationVersion), _applicationMetadata.ApplicationVersion);
+                    .FilterReleases(grabDeltaUpdates, _applicationMetadata.ApplicationVersion).ToArray());
         }
 
         private DateTime? _rateLimitTime;

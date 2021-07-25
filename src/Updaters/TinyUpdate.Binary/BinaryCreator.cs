@@ -38,7 +38,7 @@ namespace TinyUpdate.Binary
             string outputFolder,
             string? deltaUpdateLocation = null,
             OSPlatform? intendedOs = null,
-            Action<decimal>? progress = null)
+            Action<double>? progress = null)
         {
             //To keep track of progress
             long fileCount = 0;
@@ -46,9 +46,9 @@ namespace TinyUpdate.Binary
             long newFilesLength;
             long sameFilesLength;
 
-            decimal lastProgress = 0;
+            double lastProgress = 0;
 
-            void UpdateProgress(decimal extraProgress = 0)
+            void UpdateProgress(double extraProgress = 0)
             {
                 if (deltaFilesLength + newFilesLength == 0 
                     || fileCount == 0)
@@ -233,7 +233,7 @@ namespace TinyUpdate.Binary
             string applicationLocation, 
             Version version,
             string? fullUpdateLocation = null,
-            Action<decimal>? progress = null)
+            Action<double>? progress = null)
         {
             if (!Directory.Exists(applicationLocation))
             {
@@ -245,7 +245,7 @@ namespace TinyUpdate.Binary
             var zipArchive = CreateZipArchive(applicationMetadata.TempFolder, fullUpdateLocation);
             var files = Directory.EnumerateFiles(applicationLocation, "*", SearchOption.AllDirectories).ToArray();
 
-            var fileCount = 0m;
+            var fileCount = 0d;
             foreach (var file in files)
             {
                 //We will process the file as a "new" file as we always want to copy it over
@@ -420,7 +420,7 @@ namespace TinyUpdate.Binary
             string baseFileLocation,
             string newFileLocation,
             OSPlatform? intendedOs = null, 
-            Action<decimal>? progress = null, 
+            Action<double>? progress = null, 
             string? extensionEnd = null)
         {
             //Create where the delta file can be stored to grab once made
