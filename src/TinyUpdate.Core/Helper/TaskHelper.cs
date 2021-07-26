@@ -20,17 +20,17 @@ namespace TinyUpdate.Core.Helper
         // ReSharper disable once InconsistentNaming
         public static T RunTaskBasedOnOS<T>(Func<T> windowsTask, Func<T> linuxTask, Func<T> macOSTask)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OSHelper.ActiveOS == OSPlatform.Windows)
             {
                 return windowsTask.Invoke();
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (OSHelper.ActiveOS == OSPlatform.Linux)
             {
                 return linuxTask.Invoke();
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (OSHelper.ActiveOS == OSPlatform.OSX)
             {
                 return macOSTask.Invoke();
             }
@@ -42,17 +42,17 @@ namespace TinyUpdate.Core.Helper
         // ReSharper disable once InconsistentNaming
         public static Task<T> RunTaskBasedOnOSAsync<T>(Task<T> windowsTask, Task<T> linuxTask, Task<T> macOSTask)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OSHelper.ActiveOS == OSPlatform.Windows)
             {
                 return windowsTask;
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (OSHelper.ActiveOS == OSPlatform.Linux)
             {
                 return linuxTask;
             }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (OSHelper.ActiveOS == OSPlatform.OSX)
             {
                 return macOSTask;
             }

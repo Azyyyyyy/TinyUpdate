@@ -3,46 +3,41 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Management;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core.Extensions;
+using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Binary
 {
-    public static class ApplicationLoaderCreator
+    public static class LoaderCreatorSource
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(ApplicationLoaderCreator));
-        private static readonly Assembly Assembly = typeof(ApplicationLoaderCreator).GetTypeInfo().Assembly;
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(LoaderCreatorSource));
         
-        //TODO: Maybe use a prebuilt application loader and edit what's needed into it
-        //main.cpp: Change {APPLICATIONLOCATION} with location
-        //If icon exists: add 'IDI_ICON1 ICON DISCARDABLE "app.ico"' to app.rc
         /// <summary>
         /// Creates the loader that will be needed for loading the application
         /// </summary>
         /// <param name="tmpFolder">Where the temp folder is</param>
         /// <param name="path">The relative path to the application</param>
         /// <param name="iconLocation">Where the icon is for this application</param>
-        /// <param name="outputLocation">Where to put the loader</param>
+        /// <param name="outputFile">Where to put the loader</param>
         /// <param name="applicationName">The application name</param>
         /// <returns>If the loader was created</returns>
-        public static bool CreateLoader(string tmpFolder, string path, string? iconLocation, string outputLocation, string applicationName)
+        public static LoadCreateStatus CreateLoader(string tmpFolder, string path, string? iconLocation, string outputFile, string applicationName)
         {
-            //Only needed for now, hopefully we will make it work on other OS's later on
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OSHelper.ActiveOS != OSPlatform.Windows)
             {
-                Logger.Warning("Not running on Windows, can't create Loader");
-                return true;
+                Logger.Warning("Not running on Windows, can't create loader from source");
+                return LoadCreateStatus.UnableToCreate;
             }
             
             //TODO: Get based on OS
             //Get stream of template (contained in zip)
-            var zipStream = Assembly.GetManifestResourceStream("TinyUpdate.Binary.LoaderTemplate.windows.zip");
+            var zipStream = LoaderCreator.Assembly.GetManifestResourceStream("TinyUpdate.Binary.LoaderTemplate.Windows.source.zip");
             if (zipStream == null)
             {
                 Logger.Error("Wasn't able to get zip stream, can't create loader");
-                return false;
+                return LoadCreateStatus.Failed;
             }
             
             var templateFolder = Path.Combine(tmpFolder, applicationName, "Loader Template");
@@ -71,7 +66,7 @@ namespace TinyUpdate.Binary
             {
                 if (mainFile[i].Contains("{APPLICATIONLOCATION}"))
                 {
-                    mainFile[i] = mainFile[i].Replace("{APPLICATIONLOCATION}", path.Replace(@"\", @"\\"));
+                    mainFile[i] = mainFile[i].Replace("{APPLICATIONLOCATION}", path);
                     changedContent = true;
                     break;
                 }
@@ -80,29 +75,29 @@ namespace TinyUpdate.Binary
             if (!changedContent)
             {
                 Logger.Error("Didn't find APPLICATIONLOCATION in main.cpp, can't create loader");
-                return false;
+                return LoadCreateStatus.Failed;
             }
             File.WriteAllLines(mainFileLocation, mainFile);
             
             //Build
-            var toolsFile = GetVSTools();
+            var toolsFile = GetVsTools();
             var cmakeLocation = GetCmake();
             if (string.IsNullOrWhiteSpace(toolsFile))
             {
                 Logger.Warning("Unable to find VS Tools. Can't create loader");
-                return false;
+                return LoadCreateStatus.Failed;
             }
             toolsFile += @"\VC\Auxiliary\Build\vcvars64.bat";
             if (!File.Exists(toolsFile))
             {
                 Logger.Error("Can't see vcvars64.bat file. Do you have the C++ Toolset installed?");
-                return false;
+                return LoadCreateStatus.Failed;
             }
             
             if (string.IsNullOrWhiteSpace(cmakeLocation))
             {
                 Logger.Warning("Unable to find cmake. Can't create loader");
-                return false;
+                return LoadCreateStatus.Failed;
             }
             var buildFolder = Path.Combine(templateFolder, "cmake-build");
 
@@ -142,18 +137,11 @@ namespace TinyUpdate.Binary
             if (buildProcess.ExitCode != 0)
             {
                 Logger.Error("Failed to create loader");
-                return false;
-            }
-            
-            var outputFile = Path.Combine(outputLocation, applicationName + ".exe");
-            if (File.Exists(outputFile))
-            {
-                Logger.Warning("Loader file already exists in output. Deleting old loader");
-                File.Delete(outputFile);
+                return LoadCreateStatus.Failed;
             }
 
             File.Move(Path.Combine(buildFolder, "ApplicationLoader.exe"), outputFile);
-            return true;
+            return LoadCreateStatus.Successful;
         }
 
         private static string? GetCmake()
@@ -177,7 +165,7 @@ namespace TinyUpdate.Binary
             return null;
         }
         
-        private static string? GetVSTools()
+        private static string? GetVsTools()
         {
             ManagementObjectCollection mcCollection;
 

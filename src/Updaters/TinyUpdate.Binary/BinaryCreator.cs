@@ -210,8 +210,9 @@ namespace TinyUpdate.Binary
                 applicationMetadata, 
                 zipArchive, 
                 newVersion, 
-                newVersionLocation, 
-                oldVersion, 
+                newVersionLocation,
+                intendedOs,
+                oldVersion,
                 outputFolder))
             {
                 Logger.Error("Wasn't able to create loader for this application");
@@ -317,6 +318,7 @@ namespace TinyUpdate.Binary
             ZipArchive zipArchive,
             Version newVersion,
             string applicationLocation,
+            OSPlatform? intendedOs = null,
             Version? oldVersion = null,
             string? outputLocation = null)
         {
@@ -334,17 +336,19 @@ namespace TinyUpdate.Binary
             var iconLocation = Path.Combine(applicationLocation, "app.ico");
             iconLocation = File.Exists(iconLocation) ? iconLocation : null;
             
-            var successful = ApplicationLoaderCreator.CreateLoader(
+            var successful = LoaderCreator.CreateLoader(
                 applicationMetadata.TempFolder,
                 $"{newVersion.GetApplicationFolder()}\\{applicationMetadata.ApplicationName}.exe",
                 iconLocation,
-                applicationMetadata.TempFolder,
-                 applicationMetadata.ApplicationName);
+                loaderLocation,
+                 applicationMetadata.ApplicationName, 
+                intendedOs);
 
-            if (!successful)
+            if (successful != LoadCreateStatus.Successful)
             {
-                Logger.Error("We wasn't able to create loader");
-                return false;
+                var canContinue = successful == LoadCreateStatus.UnableToCreate;
+                Logger.Error("We wasn't able to create loader! (Going to fail file creation?: {0})", canContinue);
+                return canContinue;
             }
             if (oldVersion == null || !Directory.Exists(outputLocation))
             {
@@ -419,7 +423,7 @@ namespace TinyUpdate.Binary
             ZipArchive zipArchive, 
             string baseFileLocation,
             string newFileLocation,
-            OSPlatform? intendedOs = null, 
+            OSPlatform? intendedOs = null,
             Action<double>? progress = null, 
             string? extensionEnd = null)
         {

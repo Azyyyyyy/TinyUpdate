@@ -341,9 +341,10 @@ namespace TinyUpdate.Binary
             }
 
             //If we get here then we don't have it as a delta file, process as normal
-            using var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
+            var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
             await loaderFile.Stream.CopyToAsync(loaderStream);
             loaderFile.Stream.Dispose();
+            loaderStream.Dispose();
             
             return CheckLoaderAndReturn(loaderFileLocation, loaderFile);
         }

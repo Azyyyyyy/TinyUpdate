@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
 
@@ -28,7 +29,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
             Action<double>? progress = null)
         {
             deltaFileStream = null;
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OSHelper.ActiveOS != OSPlatform.Windows)
             {
                 _logger.Error("We aren't on Windows so can't apply MSDiff update");
                 return false;
@@ -47,7 +48,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
             Stream deltaFileStream,
             Action<double>? progress = null)
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OSHelper.ActiveOS != OSPlatform.Windows)
             {
                 _logger.Error("We aren't on Windows so can't apply MSDiff update");
                 return false;

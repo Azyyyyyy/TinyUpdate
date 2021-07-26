@@ -19,7 +19,7 @@ namespace TinyUpdate.Core.Tests
             long filesize;
             string sha256 = null;
             var isDelta = false;
-            version ??= new Version(
+            /*version ??= new Version(
                 ApplicationMetadata.ApplicationVersion.Major + 1,
                 ApplicationMetadata.ApplicationVersion.Minor,
                 ApplicationMetadata.ApplicationVersion.Build >= 0 ? ApplicationMetadata.ApplicationVersion.Build : 0,
@@ -75,9 +75,9 @@ namespace TinyUpdate.Core.Tests
                         
                         break;
                 }
-            }
+            }*/
 
-            return new ReleaseEntry(sha256, filename, filesize, isDelta, version);
+            return new ReleaseEntry(sha256, filename, 0, isDelta, version, "");
         }
     }
 }

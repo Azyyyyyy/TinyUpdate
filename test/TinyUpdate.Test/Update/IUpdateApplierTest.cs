@@ -34,19 +34,20 @@ namespace TinyUpdate.Test.Update
         [NonParallelizable]
         public async Task ApplyUpdate_UpdateInfoDelta()
         {
-            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
+            var applicationMetadata = new ApplicationMetadata();
+            applicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            applicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
             
             var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
             var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
 
-            var res = new UpdateInfo(new[]
+            var res = new UpdateInfo(Version.Parse("2021.129.0"), new[]
             {
                 CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup", oldVersion: Version.Parse("2021.129.0")),
                 CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\hwrduj5g.dwf.tuup", Version.Parse("2021.129.2"), Version.Parse("2021.129.1")),
             });
             var successfulUpdate =
-                await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
+                await _updateApplier.ApplyUpdate(applicationMetadata, res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
             
             deltaFileProgressStreamText.Dispose();
             deltaFileProgressStream.Dispose();
@@ -63,15 +64,16 @@ namespace TinyUpdate.Test.Update
         
         private async Task<bool> ApplyUpdate(string fileLocation)
         {
-            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
+            var applicationMetadata = new ApplicationMetadata();
+            applicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            applicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
 
             var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
             var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
 
             var res = CreateUpdate(fileLocation);
             var successfulUpdate =
-                await _updateApplier.ApplyUpdate(res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
+                await _updateApplier.ApplyUpdate(applicationMetadata, res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
             
             deltaFileProgressStreamText.Dispose();
             deltaFileProgressStream.Dispose();

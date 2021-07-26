@@ -129,7 +129,7 @@ namespace TinyUpdate.Core.Tests
             var data = new byte[Randomizer.Next(1000)];
             Randomizer.NextBytes(data);
 
-            var hash = SHA256Util.CreateSHA256Hash(data, true);
+            var hash = SHA256Util.CreateSHA256Hash(data);
             if (Randomizer.NextBool())
             {
                 var major = Randomizer.Next(0, 10);

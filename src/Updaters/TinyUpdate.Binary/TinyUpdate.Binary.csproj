@@ -19,7 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="LoaderTemplate\windows.zip" />
-      <EmbeddedResource Include="LoaderTemplate\windows.zip" />
+      <EmbeddedResource Include="LoaderTemplate\Windows\source.zip" />
+      <EmbeddedResource Include="LoaderTemplate\Windows\ApplicationLoader.exe" />
     </ItemGroup>
 </Project>

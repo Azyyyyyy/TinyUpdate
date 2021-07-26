@@ -26,11 +26,12 @@ namespace TinyUpdate.Test.Update
         [Test]
         public void CreateDeltaPackage()
         {
-            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
+            var applicationMetadata = new ApplicationMetadata();
+            applicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            applicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
 
             //Apply update
-            var wasSuccessful = _updateCreator.CreateDeltaPackage(
+            var wasSuccessful = _updateCreator.CreateDeltaPackage(applicationMetadata,
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 new Version("2021.226.0"),
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0",
@@ -45,9 +46,10 @@ namespace TinyUpdate.Test.Update
         [Test]
         public void CreateFullPackage()
         {
-            ApplicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            ApplicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
-            var wasSuccessful = _updateCreator.CreateFullPackage(
+            var applicationMetadata = new ApplicationMetadata();
+            applicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
+            applicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
+            var wasSuccessful = _updateCreator.CreateFullPackage(applicationMetadata,
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.302.0",
                 new Version("2021.302.0"),
                 null,
