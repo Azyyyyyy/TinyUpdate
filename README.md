@@ -11,7 +11,7 @@ The main parts of the updater are:
 * IUpdateApplier: This is responsible for applying any update that gets thrown to your application!
 * UpdateChecker: This is responsible for Checking for new updates, downloading updates and getting any release notes (it also contains an ``IUpdateApplier`` and exposes the ``IUpdateApplier`` functions)
 * Hard Link's: This allows us to have no need for copying files that haven't changed from the last update
-* TinyUpdate.Create: This project allows you to easy create updates for your application! **Note that you need .Net 5+ installed on your system to use this tool** (just type in ``dotnet tool install --global TinyUpdate.Create --version 0.0.0.5-alpha`` to install it and then any time you need to create an update you just have to type in ``tinyupdate``)
+* TinyUpdate.Create: This project allows you to easy create updates for your application! **Note that you need .Net 5+ installed on your system to use this tool** (just type in ``dotnet tool install --global TinyUpdate.Create --version 0.0.0.6-alpha`` to install it and then any time you need to create an update you just have to type in ``tinyupdate``)
 
 
 ## What is currently implemented?

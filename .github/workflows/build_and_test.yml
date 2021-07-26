@@ -21,5 +21,5 @@ jobs:
       run: dotnet restore TinyUpdate.sln
     - name: Build
       run: dotnet build TinyUpdate.sln --no-restore
-    - name: Test
-      run: dotnet test TinyUpdate.sln --no-build --verbosity normal
+    #- name: Test
+    #  run: dotnet test TinyUpdate.sln --no-build --verbosity normal
