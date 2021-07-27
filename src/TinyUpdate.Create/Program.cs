@@ -8,12 +8,16 @@ using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Linq;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Utils;
 using TinyUpdate.Create.AssemblyHelper;
 using TinyUpdate.Create.Helper;
+using SemVersion;
+using TinyUpdate.Core.Extensions;
 
+[assembly: SemanticVersion("0.0.7-testing")]
 namespace TinyUpdate.Create
 {
     internal static class Program
@@ -61,6 +65,7 @@ namespace TinyUpdate.Create
             };
             rootCommand.Description = Logger.Name;
 
+            //TODO: Ask for Intended OS
             rootCommand.Handler = CommandHandler
                 .Create<bool, bool, DirectoryInfo?, DirectoryInfo?, DirectoryInfo?, string, bool, bool, string?, string?
                     , string?>(
@@ -151,9 +156,11 @@ namespace TinyUpdate.Create
             Global.MainApplicationFile ??=
                 ConsoleHelper.RequestFile("What is the main application file?", Global.NewVersionLocation);
 
+            //TODO: Ask if they want this update to have staging
+
             //Get metadata about the application we are making update files for
             GetApplicationMetadata();
-            Global.ApplicationMetadata.ApplicationVersion = Global.ApplicationOldVersion ?? new Version(0, 0, 0, 1);
+            Global.ApplicationMetadata.ApplicationVersion = Global.ApplicationOldVersion ?? SemanticVersion.BaseVersion();
             Global.ApplicationMetadata.TempFolder = Path.GetTempPath();
 
             var folder = Path.Combine(Global.ApplicationMetadata.TempFolder, Global.ApplicationMetadata.ApplicationName);
@@ -226,31 +233,36 @@ namespace TinyUpdate.Create
             var updateFileSHA = SHA256Util.CreateSHA256Hash(fileStream);
             releaseFiles.Add(
                 new ReleaseFile(
-                    updateFileSHA, 
-                    Path.GetFileName(outputFile), 
-                    fileStream.Length, 
+                    updateFileSHA,
+                    Path.GetFileName(outputFile),
+                    fileStream.Length,
+                    null, //staging
                     isDelta ? Global.ApplicationOldVersion : null));
             return true;
         }
 
         private static void GetApplicationMetadata()
         {
+            using var mainLoader = GetAssembly.MakeAssemblyResolver(Global.NewVersionLocation, out _);
+            
             //Grab the assemblyName
             var mainApplicationName = Path.GetFileName(Global.MainApplicationFile);
             var fileLocation = Path.Combine(Global.NewVersionLocation, mainApplicationName);
-            var assemblyName = GetAssembly.IsDotNetAssembly(fileLocation)
-                ? AssemblyName.GetAssemblyName(fileLocation)
+            var assembly = GetAssembly.IsDotNetAssembly(fileLocation)
+                ? mainLoader.LoadFromAssemblyPath(fileLocation)
                 : null;
 
-            Global.ApplicationNewVersion = assemblyName?.Version;
-            Global.ApplicationMetadata.ApplicationName = assemblyName?.Name;
+            Global.ApplicationNewVersion = assembly?.GetSemanticVersion();
+            Global.ApplicationMetadata.ApplicationName = assembly?.GetName().Name;
             if (Global.CreateDeltaUpdate && Global.OldVersionLocation != null && Global.ApplicationMetadata.ApplicationName != null)
             {
+                using var oldVersionLoader = GetAssembly.MakeAssemblyResolver(Global.OldVersionLocation, out _);
+
                 fileLocation = Path.Combine(Global.OldVersionLocation, mainApplicationName);
                 Global.ApplicationOldVersion =
                     (GetAssembly.IsDotNetAssembly(fileLocation)
-                        ? AssemblyName.GetAssemblyName(fileLocation)
-                        : null)?.Version;
+                        ? oldVersionLoader.LoadFromAssemblyName(fileLocation)
+                        : null)?.GetSemanticVersion();
             }
 
             //Check that all the information we need got filled in

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -19,7 +19,7 @@ namespace TinyUpdate.Github
         protected readonly HttpClient HttpClient;
         protected readonly ILogging Logger;
         private readonly GithubClient _githubClient;
-        private ApplicationMetadata _applicationMetadata => _githubClient.ApplicationMetadata;
+        private ApplicationMetadata ApplicationMetadata => _githubClient.ApplicationMetadata;
 
         /// <summary>
         /// Api constructor
@@ -34,7 +34,7 @@ namespace TinyUpdate.Github
             {
                 BaseAddress = new Uri(apiEndpoint)
             };
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{_applicationMetadata.ApplicationName}-{_applicationMetadata.ApplicationVersion}");
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{ApplicationMetadata.ApplicationName}-{ApplicationMetadata.ApplicationVersion}");
         }
 
 
@@ -60,11 +60,19 @@ namespace TinyUpdate.Github
         protected async Task<UpdateInfo?> DownloadAndParseReleaseFile(string tagName, long fileSize, string downloadUrl, bool grabDeltaUpdates)
         {
             //Download the RELEASE file if we don't already have it
-            var releaseFileLoc = Path.Combine(_applicationMetadata.TempFolder, $"RELEASES-{_applicationMetadata.ApplicationName}-{tagName}");
+            var releaseFileInfo = new FileInfo(Path.Combine(ApplicationMetadata.TempFolder, $"RELEASES-{ApplicationMetadata.ApplicationName}-{tagName}"));
             long? fileLength = null;
-            if (!File.Exists(releaseFileLoc))
+
+            //See if it was recently downloaded, if not delete it
+            if (releaseFileInfo.Exists
+                && DateTime.Now.Subtract(releaseFileInfo.LastWriteTime).TotalDays >= 1)
             {
-                Directory.CreateDirectory(_applicationMetadata.TempFolder);
+                releaseFileInfo.Delete();
+            }
+            
+            if (!releaseFileInfo.Exists)
+            {
+                Directory.CreateDirectory(ApplicationMetadata.TempFolder);
                 var response = await GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, downloadUrl));
                 if (response == null)
                 {
@@ -73,25 +81,25 @@ namespace TinyUpdate.Github
                 }
                 
                 using var releaseStream = await response.Content.ReadAsStreamAsync();
-                using var releaseFileStream = File.Open(releaseFileLoc, FileMode.CreateNew, FileAccess.ReadWrite);
+                using var releaseFileStream = File.Open(releaseFileInfo.FullName, FileMode.CreateNew, FileAccess.ReadWrite);
                 await releaseStream.CopyToAsync(releaseFileStream);
                 fileLength = releaseFileStream.Length;
             }
-            fileLength ??= new FileInfo(releaseFileLoc).Length;
+            fileLength ??= releaseFileInfo.Length;
             
             //Just do a sanity check of the file size
             if (fileLength != fileSize)
             {
                 Logger.Error("RELEASE file isn't the length as expected, deleting and returning null...");
-                File.Delete(releaseFileLoc);
+                releaseFileInfo.Delete();
                 return null;
             }
             
             //Create the UpdateInfo
-            return new UpdateInfo(_applicationMetadata.ApplicationVersion,
-                ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileLoc))
-                    .ToReleaseEntries(tagName)
-                    .FilterReleases(grabDeltaUpdates, _applicationMetadata.ApplicationVersion).ToArray());
+            return new UpdateInfo(ApplicationMetadata.ApplicationVersion,
+                ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileInfo.FullName))
+                    .ToReleaseEntries(ApplicationMetadata.TempFolder, tagName)
+                    .FilterReleases(ApplicationMetadata.ApplicationFolder, grabDeltaUpdates, ApplicationMetadata.ApplicationVersion).ToArray());
         }
 
         private DateTime? _rateLimitTime;

@@ -1,4 +1,4 @@
-﻿namespace TinyUpdate.Binary
+﻿namespace TinyUpdate.Binary.LoadCreator
 {
     public enum LoadCreateStatus
     {

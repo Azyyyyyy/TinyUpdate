@@ -71,7 +71,7 @@ namespace TinyUpdate.Github.GraphQL
         public int Remaining { get; set; }
     }
 
-    public class GithubReleaseGraphQL
+    public class GithubReleaseGraphQl
     {
         [JsonPropertyName("data")]
         public Data Data { get; set; }

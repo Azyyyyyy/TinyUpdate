@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Create.Helper;
+// ReSharper disable InconsistentNaming
 
 namespace TinyUpdate.Create.AssemblyHelper
 {
@@ -78,7 +79,8 @@ namespace TinyUpdate.Create.AssemblyHelper
             return cliHeaderRva != 0;
         }
 
-        private static void ShowAssemblyMetadata(Assembly assembly, IReadOnlyCollection<Type> types,
+        private static void ShowAssemblyMetadata(
+            Assembly assembly, IReadOnlyCollection<Type> types,
             string friendlyName, ref int counter)
         {
             //Shows the assembly that contains the type
@@ -89,7 +91,7 @@ namespace TinyUpdate.Create.AssemblyHelper
                 return;
             }
 
-            var message = $"{friendlyName}{ConsoleHelper.ShowS(types.Count)} found in {{0}}";
+            var message = friendlyName + ConsoleHelper.ShowS(types.Count) + "found in {0}";
 
             Logger.WriteLine(message, assemblyName);
             Logger.WriteLine(new string('=', message.Length + assemblyName.Length - 3));
@@ -99,7 +101,7 @@ namespace TinyUpdate.Create.AssemblyHelper
             foreach (var type in types)
             {
                 counter++;
-                Logger.WriteLine($"{counter}) {{0}}", type.FullName);
+                Logger.WriteLine( counter + ") {0}", type.FullName);
             }
 
             Logger.WriteLine();
@@ -209,10 +211,19 @@ namespace TinyUpdate.Create.AssemblyHelper
             return null;
         }
 
+        public static MetadataLoadContext MakeAssemblyResolver(string location, out string[] files)
+        {
+            files = Directory.GetFiles(location, "*.dll");
+
+            // Create PathAssemblyResolver that can resolve assemblies using the created list.
+            var resolver = new PathAssemblyResolver(files);
+            return new MetadataLoadContext(resolver);
+        }
+        
         /*When we run this the first time we put any files that contained
          something useful and then re-look at them files, saves time rechecking*/
         private static readonly List<string> CachedFiles = new();
-
+        private static string[]? SharedAssemblies = null;
         /// <summary>
         /// This goes through every assembly and looks for any that contains the type that we are looking for
         /// </summary>
@@ -229,20 +240,16 @@ namespace TinyUpdate.Create.AssemblyHelper
                 return types;
             }
 
-            //Get what our core assembly is 
-            var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator))?.GetName().Name;
-            if (string.IsNullOrWhiteSpace(coreAssembly))
+            if (SharedAssemblies == null)
             {
-                Logger.Error("Couldn't get core assembly, unable to get {0} from other assemblies",
-                    typeToCheckFor.Name);
-                return types;
+                //Get what our core assemblies are
+                var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator));
+                SharedAssemblies = coreAssembly.GetReferencedAssemblies()
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Name) && !BlacklistedFiles.Contains(x.Name + ".dll"))
+                    .Select(x => x.Name).Append(coreAssembly.GetName().Name).ToArray();
             }
 
-            var files = Directory.GetFiles(applicationLocation, "*.dll");
-
-            // Create PathAssemblyResolver that can resolve assemblies using the created list.
-            var resolver = new PathAssemblyResolver(files);
-            using var mlc = new MetadataLoadContext(resolver);
+            using var mlc = MakeAssemblyResolver(applicationLocation, out var files);
 
             //Now lets try to find the types
             foreach (var file in
@@ -284,11 +291,10 @@ namespace TinyUpdate.Create.AssemblyHelper
             var loadedTypes = new Dictionary<Assembly, List<Type>>();
             foreach (var (assembly, assemblyTypes) in types)
             {
-                var sharedAssemblies = new[] {coreAssembly};
                 var probingDirectories = new[] {applicationLocation};
 
                 var assemblyLoadContext =
-                    new SharedAssemblyLoadContext(sharedAssemblies, probingDirectories, assembly.Location);
+                    new SharedAssemblyLoadContext(SharedAssemblies, probingDirectories, assembly.Location);
                 var loadedAssembly = assemblyLoadContext.LoadFromAssemblyPath(assembly.Location);
                 loadedTypes.Add(loadedAssembly, new List<Type>(assemblyTypes.Count));
                 foreach (var assemblyType in assemblyTypes)

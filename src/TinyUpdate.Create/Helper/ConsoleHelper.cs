@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using SemVersion;
 
 namespace TinyUpdate.Create.Helper
 {
@@ -91,7 +92,7 @@ namespace TinyUpdate.Create.Helper
             }
         }
 
-        public static Version RequestVersion(string message)
+        public static SemanticVersion RequestVersion(string message)
         {
             while (true)
             {
@@ -107,7 +108,7 @@ namespace TinyUpdate.Create.Helper
                 }
 
                 //Give version if we can
-                if (Version.TryParse(line, out var version))
+                if (SemanticVersion.TryParse(line, out var version))
                 {
                     return version;
                 }

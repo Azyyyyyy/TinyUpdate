@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using SemVersion;
 using TinyUpdate.Binary.Delta;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Helper;
@@ -24,9 +25,9 @@ namespace TinyUpdate.Binary
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryApplier));
         
-        /// <inheritdoc cref="IUpdateApplier.GetApplicationPath(string, Version?)"/>
+        /// <inheritdoc cref="IUpdateApplier.GetApplicationPath(string, SemanticVersion?)"/>
         [return: NotNullIfNotNull("version")]
-        public string? GetApplicationPath(string applicationFolder, Version? version) =>
+        public string? GetApplicationPath(string applicationFolder, SemanticVersion? version) =>
             version == null ? null : Path.Combine(applicationFolder, version.GetApplicationFolder());
 
         /// <inheritdoc cref="IUpdateApplier.Extension"/>
@@ -120,7 +121,7 @@ namespace TinyUpdate.Binary
              progress by how many updates we have*/
             var updateCounter = 0d;
             var doneFirstUpdate = false;
-            Version? lastSuccessfulUpdate = null;
+            SemanticVersion? lastSuccessfulUpdate = null;
             foreach (var updateEntry in updates)
             {
                 /*Base path changes based on if the first update has been
@@ -202,7 +203,7 @@ namespace TinyUpdate.Binary
             var filesCount = updateEntry.Count + 1;
 
             //We want to do the files that didn't change first
-            foreach (var file in updateEntry.SameFile)
+            foreach (var file in updateEntry.SameFile.OrderByDescending(x => x.Filesize))
             {
                 fileCounter++;
                 Logger.Debug("Processing unchanged file ({0})", file.FileLocation);

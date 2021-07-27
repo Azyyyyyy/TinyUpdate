@@ -1,5 +1,6 @@
 ﻿using TinyUpdate.Core.Update;
 using TinyUpdate.Create.Helper;
+using SemVersion;
 
 namespace TinyUpdate.Create
 {
@@ -26,7 +27,8 @@ namespace TinyUpdate.Create
                     Global.ApplicationOldVersion!,
                     Global.OutputLocation,
                     Program.GetOutputLocation(true, updateCreator.Extension),
-                    progress: progress => progressBar.Report((double) progress));
+                    Global.IntendedOs,
+                    progress => progressBar.Report(progress));
             progressBar.Dispose();
 
             ConsoleHelper.ShowSuccess(wasUpdateCreated);
@@ -43,7 +45,8 @@ namespace TinyUpdate.Create
                     Global.NewVersionLocation,
                     Global.ApplicationNewVersion,
                     Program.GetOutputLocation(false, updateCreator.Extension),
-                    progress => progressBar.Report((double) progress));
+                    Global.IntendedOs,
+                    progress => progressBar.Report(progress));
             progressBar.Dispose();
 
             ConsoleHelper.ShowSuccess(wasUpdateCreated);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using SemVersion;
 
 namespace TinyUpdate.Core.Update
 {
@@ -34,7 +35,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="version">the <see cref="Version"/> we want the path for</param>
         /// <returns>What the <see cref="version"/> would be</returns>
         [return: NotNullIfNotNull("version")]
-        string? GetApplicationPath(string applicationFolder, Version? version);
+        string? GetApplicationPath(string applicationFolder, SemanticVersion? version);
 
         /// <summary>
         /// Extension to be used on this kind of update file

@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using TinyUpdate.Binary.Delta.MsDelta;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;

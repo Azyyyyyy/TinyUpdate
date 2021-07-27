@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using TinyUpdate.Core.Utils;
+using SemVersion;
 
 namespace TinyUpdate.Core.Tests
 {
@@ -12,7 +13,7 @@ namespace TinyUpdate.Core.Tests
         private static readonly Random _rnd = new Random();
         
         //TODO: Finish
-        public static async Task<ReleaseEntry> MakeDummyReleaseEntry(bool createFile, string extension, string? filename = null, Version? version = null, params InvalidReleaseEntry[] invalidReleaseOptions)
+        public static async Task<ReleaseEntry> MakeDummyReleaseEntry(bool createFile, string extension, string? filename = null, SemanticVersion? version = null, params InvalidReleaseEntry[] invalidReleaseOptions)
         {
             //Create everything that is needed for having a ReleaseEntry
             filename ??= $"dummy-{Guid.NewGuid()}{extension}";

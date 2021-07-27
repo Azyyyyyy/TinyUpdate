@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using TinyUpdate.Core.Logging;
+using SemVersion;
 
 namespace TinyUpdate.Binary.Extensions
 {
@@ -19,8 +20,8 @@ namespace TinyUpdate.Binary.Extensions
         /// This returns the folder that the application should be in based on the version
         /// </summary>
         [return: NotNullIfNotNull("version")]
-        public static string? GetApplicationFolder(this Version? version) =>
-            version == null ? null : $"app-{version.ToString(4)}";
+        public static string? GetApplicationFolder(this SemanticVersion? version) =>
+            version == null ? null : "app-" + version;
 
         /// <summary>
         /// Removes path from strings

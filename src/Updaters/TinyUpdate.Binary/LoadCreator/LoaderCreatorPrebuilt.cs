@@ -3,12 +3,13 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using TinyUpdate.Binary.LoadCreator;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Binary
 {
-    public class LoaderCreatorPrebuilt
+    public static class LoaderCreatorPrebuilt
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(LoaderCreatorSource));
         private const string PATHLINE = "{APPLICATIONLOCATION}";
@@ -23,6 +24,7 @@ namespace TinyUpdate.Binary
         /// <returns>If the loader was created</returns>
         public static LoadCreateStatus CreateLoader(string path, string? iconLocation, string outputFile, OSPlatform? intendedOs)
         {
+            //Check that we should create a loader (As we currently only have one for Windows) 
             if (intendedOs.HasValue && intendedOs.Value != OSPlatform.Windows)
             {
                 Logger.Warning("Tried to make loader for {0} but we can only make a loader for Windows right now!", Enum.GetName(typeof(OSPlatform), intendedOs));
@@ -37,7 +39,7 @@ namespace TinyUpdate.Binary
             using var fileStream = LoaderCreator.Assembly.GetManifestResourceStream("TinyUpdate.Binary.LoaderTemplate.Windows.ApplicationLoader.exe");
             if (fileStream == null)
             {
-                Logger.Error("Wasn't able to get zip stream, can't create loader");
+                Logger.Error("Wasn't able to get file stream, can't create loader");
                 return LoadCreateStatus.Failed;
             }
 

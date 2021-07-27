@@ -13,10 +13,9 @@ namespace TinyUpdate.Github.GraphQL
     /// <summary>
     /// <see cref="GithubApi"/> that uses the GraphQL API (V4). This requires a personal token with public_repo
     /// </summary>
-    // ReSharper disable once InconsistentNaming
-    internal class GithubApiGraphQL : GithubApi
+    internal class GithubApiGraphQl : GithubApi
     {
-        public GithubApiGraphQL(string personalToken, GithubClient githubClient) 
+        public GithubApiGraphQl(string personalToken, GithubClient githubClient) 
             : base(githubClient, "https://api.github.com/graphql")
         {
             //Personal token needs to be base64
@@ -115,7 +114,7 @@ namespace TinyUpdate.Github.GraphQL
 
         protected override async Task<RateLimit> GetRateLimitTime(HttpResponseMessage responseMessage)
         {
-            var githubRelease = await JsonSerializer.DeserializeAsync<GithubReleaseGraphQL>(await responseMessage.Content.ReadAsStreamAsync());
+            var githubRelease = await JsonSerializer.DeserializeAsync<GithubReleaseGraphQl>(await responseMessage.Content.ReadAsStreamAsync());
             if (githubRelease?.Data.RateLimit.Remaining == 0)
             {
                 return new RateLimit(true, githubRelease.Data.RateLimit.ResetAt);
@@ -123,9 +122,9 @@ namespace TinyUpdate.Github.GraphQL
             return new RateLimit(false);
         }
 
-        private async Task<GithubReleaseGraphQL?> GetGithubRelease(string query, string organization, string repository)
+        private async Task<GithubReleaseGraphQl?> GetGithubRelease(string query, string organization, string repository)
         {
-            var graphQuery = new GraphQLQuery(query, $"{{ \"org\": \"{organization}\", \"repo\": \"{repository}\" }}");
+            var graphQuery = new GraphQlQuery(query, $"{{ \"org\": \"{organization}\", \"repo\": \"{repository}\" }}");
             using var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
@@ -136,7 +135,7 @@ namespace TinyUpdate.Github.GraphQL
             if (response != null)
             {
                 Logger.Information("Got response, reading response...");
-                return await JsonSerializer.DeserializeAsync<GithubReleaseGraphQL>(await response.Content.ReadAsStreamAsync());
+                return await JsonSerializer.DeserializeAsync<GithubReleaseGraphQl>(await response.Content.ReadAsStreamAsync());
             }
 
             Logger.Error("Didn't get anything from Github");

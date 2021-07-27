@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using SemVersion;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
@@ -36,15 +37,15 @@ namespace TinyUpdate.Test.Update
         {
             var applicationMetadata = new ApplicationMetadata();
             applicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            applicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
+            applicationMetadata.ApplicationVersion = SemanticVersion.Parse("2021.129.0");
             
             var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
             var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
 
-            var res = new UpdateInfo(Version.Parse("2021.129.0"), new[]
+            var res = new UpdateInfo(SemanticVersion.Parse("2021.129.0"), new[]
             {
-                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup", oldVersion: Version.Parse("2021.129.0")),
-                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\hwrduj5g.dwf.tuup", Version.Parse("2021.129.2"), Version.Parse("2021.129.1")),
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\gjjiwyv5.5bx.tuup", oldVersion: SemanticVersion.Parse("2021.129.0")),
+                CreateUpdate(@"C:\Users\aaron\AppData\Local\Temp\TinyUpdate\TestRunner\hwrduj5g.dwf.tuup", SemanticVersion.Parse("2021.129.2"), SemanticVersion.Parse("2021.129.1")),
             });
             var successfulUpdate =
                 await _updateApplier.ApplyUpdate(applicationMetadata, res, obj => deltaFileProgressStreamText.WriteLine($"Progress: {obj * 100}"));
@@ -66,7 +67,7 @@ namespace TinyUpdate.Test.Update
         {
             var applicationMetadata = new ApplicationMetadata();
             applicationMetadata.ApplicationFolder = @"C:\Users\aaron\AppData\Local\osulazer";
-            applicationMetadata.ApplicationVersion = Version.Parse("2021.129.0");
+            applicationMetadata.ApplicationVersion = SemanticVersion.Parse("2021.129.0");
 
             var deltaFileProgressStream = File.OpenWrite("apply_delta.txt");
             var deltaFileProgressStreamText = new StreamWriter(deltaFileProgressStream);
@@ -81,7 +82,7 @@ namespace TinyUpdate.Test.Update
             return successfulUpdate;
         }
 
-        private static ReleaseEntry CreateUpdate(string fileLocation, Version? version = null, Version? oldVersion = null)
+        private static ReleaseEntry CreateUpdate(string fileLocation, SemanticVersion? version = null, SemanticVersion? oldVersion = null)
         {
             //Get details about update file
             var releaseFileLocation = fileLocation;
@@ -95,9 +96,9 @@ namespace TinyUpdate.Test.Update
                 Path.GetFileName(releaseFileLocation),
                 fileLength,
                 true, 
-                version ?? Version.Parse("2021.129.1"),
+                version ?? SemanticVersion.Parse("2021.129.1"),
                 Path.GetDirectoryName(fileLocation),
-                oldVersion ?? Version.Parse("2021.129.0"));
+                oldVersion ?? SemanticVersion.Parse("2021.129.0"));
         }
     }
 }

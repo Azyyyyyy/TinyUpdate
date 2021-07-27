@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Reflection;
+using SemVersion;
 using TinyUpdate.Core.Exceptions;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Utils;
 
@@ -24,7 +26,7 @@ namespace TinyUpdate.Core
                 return;
             }
             var applicationName = runningAssembly.GetName();
-            ApplicationVersion = applicationName.Version;
+            ApplicationVersion = runningAssembly.GetSemanticVersion();
             ApplicationName = applicationName.Name;
 
             var folder = runningAssembly.Location;
@@ -37,7 +39,7 @@ namespace TinyUpdate.Core
         /// <summary>
         /// The <see cref="Version"/> that the application is currently running at
         /// </summary>
-        public Version ApplicationVersion { get; set; } = new Version();
+        public SemanticVersion ApplicationVersion { get; set; } = SemanticVersion.BaseVersion();
 
         private string _tempFolder = Path.Combine(Path.GetTempPath(), "TinyUpdate");
         /// <summary>

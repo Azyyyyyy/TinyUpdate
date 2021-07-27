@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.IO;
+using SemVersion;
 using TinyUpdate.Core.Exceptions;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
@@ -13,16 +14,16 @@ namespace TinyUpdate.Core
     public class ReleaseEntry
     {
         private readonly ILogging _logger;
-
         public ReleaseEntry(
             string sha256,
             string filename,
             long filesize,
             bool isDelta,
-            Version version,
+            SemanticVersion version,
             string folderPath,
-            Version? oldVersion = null,
-            string? tag = null)
+            SemanticVersion? oldVersion = null,
+            string? tag = null,
+            int? stagingPercentage = null)
         {
             //If it's a delta file then we should also be given an oldVersion
             if (isDelta)
@@ -63,8 +64,11 @@ namespace TinyUpdate.Core
             IsDelta = isDelta;
             Version = version;
             FileLocation = Path.Combine(folderPath, Filename);
+            StagingPercentage = stagingPercentage;
             Tag = tag;
         }
+
+        public int? StagingPercentage { get; }
 
         /// <summary>
         /// Tag that a <see cref="UpdateClient"/> can use to store some extra data that is needed
@@ -92,14 +96,14 @@ namespace TinyUpdate.Core
         public bool IsDelta { get; }
 
         /// <summary>
-        /// What <see cref="Version"/> this release will bump the application too
+        /// What <see cref="SemanticVersion"/> this release will bump the application too
         /// </summary>
-        public Version Version { get; }
+        public SemanticVersion Version { get; }
 
         /// <summary>
         /// The version used to create this <see cref="ReleaseEntry"/> (If this is a delta update)
         /// </summary>
-        public Version? OldVersion { get; }
+        public SemanticVersion? OldVersion { get; }
 
         /// <summary>
         /// The location of the update file
@@ -111,7 +115,7 @@ namespace TinyUpdate.Core
         /// </summary>
         /// <param name="applicationVersion">What is the application version is</param>
         /// <param name="checkFile">If we should also check the update file and not just the metadata we have about it and if it's currently on disk</param>
-        public virtual bool IsValidReleaseEntry(Version applicationVersion, bool checkFile = false)
+        public virtual bool IsValidReleaseEntry(SemanticVersion applicationVersion, bool checkFile = false)
         {
             //If we want to check the file then we want to check the SHA256 + file size
             if (checkFile)
@@ -134,7 +138,7 @@ namespace TinyUpdate.Core
                 file.Dispose();
             }
 
-            //Check that this version is higher then what we are running now
+            //Check that this Version is higher then what we are running now
             return applicationVersion < Version;
         }
     }

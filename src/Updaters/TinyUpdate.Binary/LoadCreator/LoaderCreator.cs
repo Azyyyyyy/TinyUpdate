@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core.Logging;
 
-namespace TinyUpdate.Binary
+namespace TinyUpdate.Binary.LoadCreator
 {
     public class LoaderCreator
     {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using SemVersion;
 
 namespace TinyUpdate.Core.Update
 {
@@ -24,9 +25,9 @@ namespace TinyUpdate.Core.Update
         public bool CreateDeltaPackage(
             ApplicationMetadata applicationMetadata,
             string newVersionLocation, 
-            Version newVersion,
+            SemanticVersion newVersion,
             string baseVersionLocation,
-            Version oldVersion,
+            SemanticVersion oldVersion,
             string outputFolder,
             string? deltaUpdateLocation = null, 
             OSPlatform? intendedOs = null,
@@ -39,13 +40,15 @@ namespace TinyUpdate.Core.Update
         /// <param name="applicationLocation">Where the application that needs to be made into a package is located</param>
         /// <param name="fullUpdateLocation">Where the update file should be put (defaults to Temp folder with random name)</param>
         /// <param name="version">What version this application currently is</param>
+        /// <param name="intendedOs">OS that this update is intended for</param>
         /// <param name="progress">Reports back the progress of creating the update file</param>
         /// <returns>If we was able to create the package</returns>
         public bool CreateFullPackage(
             ApplicationMetadata applicationMetadata,
             string applicationLocation, 
-            Version version,
+            SemanticVersion version,
             string? fullUpdateLocation = null,
+            OSPlatform? intendedOs = null,
             Action<double>? progress = null);
 
         /// <summary>

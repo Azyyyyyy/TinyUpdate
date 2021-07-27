@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using SemVersion;
 
 namespace TinyUpdate.Core.Update
 {
@@ -8,7 +9,7 @@ namespace TinyUpdate.Core.Update
     /// </summary>
     public class UpdateInfo
     {
-        public UpdateInfo(Version applicationVersion, params ReleaseEntry[] updates)
+        public UpdateInfo(SemanticVersion applicationVersion, params ReleaseEntry[] updates)
         {
             Updates = updates;
 
@@ -25,7 +26,7 @@ namespace TinyUpdate.Core.Update
         /// <summary>
         /// What <see cref="Version"/> this update will bump the application too
         /// </summary>
-        public Version? NewVersion { get; }
+        public SemanticVersion? NewVersion { get; }
 
         /// <summary>
         /// All the updates that we have found

@@ -7,8 +7,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using SemVersion;
 using TinyUpdate.Binary.Delta;
 using TinyUpdate.Binary.Extensions;
+using TinyUpdate.Binary.LoadCreator;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
@@ -32,9 +34,9 @@ namespace TinyUpdate.Binary
         public bool CreateDeltaPackage(
             ApplicationMetadata applicationMetadata,
             string newVersionLocation,
-            Version newVersion,
+            SemanticVersion newVersion,
             string baseVersionLocation,
-            Version oldVersion,
+            SemanticVersion oldVersion,
             string outputFolder,
             string? deltaUpdateLocation = null,
             OSPlatform? intendedOs = null,
@@ -232,8 +234,9 @@ namespace TinyUpdate.Binary
         public bool CreateFullPackage(
             ApplicationMetadata applicationMetadata,
             string applicationLocation, 
-            Version version,
+            SemanticVersion version,
             string? fullUpdateLocation = null,
+            OSPlatform? intendedOs = null,
             Action<double>? progress = null)
         {
             if (!Directory.Exists(applicationLocation))
@@ -316,10 +319,10 @@ namespace TinyUpdate.Binary
         private bool AddLoaderFile(
             ApplicationMetadata applicationMetadata,
             ZipArchive zipArchive,
-            Version newVersion,
+            SemanticVersion newVersion,
             string applicationLocation,
             OSPlatform? intendedOs = null,
-            Version? oldVersion = null,
+            SemanticVersion? oldVersion = null,
             string? outputLocation = null)
         {
             string loaderLocation = Path.Combine(applicationMetadata.TempFolder, applicationMetadata.ApplicationName + ".exe");
@@ -358,6 +361,12 @@ namespace TinyUpdate.Binary
             //If we get here then we might also have the old loader, try to diff by using it
             foreach (var file in Directory.EnumerateFiles(outputLocation, "*" + Extension))
             {
+                if (string.IsNullOrWhiteSpace(file))
+                {
+                    Logger.Warning("We somehow got an entry for {0} which was nothing", outputLocation);
+                    continue;
+                }
+                
                 /*Don't try it with delta file, more then likely going to
                   have diff loader itself and we can't work with that*/
                 var fileName = Path.GetFileNameWithoutExtension(file);
@@ -490,6 +499,7 @@ namespace TinyUpdate.Binary
         /// </summary>
         /// <param name="zipArchive"><see cref="ZipArchive"/> to add the file too</param>
         /// <param name="filepath">File to add</param>
+        /// <param name="hash">The hash of this file</param>
         /// <returns>If we was able to add the file</returns>
         private static bool AddSameFile(ZipArchive zipArchive, string filepath, string hash) =>
             AddFile(zipArchive, Stream.Null, filepath + ".diff", sha256Hash: hash);

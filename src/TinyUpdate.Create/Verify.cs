@@ -9,6 +9,7 @@ using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 using TinyUpdate.Create.AssemblyHelper;
 using TinyUpdate.Create.Helper;
+using SemVersion;
 
 namespace TinyUpdate.Create
 {
@@ -105,8 +106,8 @@ namespace TinyUpdate.Create
         private static async Task<bool> ApplyUpdate(
             string updateFile,
             bool isDelta,
-            Version newVersion,
-            Version? oldVersion,
+            SemanticVersion newVersion,
+            SemanticVersion? oldVersion,
             IUpdateApplier applier)
         {
             //Grab the hash and size of this update file
@@ -124,7 +125,7 @@ namespace TinyUpdate.Create
                 filesize,
                 isDelta,
                 newVersion,
-                Path.GetDirectoryName(updateFile),
+                Path.GetDirectoryName(updateFile) ?? throw new Exception("Can't get folder path!"),
                 oldVersion);
 
             //Try to do the update
@@ -133,7 +134,7 @@ namespace TinyUpdate.Create
 
             stopwatch.Start();
             var successful =
-                await applier.ApplyUpdate(Global.ApplicationMetadata, entry, progress => applyProgressBar.Report((double) progress));
+                await applier.ApplyUpdate(Global.ApplicationMetadata, entry, progress => applyProgressBar.Report(progress));
             stopwatch.Stop();
             applyProgressBar.Dispose();
             Logger.WriteLine("Processing this update took {0}", ConsoleHelper.TimeSpanToString(stopwatch.Elapsed));
@@ -144,8 +145,8 @@ namespace TinyUpdate.Create
         private static async Task<bool> VerifyUpdate(
             string updateFile,
             bool isDelta,
-            Version? oldVersion,
-            Version newVersion,
+            SemanticVersion? oldVersion,
+            SemanticVersion newVersion,
             IUpdateApplier applier)
         {
             //Error out if we wasn't able to apply update

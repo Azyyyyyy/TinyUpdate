@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using SemVersion;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Utils;
 
@@ -14,13 +15,16 @@ namespace TinyUpdate.Core
     {
         private static readonly ILogging Logging = LoggingCreator.CreateLogger(nameof(ReleaseFile));
 
-        public ReleaseFile(string sha256, string name, long size, Version? oldVersion = null)
+        public ReleaseFile(string sha256, string name, long size, int? stagingPercentage, SemanticVersion? oldVersion = null)
         {
             SHA256 = sha256;
             Name = name;
             Size = size;
+            StagingPercentage = stagingPercentage;
             OldVersion = oldVersion;
         }
+
+        public int? StagingPercentage { get; }
 
         /// <summary>
         /// Hash that the downloaded file should be
@@ -40,7 +44,7 @@ namespace TinyUpdate.Core
         /// <summary>
         /// The version that this update will be coming from
         /// </summary>
-        public Version? OldVersion { get; }
+        public SemanticVersion? OldVersion { get; }
 
         public override bool Equals(object obj)
         {
@@ -93,11 +97,24 @@ namespace TinyUpdate.Core
             using var textFileStream = file.CreateText();
             foreach (var releaseFile in releaseFiles)
             {
-                await textFileStream.WriteLineAsync(
-                    $"{releaseFile.SHA256} {releaseFile.Name} {(releaseFile.OldVersion != null ? $"{releaseFile.OldVersion} " : "")}{releaseFile.Size}");
+                await textFileStream.WriteLineAsync(releaseFile.ToString());
             }
 
             return true;
+        }
+
+        public override string ToString()
+        {
+            var s = $"{SHA256} {Name} {Size}";
+            if (OldVersion != null)
+            {
+                s += " " + OldVersion;
+            }
+            if (StagingPercentage.HasValue)
+            {
+                s += " " + StagingPercentage;
+            }
+            return s;
         }
 
         /// <summary>
@@ -106,24 +123,38 @@ namespace TinyUpdate.Core
         /// <param name="lines">Lines to make into <see cref="ReleaseFile"/></param>
         public static IEnumerable<ReleaseFile> ReadReleaseFile(IEnumerable<string> lines)
         {
+            //This is what the input should be like
+            //1. {hash} appname-29.2.4-delta.{EXTENSION} {filesize}
+            //2. {hash} appname-29.2.4-delta.{EXTENSION} {filesize} {old version}
+            //3. Same as 1/2 but with ' {staging percentage}'
             foreach (var line in lines)
             {
                 var lineS = line.Split(' ');
-                /*Check that the line only has 3/4 lines, if not then
+                /*Check that the line only has 3/5 lines, if not then
                  that means it's not a release file for sure*/
-                if (lineS.Length is < 3 or > 4)
+                if (lineS.Length is < 3 or > 5)
                 {
                     continue;
                 }
 
                 var sha256 = lineS[0];
                 var fileName = lineS[1];
-                Version? oldVersion = null;
-                if (long.TryParse(lineS[^1], out var fileSize)
-                    && SHA256Util.IsValidSHA256(sha256)
-                    && (lineS.Length != 4 || Version.TryParse(lineS[2], out oldVersion)))
+                SemanticVersion? oldVersion = null;
+                int stagingPercentage = 0;
+
+                var hasFilesize = long.TryParse(lineS[2], out var fileSize);
+                var hasOldVersion = lineS.Length > 3 && SemanticVersion.TryParse(lineS[3], out oldVersion);
+                var hasStagingPercentage = lineS.Length > 3 && int.TryParse(lineS[^1], out stagingPercentage);
+                
+                if (hasFilesize &&
+                    SHA256Util.IsValidSHA256(sha256))
                 {
-                    yield return new ReleaseFile(sha256, fileName, fileSize, oldVersion);
+                    yield return new ReleaseFile(
+                        sha256, 
+                        fileName, 
+                        fileSize, 
+                        hasStagingPercentage ? stagingPercentage : null,
+                        oldVersion);
                     continue;
                 }
 

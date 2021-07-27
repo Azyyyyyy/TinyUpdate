@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core;
+using SemVersion;
 
 namespace TinyUpdate.Create
 {
@@ -15,10 +16,10 @@ namespace TinyUpdate.Create
         public static string OutputLocation { get; set; } = null!;
         public static bool CreateFullUpdate { get; set; }
 
-        public static Version? ApplicationOldVersion { get; set; }
+        public static SemanticVersion? ApplicationOldVersion { get; set; }
         public static string? OldVersionLocation { get; set; }
 
-        public static Version ApplicationNewVersion { get; set; } = null!;
+        public static SemanticVersion ApplicationNewVersion { get; set; } = null!;
         public static string NewVersionLocation { get; set; } = null!;
         
         public static bool SkipVerify { get; set; }

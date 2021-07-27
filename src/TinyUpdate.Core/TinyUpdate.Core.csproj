@@ -75,4 +75,8 @@
         <None Include="Native\macOS\**" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="SemanticVersion" Version="2.1.0" />
+    </ItemGroup>
+
 </Project>

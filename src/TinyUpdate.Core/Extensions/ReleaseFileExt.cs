@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using SemVersion;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core.Extensions
 {
@@ -43,13 +45,22 @@ namespace TinyUpdate.Core.Extensions
                         version,
                         folderLocation,
                         releaseFile.OldVersion,
-                        tag);
+                        tag,
+                        releaseFile.StagingPercentage);
             }
         }
 
-        public static IEnumerable<ReleaseEntry> FilterReleases(this IEnumerable<ReleaseEntry> releaseFiles, bool haveDelta, Version applicationVersion)
+        public static IEnumerable<ReleaseEntry> FilterReleases(
+            this IEnumerable<ReleaseEntry> releaseFiles, 
+            string applicationLocation,
+            bool haveDelta,
+            SemanticVersion applicationVersion)
         {
-            return releaseFiles.Where(x => x.IsDelta == haveDelta && x.Version > applicationVersion);
+            var userId = Staging.GetOrCreateStagedUserId(applicationLocation);
+            return releaseFiles
+                .Where(x => x.IsDelta == haveDelta 
+                            && x.Version > applicationVersion 
+                            && x.IsStagingMatch(userId));
         }
     }
 }

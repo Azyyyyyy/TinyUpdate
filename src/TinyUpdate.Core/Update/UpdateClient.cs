@@ -13,12 +13,7 @@ namespace TinyUpdate.Core.Update
         protected readonly ILogging Logger;
         private readonly IUpdateApplier _updateApplier;
 
-        protected ApplicationMetadata _applicationMetadata;
-        public ApplicationMetadata ApplicationMetadata
-        {
-            get => _applicationMetadata;
-            set => _applicationMetadata = value;
-        }
+        public ApplicationMetadata ApplicationMetadata { get; set; }
 
         protected UpdateClient(IUpdateApplier updateApplier)
         {

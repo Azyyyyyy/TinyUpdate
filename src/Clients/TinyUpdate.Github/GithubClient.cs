@@ -29,7 +29,7 @@ namespace TinyUpdate.Github
         /// <param name="updateApplier">Update Applier that will apply updates after being downloaded</param>
         /// <param name="organization">Organization that contains the application update files</param>
         /// <param name="repository">Application's repository</param>
-        /// <param name="useGraphQl">If we should use <see cref="GithubApiGraphQL"/> when accessing their api (Will require a <see cref="personalToken"/> which has public_repo)</param>
+        /// <param name="useGraphQl">If we should use <see cref="GithubApiGraphQl"/> when accessing their api (Will require a <see cref="personalToken"/> which has public_repo)</param>
         /// <param name="personalToken">Personal token for accessing the repo</param>
         public GithubClient(
             IUpdateApplier updateApplier,
@@ -48,7 +48,7 @@ namespace TinyUpdate.Github
             }
 
             //Get what api we should use and setup httpClient
-            _githubApi = canUseGraphQl ? new GithubApiGraphQL(personalToken, this) : new GithubApiRest(this);
+            _githubApi = canUseGraphQl ? new GithubApiGraphQl(personalToken, this) : new GithubApiRest(this);
             _httpClient = HttpClientFactory.Create(new HttpClientHandler(), _progressMessageHandler);
         }
 
@@ -68,7 +68,7 @@ namespace TinyUpdate.Github
             void ReportProgress(object? sender, HttpProgressEventArgs args)
             {
                 if (sender is HttpRequestMessage message
-                    && message.RequestUri.Query.Contains(requestToCheck))
+                    && (message.RequestUri?.Query.Contains(requestToCheck) ?? false))
                 {
                     progress?.Invoke((double) args.BytesTransferred / releaseEntry.Filesize);
                 }
