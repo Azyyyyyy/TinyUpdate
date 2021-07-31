@@ -2,13 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Linq;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Utils;
@@ -261,7 +259,7 @@ namespace TinyUpdate.Create
                 fileLocation = Path.Combine(Global.OldVersionLocation, mainApplicationName);
                 Global.ApplicationOldVersion =
                     (GetAssembly.IsDotNetAssembly(fileLocation)
-                        ? oldVersionLoader.LoadFromAssemblyName(fileLocation)
+                        ? oldVersionLoader.LoadFromAssemblyPath(fileLocation)
                         : null)?.GetSemanticVersion();
             }
 

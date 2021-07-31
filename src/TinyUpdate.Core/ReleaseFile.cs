@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using SemVersion;
@@ -69,7 +68,8 @@ namespace TinyUpdate.Core
             return Name == otherReleaseFile.Name
                    && Size == otherReleaseFile.Size
                    && OldVersion == otherReleaseFile.OldVersion
-                   && SHA256 == otherReleaseFile.SHA256;
+                   && SHA256 == otherReleaseFile.SHA256
+                   && StagingPercentage == otherReleaseFile.StagingPercentage;
         }
 
         /// <summary>

@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using NUnit.Framework;
 using SemVersion;
 using TinyUpdate.Core;
@@ -37,6 +35,7 @@ namespace TinyUpdate.Test.Update
                 SemanticVersion.Parse("2021.226.0"),
                 @"C:\Users\aaron\AppData\Local\osulazer\app-2021.226.0",
                 SemanticVersion.BaseVersion(),
+                null,
                 @"C:\Users\aaron\AppData\Local\osulazer",
                 progress: obj => _logger.Debug($"Progress: {obj * 100}"));
             Assert.True(wasSuccessful, "Wasn't able to apply update");

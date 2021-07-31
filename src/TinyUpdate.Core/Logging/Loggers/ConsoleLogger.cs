@@ -73,14 +73,14 @@ namespace TinyUpdate.Core.Logging.Loggers
             //no need to do all the fancy logic for colouring
             if (Console.IsOutputRedirected)
             {
-                lock (Console.Out)
+                lock (_writeLock)
                 {
                     Console.WriteLine($"[{type} - {Name}]: " + string.Format(message, propertyValues));
                     return;
                 }
             }
 
-            lock (Console.Out)
+            lock (_writeLock)
             {
                 var oldColour = Console.ForegroundColor;
                 Console.ForegroundColor = colour;
@@ -103,10 +103,11 @@ namespace TinyUpdate.Core.Logging.Loggers
             WriteMessageInit(message, writeNewLineOnEnd, checkCursor, processWaitCheck, propertyValues);
         }
 
+        private static object _writeLock = new object();
         private static void WriteMessageInit(string message, bool writeNewLineOnEnd, bool checkCursor,
             bool processWaitCheck, params object?[] propertyValues)
         {
-            lock (Console.Out)
+            lock (_writeLock)
             {
                 if (checkCursor && Console.CursorLeft != 0)
                 {

@@ -1,6 +1,5 @@
 ﻿using TinyUpdate.Core.Update;
 using TinyUpdate.Create.Helper;
-using SemVersion;
 
 namespace TinyUpdate.Create
 {

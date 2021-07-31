@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core;
 using SemVersion;

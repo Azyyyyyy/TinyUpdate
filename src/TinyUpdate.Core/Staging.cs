@@ -17,10 +17,13 @@ namespace TinyUpdate.Core
             // A "Staging match" is when a user falls into the affirmative
             // bucket - i.e. if the staging is at 10%, this user is the one out
             // of ten case.
-            if (!releaseEntry.StagingPercentage.HasValue
-                || userId is not { Length: 4 })
+            if (!releaseEntry.StagingPercentage.HasValue)
             {
                 return true;
+            }
+            if (userId is not { Length: 4 })
+            {
+                return false;
             }
 
             double val = BitConverter.ToUInt32(userId, 0);

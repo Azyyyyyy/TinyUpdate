@@ -15,6 +15,7 @@ using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 using TinyUpdate.Binary.Entry;
 using TinyUpdate.Binary.Extensions;
+using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Binary
 {
@@ -93,6 +94,13 @@ namespace TinyUpdate.Binary
             var lastUpdateVersion = applicationMetadata.ApplicationVersion;
             foreach (var update in updates)
             {
+                //Check that we made the update (by using the file extension)
+                if (Path.GetExtension(update.Filename) != Extension)
+                {
+                    Logger.Error("{0} is not an update made by {1}, bail...", update.FileLocation, nameof(BinaryCreator));
+                    return false;
+                }
+                
                 //We don't need to do this if we are using a full package
                 if (update.IsDelta
                     && (!update.OldVersion?.Equals(lastUpdateVersion) ?? false))
@@ -147,12 +155,13 @@ namespace TinyUpdate.Binary
             return true;
         }
 
-        private static void Cleanup(IEnumerable<FileEntry> updateEntries, Action<double>? progress)
+        private static void Cleanup(IEnumerable<FileEntry> updateEntries, IDisposable tempFolder, Action<double>? progress)
         {
             foreach (var fileEntry in updateEntries)
             {
                 fileEntry.Stream?.Dispose();
             }
+            tempFolder.Dispose();
             progress?.Invoke(1);
         }
 
@@ -190,6 +199,8 @@ namespace TinyUpdate.Binary
             //Grab all the files from the update file
             using var zip = new ZipArchive(File.OpenRead(entry.FileLocation));
             var updateEntry = await zip.CreateUpdateEntry();
+            var tempFolder = new TemporaryFolder(applicationMetadata.TempFolder, false);
+            
             if (updateEntry == null || updateEntry.Count == 0)
             {
                 /*This only happens when something is up with the update file, delete and return false*/
@@ -219,7 +230,7 @@ namespace TinyUpdate.Binary
                   able to process file, if not then hard bail!*/
                 if (!ProcessSameFile(originalFile, newFile, file))
                 {
-                    Cleanup(updateEntry.All, progress);
+                    Cleanup(updateEntry.All, tempFolder, progress);
                     return false;
                 }
 
@@ -240,7 +251,7 @@ namespace TinyUpdate.Binary
                 var newFileLocation = Path.Combine(newPath, newFile.FileLocation);
                 if (!await ProcessNewFile(newFile, newFileLocation))
                 {
-                    Cleanup(updateEntry.All, progress);
+                    Cleanup(updateEntry.All, tempFolder, progress);
                     return false;
                 }
 
@@ -258,7 +269,7 @@ namespace TinyUpdate.Binary
                 var originalFile = Path.Combine(basePath, deltaFile.FileLocation);
                 var newFileLocation = Path.Combine(newPath, deltaFile.FileLocation);
 
-                var applySuccessful = await DeltaApplying.ProcessDeltaFile(applicationMetadata.TempFolder, originalFile, newFileLocation, deltaFile,
+                var applySuccessful = await DeltaApplying.ProcessDeltaFile(tempFolder, originalFile, newFileLocation, deltaFile,
                     applyProgress => UpdateProgress(progress, fileCounter, filesCount, fileCounter + applyProgress));
 
                 /*We up this counter after as the delta update can report the progress of it being applied,
@@ -268,7 +279,7 @@ namespace TinyUpdate.Binary
                 //Check that it applied and is what we are expecting
                 if (!CheckUpdatedFile(applySuccessful, newFileLocation, deltaFile))
                 {
-                    Cleanup(updateEntry.All, progress);
+                    Cleanup(updateEntry.All, tempFolder, progress);
                     return false;
                 }
 
@@ -292,17 +303,17 @@ namespace TinyUpdate.Binary
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Logger.Warning($"Loader hasn't been added for {RuntimeInformation.OSDescription} yet");
-                Cleanup(updateEntry.All, progress);
+                Cleanup(updateEntry.All, tempFolder, progress);
                 return true;
             }
             
-            if (!await ProcessLoaderFile(applicationMetadata.TempFolder, applicationMetadata.ApplicationFolder, updateEntry.LoaderFile))
+            if (!await ProcessLoaderFile(tempFolder, applicationMetadata.ApplicationFolder, updateEntry.LoaderFile))
             {
-                Cleanup(updateEntry.All, progress);
+                Cleanup(updateEntry.All, tempFolder, progress);
                 return false;
             }
             
-            Cleanup(updateEntry.All, progress);
+            Cleanup(updateEntry.All, tempFolder, progress);
             return true;
         }
 
@@ -318,7 +329,7 @@ namespace TinyUpdate.Binary
             return true;
         }
         
-        private static async Task<bool> ProcessLoaderFile(string tempFolder, string applicationFolder, FileEntry loaderFile)
+        private static async Task<bool> ProcessLoaderFile(TemporaryFolder tempFolder, string applicationFolder, FileEntry loaderFile)
         {
             if (loaderFile.Stream == null)
             {

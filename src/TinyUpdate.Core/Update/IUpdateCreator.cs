@@ -29,7 +29,7 @@ namespace TinyUpdate.Core.Update
             string baseVersionLocation,
             SemanticVersion oldVersion,
             string outputFolder,
-            string? deltaUpdateLocation = null, 
+            string deltaUpdateLocation, 
             OSPlatform? intendedOs = null,
             Action<double>? progress = null);
 
@@ -47,7 +47,7 @@ namespace TinyUpdate.Core.Update
             ApplicationMetadata applicationMetadata,
             string applicationLocation, 
             SemanticVersion version,
-            string? fullUpdateLocation = null,
+            string fullUpdateLocation,
             OSPlatform? intendedOs = null,
             Action<double>? progress = null);
 

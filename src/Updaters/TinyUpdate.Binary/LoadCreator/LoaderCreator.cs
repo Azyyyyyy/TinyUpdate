@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Binary.LoadCreator
 {
@@ -31,7 +32,7 @@ namespace TinyUpdate.Binary.LoadCreator
         /// <param name="applicationName">The application name</param>
         /// <param name="intendedOs">What OS this loader is intended for</param>
         /// <returns>If the loader was created</returns>
-        public static LoadCreateStatus CreateLoader(string tmpFolder, string path, string? iconLocation, string outputFile, string applicationName, OSPlatform? intendedOs)
+        public static LoadCreateStatus CreateLoader(TemporaryFolder tmpFolder, string path, string? iconLocation, string outputFile, string applicationName, OSPlatform? intendedOs)
         {
             if (File.Exists(outputFile))
             {

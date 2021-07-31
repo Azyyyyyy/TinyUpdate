@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Temporary;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 
@@ -24,7 +25,7 @@ namespace TinyUpdate.Binary.Delta
 
         /// <inheritdoc cref="IDeltaUpdate.ApplyDeltaFile"/>
         public async Task<bool> ApplyDeltaFile(
-            string tempFolder,
+            TemporaryFolder tempFolder,
             string originalFileLocation,
             string newFileLocation,
             string deltaFileName,
@@ -86,7 +87,7 @@ namespace TinyUpdate.Binary.Delta
 
         /// <inheritdoc cref="IDeltaUpdate.CreateDeltaFile"/>
         public bool CreateDeltaFile(
-            string tempFolder,
+            TemporaryFolder tempFolder,
             string originalFileLocation,
             string newFileLocation,
             string deltaFileLocation,
@@ -94,7 +95,6 @@ namespace TinyUpdate.Binary.Delta
             Action<double>? progress = null)
         {
             deltaFileStream = new MemoryStream();
-
             var success = BinaryPatchUtility.Create(
                 File.ReadAllBytes(originalFileLocation),
                 File.ReadAllBytes(newFileLocation),

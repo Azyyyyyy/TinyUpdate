@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Core.Update
 {
@@ -25,7 +26,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="progress">Reports back progress creating the delta file</param>
         /// <returns>If creating the delta file was successful</returns>
         public bool CreateDeltaFile(
-            string tempFolder,
+            TemporaryFolder tempFolder,
             string originalFileLocation,
             string newFileLocation,
             string deltaFileLocation,
@@ -43,7 +44,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="progress">Reports back progress creating the delta file</param>
         /// <returns>If creating the delta file was successful</returns>
         public Task<bool> ApplyDeltaFile(
-            string tempFolder,
+            TemporaryFolder tempFolder,
             string originalFileLocation,
             string newFileLocation,
             string deltaFileName,

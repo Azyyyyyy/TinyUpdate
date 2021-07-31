@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using TinyUpdate.Binary.Entry;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Binary.Delta
 {
@@ -21,7 +22,7 @@ namespace TinyUpdate.Binary.Delta
         /// <param name="file">Details about the update</param>
         /// <param name="progress">Progress for applying the update</param>
         /// <returns>If the file was successfully updated</returns>
-        public static async Task<bool> ProcessDeltaFile(string tempFolder, string originalFile, string newFile, FileEntry file, Action<double>? progress = null)
+        public static async Task<bool> ProcessDeltaFile(TemporaryFolder tempFolder, string originalFile, string newFile, FileEntry file, Action<double>? progress = null)
         {
             if (file.Stream == null)
             {

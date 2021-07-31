@@ -8,6 +8,7 @@ using TinyUpdate.Binary.LoadCreator;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Binary
 {
@@ -24,7 +25,7 @@ namespace TinyUpdate.Binary
         /// <param name="outputFile">Where to put the loader</param>
         /// <param name="applicationName">The application name</param>
         /// <returns>If the loader was created</returns>
-        public static LoadCreateStatus CreateLoader(string tmpFolder, string path, string? iconLocation, string outputFile, string applicationName)
+        public static LoadCreateStatus CreateLoader(TemporaryFolder tmpFolder, string path, string? iconLocation, string outputFile, string applicationName)
         {
             if (OSHelper.ActiveOS != OSPlatform.Windows)
             {
@@ -41,26 +42,21 @@ namespace TinyUpdate.Binary
                 return LoadCreateStatus.Failed;
             }
             
-            var templateFolder = Path.Combine(tmpFolder, applicationName, "Loader Template");
-            if (Directory.Exists(templateFolder))
-            {
-                Directory.Delete(templateFolder, true);
-            }
-            
             //Extract zip
+            using var templateFolder = tmpFolder.CreateTemporaryFolder(Path.Combine(applicationName, "Loader Template"));
             var templateZip = new ZipArchive(zipStream, ZipArchiveMode.Read);
-            templateZip.ExtractToDirectory(templateFolder);
+            templateZip.ExtractToDirectory(templateFolder.Location);
             templateZip.Dispose();
             
             //Drop icon into folder if it exists
             if (!string.IsNullOrWhiteSpace(iconLocation))
             {
-                File.Copy(iconLocation, Path.Combine(templateFolder, "app.ico"));
-                File.WriteAllText(Path.Combine(templateFolder, "app.rc"), "IDI_ICON1 ICON DISCARDABLE \"app.ico\"");
+                File.Copy(iconLocation, Path.Combine(templateFolder.Location, "app.ico"));
+                File.WriteAllText(Path.Combine(templateFolder.Location, "app.rc"), "IDI_ICON1 ICON DISCARDABLE \"app.ico\"");
             }
             
             //Change main.cpp
-            var mainFileLocation = Path.Combine(templateFolder, "main.cpp");
+            var mainFileLocation = Path.Combine(templateFolder.Location, "main.cpp");
             var mainFile = File.ReadAllLines(mainFileLocation);
             var changedContent = false;
             for (int i = 0; i < mainFile.Length; i++)
@@ -94,17 +90,16 @@ namespace TinyUpdate.Binary
                 Logger.Error("Can't see vcvars64.bat file. Do you have the C++ Toolset installed?");
                 return LoadCreateStatus.Failed;
             }
-            
             if (string.IsNullOrWhiteSpace(cmakeLocation))
             {
                 Logger.Warning("Unable to find cmake. Can't create loader");
                 return LoadCreateStatus.Failed;
             }
-            var buildFolder = Path.Combine(templateFolder, "cmake-build");
+            using var buildFolder = templateFolder.CreateTemporaryFolder("cmake-build");
 
             //TODO: Make this OS dependent
-            var cacheBat = Path.Combine(templateFolder, "processCache.bat");
-            File.WriteAllLines(cacheBat, new []
+            using var cacheBat = templateFolder.CreateTemporaryFile("processCache.bat");
+            File.WriteAllLines(cacheBat.Location, new []
             {
                 $"@call \"{toolsFile}\"",
                 $"\"{cmakeLocation}\" -DCMAKE_BUILD_TYPE=Release -G \"CodeBlocks - NMake Makefiles\" -S \"{templateFolder}\" -B \"{buildFolder}\"",
@@ -123,9 +118,10 @@ namespace TinyUpdate.Binary
             };
 
             //Setup grabbing output for us if needed
-            var buildLog = File.CreateText(Path.Combine(templateFolder, DateTime.Now.ToFileName() + ".log"));
-            buildProcess.OutputDataReceived += (sender, args) => buildLog.WriteLineAsync(args.Data);
-            buildProcess.ErrorDataReceived += (sender, args) => buildLog.WriteLineAsync(args.Data);
+            using var buildLog = templateFolder.CreateTemporaryFile(DateTime.Now.ToFileName() + ".log");
+            var buildLogStream = buildLog.GetTextStream();
+            buildProcess.OutputDataReceived += (sender, args) => buildLogStream.WriteLineAsync(args.Data);
+            buildProcess.ErrorDataReceived += (sender, args) => buildLogStream.WriteLineAsync(args.Data);
 
             //Build
             buildProcess.Start();
@@ -138,10 +134,11 @@ namespace TinyUpdate.Binary
             if (buildProcess.ExitCode != 0)
             {
                 Logger.Error("Failed to create loader");
+                Logger.Error(File.ReadAllText(buildLog.Location));
                 return LoadCreateStatus.Failed;
             }
 
-            File.Move(Path.Combine(buildFolder, "ApplicationLoader.exe"), outputFile);
+            File.Move(Path.Combine(buildFolder.Location, "ApplicationLoader.exe"), outputFile);
             return LoadCreateStatus.Successful;
         }
 

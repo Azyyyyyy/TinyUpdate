@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SemVersion;
 using TinyUpdate.Core.Logging;
-using TinyUpdate.Core.Utils;
 
 namespace TinyUpdate.Core.Extensions
 {

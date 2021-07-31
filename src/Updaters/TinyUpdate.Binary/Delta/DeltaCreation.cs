@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Binary.Delta
 {
@@ -21,7 +22,7 @@ namespace TinyUpdate.Binary.Delta
         /// <param name="deltaFileStream">The contents of the delta file</param>
         /// <param name="progress">Progress of making the delta file (If we can report the progress back)</param>
         public static bool CreateDeltaFile(
-            string tempFolder,
+            TemporaryFolder tempFolder,
             string baseFileLocation,
             string newFileLocation,
             string deltaFileLocation,

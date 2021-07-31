@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Temporary;
 using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Binary.Delta.MsDelta
@@ -21,7 +22,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
 
         /// <inheritdoc cref="IDeltaUpdate.CreateDeltaFile"/>
         public bool CreateDeltaFile(
-            string tempFolder,
+            TemporaryFolder tempFolder,
             string originalFileLocation,
             string newFileLocation,
             string deltaFileLocation,
@@ -41,7 +42,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
 
         /// <inheritdoc cref="IDeltaUpdate.ApplyDeltaFile"/>
         public async Task<bool> ApplyDeltaFile(
-            string tempFolder,
+            TemporaryFolder tempFolder,
             string originalFileLocation,
             string newFileLocation,
             string deltaFileName,
@@ -53,49 +54,33 @@ namespace TinyUpdate.Binary.Delta.MsDelta
                 _logger.Error("We aren't on Windows so can't apply MSDiff update");
                 return false;
             }
-
             if (string.IsNullOrWhiteSpace(deltaFileName))
             {
                 _logger.Error("Wasn't given a file location for the delta file");
                 return false;
             }
 
-            //Create Temp folder if it doesn't exist
-            Directory.CreateDirectory(tempFolder);
-
-            var tmpDeltaFile = Path.Combine(tempFolder, deltaFileName);
-            //Delete the tmp file if it already exists, likely from the last update
-            if (File.Exists(tmpDeltaFile))
-            {
-                File.Delete(tmpDeltaFile);
-            }
-
             //Put the delta file onto disk
-            var tmpFileStream = File.OpenWrite(tmpDeltaFile);
+            using var tmpDeltaFile = tempFolder.CreateTemporaryFile(deltaFileName);
+            var tmpFileStream = tmpDeltaFile.GetStream();
             await deltaFileStream.CopyToAsync(tmpFileStream);
             tmpFileStream.Dispose();
             deltaFileStream.Dispose();
 
             //If baseFile + outputLocation are the same, copy it to a tmp file
             //and then give it that (deleting it after)
-            string? tmpBaseFile = null;
+            TemporaryFile? tmpBaseFile = null;
             if (originalFileLocation == newFileLocation)
             {
-                tmpBaseFile = Path.Combine(tempFolder, Path.GetRandomFileName());
-                File.Copy(originalFileLocation, tmpBaseFile);
-                originalFileLocation = tmpBaseFile;
+                tmpBaseFile = tempFolder.CreateTemporaryFile(Path.GetRandomFileName());
+                File.Copy(originalFileLocation, tmpBaseFile.Location);
+                originalFileLocation = tmpBaseFile.Location;
             }
 
             //Make the updated file!
             File.Create(newFileLocation).Dispose();
-            var wasApplySuccessful = ApplyDelta(ApplyFlags.None, originalFileLocation, tmpDeltaFile, newFileLocation);
-
-            //Delete tmp files
-            File.Delete(tmpDeltaFile);
-            if (!string.IsNullOrWhiteSpace(tmpBaseFile))
-            {
-                File.Delete(tmpBaseFile);
-            }
+            var wasApplySuccessful = ApplyDelta(ApplyFlags.None, originalFileLocation, tmpDeltaFile.Location, newFileLocation);
+            tmpBaseFile?.Dispose();
 
             return wasApplySuccessful;
         }
