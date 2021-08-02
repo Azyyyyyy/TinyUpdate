@@ -43,30 +43,6 @@ namespace TinyUpdate.Binary
             OSPlatform? intendedOs = null,
             Action<double>? progress = null)
         {
-            //To keep track of progress
-            long fileCount = 0;
-            long deltaFilesLength = 0;
-            long newFilesLength;
-            long sameFilesLength;
-            double lastProgress = 0;
-            void UpdateProgress(double extraProgress = 0)
-            {
-                if (deltaFilesLength + newFilesLength == 0 
-                    || fileCount == 0)
-                {
-                    return;
-                }
-
-                //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
-                var progressValue = 
-                    (fileCount - sameFilesLength + extraProgress + 1) / (deltaFilesLength + newFilesLength + 2);
-                if (progressValue != lastProgress)
-                {
-                    progress?.Invoke(progressValue);
-                    lastProgress = progressValue;
-                }
-            }
-
             if (!Directory.Exists(newVersionLocation) 
                 || !Directory.Exists(baseVersionLocation))
             {
@@ -100,8 +76,7 @@ namespace TinyUpdate.Binary
             var sameFiles = newVersionFiles.Where(x => baseVersionFiles.Contains(x)).ToArray();
             var newFiles = newVersionFiles.Where(x => !sameFiles.Contains(x)).ToArray();
 
-            newFilesLength = newFiles.LongLength;
-            sameFilesLength = sameFiles.LongLength;
+            var progressReport = new ProgressReport(newFiles.Length + sameFiles.Length, progress);
             var deltaFiles = new List<string>(sameFiles.Length);
 
             //First process any files that didn't change, don't even count them in the progress as it will be quick af
@@ -116,8 +91,6 @@ namespace TinyUpdate.Binary
                 if (IsDeltaFile(Path.Combine(baseVersionLocation, maybeDeltaFile),
                     newFileLocation))
                 {
-                    sameFilesLength--;
-                    deltaFilesLength++;
                     deltaFiles.Add(maybeDeltaFile);
                     continue;
                 }
@@ -128,10 +101,9 @@ namespace TinyUpdate.Binary
                 using var fileStream = File.OpenRead(newFileLocation);
                 if (AddSameFile(zipArchive, maybeDeltaFile, SHA256Util.CreateSHA256Hash(fileStream)))
                 {
-                    fileCount++;
+                    progressReport.ProcessedFile();
                     continue;
                 }
-
                 Logger.Warning("We wasn't able to add {0} as a file that was unchanged, adding as a \"new\" file",
                     maybeDeltaFile);
 
@@ -143,8 +115,7 @@ namespace TinyUpdate.Binary
                     Cleanup();
                     return false;
                 }
-
-                fileCount++;
+                progressReport.ProcessedFile();
             }
 
             //Now process files that was added into the new version
@@ -157,8 +128,7 @@ namespace TinyUpdate.Binary
                 using var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFile));
                 if (AddNewFile(zipArchive, fileStream, newFile))
                 {
-                    fileCount++;
-                    UpdateProgress();
+                    progressReport.ProcessedFile();
                     continue;
                 }
 
@@ -180,10 +150,9 @@ namespace TinyUpdate.Binary
                         Path.Combine(baseVersionLocation, deltaFile),
                         deltaFileLocation, 
                         intendedOs,
-                        UpdateProgress))
+                        (pro) => progressReport.PartialProcessedFile(pro)))
                     {
-                        Interlocked.Increment(ref fileCount);
-                        UpdateProgress();
+                        progressReport.ProcessedFile();
                         return;
                     }
 
@@ -192,8 +161,7 @@ namespace TinyUpdate.Binary
                     using var fileStream = File.OpenRead(Path.Combine(newVersionLocation, deltaFileLocation));
                     if (AddNewFile(zipArchive, fileStream, deltaFile))
                     {
-                        Interlocked.Increment(ref fileCount);
-                        UpdateProgress();
+                        progressReport.ProcessedFile();
                         return;
                     }
 
@@ -222,8 +190,7 @@ namespace TinyUpdate.Binary
                 Cleanup();
                 return false;
             }
-            fileCount++;
-            UpdateProgress();
+            progressReport.ProcessedFile();
 
             //We have created the delta file if we get here, do cleanup and then report as success!
             Logger.Information("We are done with creating the delta file, cleaning up");
@@ -250,23 +217,22 @@ namespace TinyUpdate.Binary
             var zipArchive = CreateZipArchive(fullUpdateLocation);
             var files = Directory.EnumerateFiles(applicationLocation, "*", SearchOption.AllDirectories).ToArray();
             var tempFolder = new TemporaryFolder(applicationMetadata.TempFolder);
+            var progressReport = new ProgressReport(files.Length, progress);
 
             void Cleanup()
             {
                 zipArchive.Dispose();
                 tempFolder.Dispose();
-                progress?.Invoke(1);
+                progressReport.DoneCleanup();
             }
             
-            var fileCount = 0d;
             foreach (var file in files)
             {
                 //We will process the file as a "new" file as we always want to copy it over
                 using var fileStream = File.OpenRead(file);
                 if (AddNewFile(zipArchive, fileStream, file.RemovePath(applicationLocation)))
                 {
-                    fileCount++;
-                    progress?.Invoke(fileCount / (files.LongLength + 2));
+                    progressReport.ProcessedFile();
                     continue;
                 }
 
@@ -283,9 +249,7 @@ namespace TinyUpdate.Binary
                 Cleanup();
                 return false;
             }
-            fileCount++;
-            progress?.Invoke(fileCount / (files.LongLength + 2));
-
+            progressReport.ProcessedFile();
             Cleanup();
             return true;
         }

@@ -25,67 +25,25 @@ namespace TinyUpdate.Create
         private static async Task<int> Main(string[] args)
         {
             // Create a root command with some options
-            var rootCommand = new RootCommand
-            {
-                new Option<bool>(
-                    new[] {"-d", "--delta"},
-                    "Create a delta update"),
-                new Option<bool>(
-                    new[] {"-f", "--full"},
-                    "Create a full update"),
-                new Option<DirectoryInfo?>(
-                    new[] {"-o", "--output-location"},
-                    "Where any files created should be stored"),
-                new Option<DirectoryInfo?>(
-                    new[] {"--nl", "--new-version-location"},
-                    "Where the new version of the application is stored"),
-                new Option<DirectoryInfo?>(
-                    new[] {"--ol", "--old-version-location"},
-                    "Where the old version of the application is stored"),
-                new Option<string>(
-                    new[] {"--af", "--application-file"},
-                    "What is the main application file?"),
-                new Option<bool>(
-                    new[] {"-s", "--skip-verifying"},
-                    "Skip verifying that the update applies correctly"),
-                new Option<bool>(
-                    new[] {"-v", "--verify"},
-                    "Verify that the update applies correctly"),
-                new Option<string?>(
-                    new[] {"--at", "--applier-type"},
-                    "What type is used for applying the update"),
-                new Option<string?>(
-                    new[] {"--ct", "--creator-type"},
-                    "What type is used for creating updates"),
-                new Option<string?>(
-                    new[] {"--os", "--intended-os"},
-                    "What os the update is intended for"),
-            };
+            var rootCommand = Commands.GetRootCommand();
             rootCommand.Description = Logger.Name;
-
-            //TODO: Ask for Intended OS
-            rootCommand.Handler = CommandHandler
-                .Create<bool, bool, DirectoryInfo?, DirectoryInfo?, DirectoryInfo?, string, bool, bool, string?, string?
-                    , string?>(
-                    (delta, full, outputLocation, newVersionLocation, oldVersionLocation, applicationFile,
-                        skipVerifying, verify, applierType, creatorType, intendedOs) =>
-                    {
-                        Global.CreateDeltaUpdate = delta;
-                        Global.CreateFullUpdate = full;
-                        Global.OutputLocation = (outputLocation?.Exists ?? false ? outputLocation.FullName : null)!;
-                        Global.NewVersionLocation =
-                            (newVersionLocation?.Exists ?? false ? newVersionLocation.FullName : null)!;
-                        Global.OldVersionLocation =
-                            oldVersionLocation?.Exists ?? false ? oldVersionLocation.FullName : null;
-                        Global.MainApplicationFile = applicationFile;
-                        Global.SkipVerify = skipVerifying;
-                        Global.AskIfUserWantsToVerify = !verify && !skipVerifying;
-                        Global.IntendedOs = !string.IsNullOrWhiteSpace(intendedOs)
-                            ? OSPlatform.Create(intendedOs)
-                            : null;
-                        _applierTypeName = applierType;
-                        _creatorTypeName = creatorType;
-                    });
+            rootCommand.Handler = CommandHandler.Create<Commands>(commands => 
+            { 
+                Global.CreateDeltaUpdate = commands.Delta; 
+                Global.CreateFullUpdate = commands.Full; 
+                Global.OutputLocation = (commands.OutputLocation?.Exists ?? false ? commands.OutputLocation.FullName : null)!; 
+                Global.NewVersionLocation = 
+                    (commands.NewVersionLocation?.Exists ?? false ? commands.NewVersionLocation.FullName : null)!; 
+                Global.OldVersionLocation = 
+                    commands.OldVersionLocation?.Exists ?? false ? commands.OldVersionLocation.FullName : null;
+                Global.MainApplicationFile = commands.ApplicationFile; 
+                Global.SkipVerify = commands.SkipVerify; 
+                Global.AskIfUserWantsToVerify = !commands.ShouldVerify && !commands.SkipVerify; 
+                Global.IntendedOs = commands.IntendedOs; 
+                Global.StagingPercentage = commands.StagingPercentage; 
+                _applierTypeName = commands.ApplierType; 
+                _creatorTypeName = commands.CreatorType;
+            });
             
             //Parse args, throwing the error if it couldn't
             var commandResult = await rootCommand.InvokeAsync(args);
@@ -136,7 +94,6 @@ namespace TinyUpdate.Create
                 Global.OldVersionLocation ??=
                     ConsoleHelper.RequestFolder("Type in where the old version of the application is");
             }
-
             Logger.WriteLine();
 
             //Grab the update creator
@@ -154,7 +111,18 @@ namespace TinyUpdate.Create
             Global.MainApplicationFile ??=
                 ConsoleHelper.RequestFile("What is the main application file?", Global.NewVersionLocation);
 
-            //TODO: Ask if they want this update to have staging
+            if (ConsoleHelper.RequestYesOrNo("Is this update intended for a certain OS?", false))
+            {
+                Global.IntendedOs = OSPlatform.Create(ConsoleHelper.RequestString("What OS is this intended for?"));
+            }
+
+            if (Global.StagingPercentage is not null &&
+                ConsoleHelper.RequestYesOrNo("Do you want to limit the amount of people with this update?", false))
+            {
+                Console.WriteLine("What percentage of users do you want to have this update?");
+                Global.StagingPercentage = ConsoleHelper.RequestNumber(0, 100);
+                Console.WriteLine("When you want to change the amount of users with this update, go into the RELEASE file and change the percentage (Last value in the line that contains this update)");
+            }
 
             //Get metadata about the application we are making update files for
             GetApplicationMetadata();
@@ -209,7 +177,6 @@ namespace TinyUpdate.Create
                 }
             }
 
-            //TODO: Make it join other release file entries exist
             if (!await ReleaseFile.CreateReleaseFile(releaseFiles, Global.OutputLocation))
             {
                 Logger.Error("Can't create release file....");
@@ -234,7 +201,7 @@ namespace TinyUpdate.Create
                     updateFileSHA,
                     Path.GetFileName(outputFile),
                     fileStream.Length,
-                    null, //staging
+                    Global.StagingPercentage,
                     isDelta ? Global.ApplicationOldVersion : null));
             return true;
         }

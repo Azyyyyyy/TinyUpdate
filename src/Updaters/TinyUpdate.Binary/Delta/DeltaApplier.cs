@@ -9,9 +9,9 @@ namespace TinyUpdate.Binary.Delta
     /// <summary>
     /// Processes applying delta update files 
     /// </summary>
-    public static class DeltaApplying
+    public static class DeltaApplier
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(DeltaApplying));
+        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(DeltaApplier));
 
         /// <summary>
         /// Processes a file that has a delta update

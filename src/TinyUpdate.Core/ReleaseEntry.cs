@@ -30,7 +30,7 @@ namespace TinyUpdate.Core
             {
                 if (oldVersion == null)
                 {
-                    throw new Exception("We need the old version in a delta update");
+                    throw new OldVersionRequiredException();
                 }
 
                 OldVersion = oldVersion;
@@ -38,13 +38,13 @@ namespace TinyUpdate.Core
 
             if (filesize < 0)
             {
-                throw new Exception("Filesize can't be under 0 bytes!");
+                throw new BadFilesizeException();
             }
 
             //Check hash and file name/path
             if (!SHA256Util.IsValidSHA256(sha256))
             {
-                throw new Exception("SHA256 hash given is not a valid SHA256 hash");
+                throw new InvalidHashException();
             }
 
             if (!filename.IsValidForFileName(out var invalidChar))

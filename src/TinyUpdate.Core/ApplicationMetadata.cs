@@ -85,7 +85,7 @@ namespace TinyUpdate.Core
             {
                 if (!Directory.Exists(value))
                 {
-                    throw new Exception("Folder doesn't exist");
+                    throw new DirectoryNotFoundException(value + " was not found");
                 }
 
                 _applicationFolder = value;

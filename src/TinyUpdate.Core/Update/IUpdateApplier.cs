@@ -29,6 +29,12 @@ namespace TinyUpdate.Core.Update
         Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, UpdateInfo updateInfo, Action<double>? progress = null);
 
         /// <summary>
+        /// Removes old builds that are still on the device (Will keep the last two builds on disk)
+        /// </summary>
+        /// <param name="applicationMetadata">Metadata about this application</param>
+        void RemoveOldBuilds(ApplicationMetadata applicationMetadata);
+        
+        /// <summary>
         /// Gets where an certain version of the application would be located
         /// </summary>
         /// <param name="applicationFolder">Where the folder should be</param>

@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using SemVersion;
 using TinyUpdate.Core.Logging;
@@ -88,14 +91,16 @@ namespace TinyUpdate.Core
             
             fileLocation = Path.Combine(fileLocation, "RELEASE");
             var file = new FileInfo(fileLocation);
+            var oldReleases = Array.Empty<ReleaseFile>();
             if (file.Exists)
             {
+                oldReleases = ReadReleaseFile(File.ReadLines(fileLocation)).ToArray();
                 Logging.Warning("{0} already exists, going to delete it and recreate it", fileLocation);
                 file.Delete();
             }
 
             using var textFileStream = file.CreateText();
-            foreach (var releaseFile in releaseFiles)
+            foreach (var releaseFile in releaseFiles.Concat(oldReleases))
             {
                 await textFileStream.WriteLineAsync(releaseFile.ToString());
             }
@@ -129,38 +134,50 @@ namespace TinyUpdate.Core
             //3. Same as 1/2 but with ' {staging percentage}'
             foreach (var line in lines)
             {
-                var lineS = line.Split(' ');
-                /*Check that the line only has 3/5 lines, if not then
-                 that means it's not a release file for sure*/
-                if (lineS.Length is < 3 or > 5)
+                var re = MakeReleaseFile(line, out var successful);
+                if (successful)
                 {
-                    continue;
+                    yield return re!;
                 }
-
-                var sha256 = lineS[0];
-                var fileName = lineS[1];
-                SemanticVersion? oldVersion = null;
-                int stagingPercentage = 0;
-
-                var hasFilesize = long.TryParse(lineS[2], out var fileSize);
-                var hasOldVersion = lineS.Length > 3 && SemanticVersion.TryParse(lineS[3], out oldVersion);
-                var hasStagingPercentage = lineS.Length > 3 && int.TryParse(lineS[^1], out stagingPercentage);
-                
-                if (hasFilesize &&
-                    SHA256Util.IsValidSHA256(sha256))
-                {
-                    yield return new ReleaseFile(
-                        sha256, 
-                        fileName, 
-                        fileSize, 
-                        hasStagingPercentage ? stagingPercentage : null,
-                        oldVersion);
-                    continue;
-                }
-
-                //If we got here then we wasn't able to create a release file from the data given
-                Logging.Warning("Line {0} is not a valid ReleaseFile", line);
             }
+        }
+
+        private static ReleaseFile? MakeReleaseFile(string line, out bool successful)
+        {
+            successful = false;
+            var lineS = line.Split(' ');
+            /*Check that the line only has 3/5 lines, if not then
+             that means it's not a release file for sure*/
+            if (lineS.Length is < 3 or > 5)
+            {
+                return null;
+            }
+
+            var sha256 = lineS[0];
+            var fileName = lineS[1];
+            SemanticVersion? oldVersion = null;
+            int stagingPercentage = 0;
+
+            var hasFilesize = long.TryParse(lineS[2], out var fileSize);
+            var hasOldVersion = lineS.Length > 3 && SemanticVersion.TryParse(lineS[3], out oldVersion);
+            var hasStagingPercentage = lineS.Length > 3 && int.TryParse(lineS[^1], out stagingPercentage);
+                
+            if (hasFilesize &&
+                SHA256Util.IsValidSHA256(sha256))
+            {
+                successful = true;
+                return new ReleaseFile(
+                    sha256, 
+                    fileName, 
+                    fileSize, 
+                    hasStagingPercentage ? stagingPercentage : null,
+                    oldVersion);
+                
+            }
+
+            //If we got here then we wasn't able to create a release file from the data given
+            Logging.Warning("Line {0} is not a valid ReleaseFile", line);
+            return null;
         }
     }
 }

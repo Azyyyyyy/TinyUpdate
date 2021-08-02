@@ -8,6 +8,7 @@ using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Create.Exceptions;
 
 //Big thanks for Andrew Larsson showing their loader for shared assemblies!: https://gist.github.com/andrewLarsson/f5351a7c9234ba8c0981037f79108344
 namespace TinyUpdate.Create.AssemblyHelper
@@ -158,7 +159,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
                 //.NET Core lib
                 ".NET" => GetCoreFolders(_mainLibVersion),
-                _ => throw new NotSupportedException("We don't know/support this version of .NET")
+                _ => throw new UnknownNETKindException()
             };
         }
 

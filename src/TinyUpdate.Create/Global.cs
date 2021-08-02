@@ -15,6 +15,8 @@ namespace TinyUpdate.Create
         public static string OutputLocation { get; set; } = null!;
         public static bool CreateFullUpdate { get; set; }
 
+        public static int? StagingPercentage { get; set; }
+
         public static SemanticVersion? ApplicationOldVersion { get; set; }
         public static string? OldVersionLocation { get; set; }
 

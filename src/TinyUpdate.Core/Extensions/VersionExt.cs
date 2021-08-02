@@ -12,12 +12,16 @@ namespace TinyUpdate.Core.Extensions
     /// </summary>
     public static class VersionExt
     {
-        private static readonly Regex SuffixRegex = new Regex(@"(-full|-delta)?", RegexOptions.Compiled);
         public static readonly Regex OsRegex = new Regex(@"(-Linux|-Windows|-OSX)?", RegexOptions.Compiled);
 
+        private static readonly Regex SuffixRegex = new Regex(@"(-full|-delta)?", RegexOptions.Compiled);
         private static readonly Regex VersionRegex =
             new Regex(@"\d+(\.\d+){0,3}(-[A-Za-z][0-9A-Za-z-]*)?$", RegexOptions.Compiled);
-
+        
+        /// <summary>
+        /// Creates a <see cref="SemanticVersion"/> from <see cref="Version"/>
+        /// </summary>
+        /// <param name="version">Version to turn into <see cref="SemanticVersion"/></param>
         public static SemanticVersion ToSemanticVersion(this Version version)
         {
             return SemanticVersion.Parse(version.ToString(3) + GetRevisionString(version));
@@ -26,7 +30,7 @@ namespace TinyUpdate.Core.Extensions
         private static string GetRevisionString(Version version)
         {
             var s = "";
-            if (version.Revision != -1)
+            if (version.Revision > 0)
             {
                 s += "+r" + version.Revision;
             }
@@ -34,6 +38,10 @@ namespace TinyUpdate.Core.Extensions
             return s;
         }
 
+        /// <summary>
+        /// Grabs the <see cref="SemanticVersion"/> from an assembly
+        /// </summary>
+        /// <param name="assembly">Assembly to look through</param>
         [return: NotNullIfNotNull("assembly")]
         public static SemanticVersion? GetSemanticVersion(this Assembly? assembly)
         {

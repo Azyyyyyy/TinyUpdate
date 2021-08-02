@@ -125,7 +125,7 @@ namespace TinyUpdate.Create
                 filesize,
                 isDelta,
                 newVersion,
-                Path.GetDirectoryName(updateFile) ?? throw new Exception("Can't get folder path!"),
+                Path.GetDirectoryName(updateFile) ?? throw new DirectoryNotFoundException("Can't find folder path!"),
                 oldVersion);
 
             //Try to do the update

@@ -35,7 +35,7 @@ namespace TinyUpdate.Core.Helper
                 return macOSTask.Invoke();
             }
 
-            throw new PlatformNotSupportedException("We currently don't support the OS we are currently running on");
+            throw new PlatformNotSupportedException();
         }
 
         /// <inheritdoc cref="RunTaskBasedOnOS{T}"/>
@@ -57,7 +57,7 @@ namespace TinyUpdate.Core.Helper
                 return macOSTask;
             }
 
-            throw new Exception("We currently don't support the OS we are currently running on");
+            throw new PlatformNotSupportedException();
         }
     }
 }

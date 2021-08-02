@@ -15,6 +15,7 @@ using TinyUpdate.Core.Update;
 using TinyUpdate.Core.Utils;
 using TinyUpdate.Binary.Entry;
 using TinyUpdate.Binary.Extensions;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Binary
@@ -25,7 +26,36 @@ namespace TinyUpdate.Binary
     public class BinaryApplier : IUpdateApplier
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryApplier));
-        
+
+        public void RemoveOldBuilds(ApplicationMetadata applicationMetadata)
+        {
+            /*We will want to keep the currently running version and the version that
+             was just applied (Known by the one folder that is higher version then this)*/
+            foreach (var folder in 
+                Directory.EnumerateDirectories(applicationMetadata.ApplicationFolder))
+            {
+                /*We don't want to process if its null, could be folder that we or
+                 the application made outside of the build that is actively running*/
+                var folderVersion = folder[3..].ToVersion();
+                if (folderVersion is null
+                || folderVersion >= applicationMetadata.ApplicationVersion)
+                {
+                    continue;
+                }
+                
+                Logger.Information("{0} is an outdated version of this application (Version {1}), deleting...", folder, folderVersion);
+                try
+                {
+                    Directory.Delete(folder, true);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error("Unable to delete {1}. Exception is below", folder);
+                    Logger.Error(e);
+                }
+            }
+        }
+
         /// <inheritdoc cref="IUpdateApplier.GetApplicationPath(string, SemanticVersion?)"/>
         [return: NotNullIfNotNull("version")]
         public string? GetApplicationPath(string applicationFolder, SemanticVersion? version) =>
@@ -61,7 +91,13 @@ namespace TinyUpdate.Binary
             newPath.RemakeFolder();
 
             //Do the update!
-            return await ApplyUpdate(applicationMetadata, basePath, newPath, entry, progress);
+            if (!await ApplyUpdate(applicationMetadata, basePath, newPath, entry, progress))
+            {
+                return false;
+            }
+
+            RemoveOldBuilds(applicationMetadata);
+            return true;
         }
 
         /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, UpdateInfo, Action{double})"/>
@@ -112,7 +148,7 @@ namespace TinyUpdate.Binary
 
                 lastUpdateVersion = update.Version;
             }
-
+            
             //Get the **newest** version that we have to apply and use that for the folder
             var newVersionFolder = GetApplicationPath(applicationMetadata.ApplicationFolder, updateInfo.NewVersion);
             if (string.IsNullOrWhiteSpace(newVersionFolder))
@@ -152,30 +188,25 @@ namespace TinyUpdate.Binary
                 doneFirstUpdate = true;
             }
 
+            RemoveOldBuilds(applicationMetadata);
             return true;
         }
 
-        private static void Cleanup(IEnumerable<FileEntry> updateEntries, IDisposable tempFolder, Action<double>? progress)
+        private void Cleanup(IEnumerable<FileEntry> updateEntries, IDisposable tempFolder, ProgressReport progress)
         {
             foreach (var fileEntry in updateEntries)
             {
                 fileEntry.Stream?.Dispose();
             }
             tempFolder.Dispose();
-            progress?.Invoke(1);
+            progress.DoneCleanup();
         }
-
-        private static void UpdateProgress(
-            Action<double>? progress, 
-            double fileCounter, 
-            double filesCount, 
-            double? fileCount = null) => progress?.Invoke((fileCount ?? fileCounter) / filesCount);
 
         /// <inheritdoc cref="ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{double})"/>
         /// <param name="basePath">Path where we grab any old files that can be reused from</param>
         /// <param name="newPath">Where to put the new version of the application into</param>
         [SuppressMessage("ReSharper", "InvalidXmlDocComment", Justification = "Missing Comments are in interface class")]
-        private static async Task<bool> ApplyUpdate(
+        private async Task<bool> ApplyUpdate(
             ApplicationMetadata applicationMetadata,
             string basePath,
             string newPath,
@@ -208,15 +239,11 @@ namespace TinyUpdate.Binary
                 File.Delete(entry.FileLocation);
                 return false;
             }
-            
-            //We need that extra 1 so we are at 99% when done (we got some cleanup to do after)
-            var fileCounter = 0d;
-            var filesCount = updateEntry.Count + 1;
+            var progressReport = new ProgressReport(updateEntry.Count, progress);
 
             //We want to do the files that didn't change first
             foreach (var file in updateEntry.SameFile.OrderByDescending(x => x.Filesize))
             {
-                fileCounter++;
                 Logger.Debug("Processing unchanged file ({0})", file.FileLocation);
 
                 //Create folder (if it exists)
@@ -230,18 +257,17 @@ namespace TinyUpdate.Binary
                   able to process file, if not then hard bail!*/
                 if (!ProcessSameFile(originalFile, newFile, file))
                 {
-                    Cleanup(updateEntry.All, tempFolder, progress);
+                    Cleanup(updateEntry.All, tempFolder, progressReport);
                     return false;
                 }
 
-                UpdateProgress(progress, fileCounter, filesCount);
+                progressReport.ProcessedFile();
                 file.Stream?.Dispose();
             }
 
             //Note that this should be the only loop that is used when doing a full update
             foreach (var newFile in updateEntry.NewFile)
             {
-                fileCounter++;
                 Logger.Debug("Processing new file ({0})", newFile.FileLocation);
 
                 //Create folder (if it exists)
@@ -251,11 +277,11 @@ namespace TinyUpdate.Binary
                 var newFileLocation = Path.Combine(newPath, newFile.FileLocation);
                 if (!await ProcessNewFile(newFile, newFileLocation))
                 {
-                    Cleanup(updateEntry.All, tempFolder, progress);
+                    Cleanup(updateEntry.All, tempFolder, progressReport);
                     return false;
                 }
 
-                UpdateProgress(progress, fileCounter, filesCount);
+                progressReport.ProcessedFile();
                 newFile.Stream?.Dispose();
             }
 
@@ -269,21 +295,17 @@ namespace TinyUpdate.Binary
                 var originalFile = Path.Combine(basePath, deltaFile.FileLocation);
                 var newFileLocation = Path.Combine(newPath, deltaFile.FileLocation);
 
-                var applySuccessful = await DeltaApplying.ProcessDeltaFile(tempFolder, originalFile, newFileLocation, deltaFile,
-                    applyProgress => UpdateProgress(progress, fileCounter, filesCount, fileCounter + applyProgress));
-
-                /*We up this counter after as the delta update can report the progress of it being applied,
-                 upping it before will make the progress be more then it should at that time*/
-                fileCounter++;
+                var applySuccessful = await DeltaApplier.ProcessDeltaFile(tempFolder, originalFile, newFileLocation, deltaFile,
+                    applyProgress => progressReport.PartialProcessedFile(applyProgress));
 
                 //Check that it applied and is what we are expecting
                 if (!CheckUpdatedFile(applySuccessful, newFileLocation, deltaFile))
                 {
-                    Cleanup(updateEntry.All, tempFolder, progress);
+                    Cleanup(updateEntry.All, tempFolder, progressReport);
                     return false;
                 }
 
-                UpdateProgress(progress, fileCounter, filesCount);
+                progressReport.ProcessedFile();
                 deltaFile.Stream?.Dispose();
             }
 
@@ -299,21 +321,21 @@ namespace TinyUpdate.Binary
             }
 
             //TODO: Remove this when we added Linux support
-            //Drop the loader onto disk now we know that everything was done correctly
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OSHelper.ActiveOS != OSPlatform.Windows)
             {
-                Logger.Warning($"Loader hasn't been added for {RuntimeInformation.OSDescription} yet");
-                Cleanup(updateEntry.All, tempFolder, progress);
+                Logger.Warning("Loader hasn't been added for {0} yet", RuntimeInformation.OSDescription);
+                Cleanup(updateEntry.All, tempFolder, progressReport);
                 return true;
             }
-            
+            //Drop the loader onto disk now we know that everything was done correctly
             if (!await ProcessLoaderFile(tempFolder, applicationMetadata.ApplicationFolder, updateEntry.LoaderFile))
             {
-                Cleanup(updateEntry.All, tempFolder, progress);
+                Cleanup(updateEntry.All, tempFolder, progressReport);
                 return false;
             }
-            
-            Cleanup(updateEntry.All, tempFolder, progress);
+            progressReport.ProcessedFile();
+
+            Cleanup(updateEntry.All, tempFolder, progressReport);
             return true;
         }
 
@@ -345,7 +367,7 @@ namespace TinyUpdate.Binary
             if (loaderFile.DeltaExtension != ".load")
             {
                 loaderFile.DeltaExtension = loaderFile.DeltaExtension[..^4];
-                if (await DeltaApplying.ProcessDeltaFile(tempFolder, loaderFileLocation, loaderFileLocation + ".new", loaderFile))
+                if (await DeltaApplier.ProcessDeltaFile(tempFolder, loaderFileLocation, loaderFileLocation + ".new", loaderFile))
                 {
                     return CheckLoaderAndReturn(loaderFileLocation, loaderFile);
                 }

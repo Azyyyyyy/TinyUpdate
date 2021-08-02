@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 
 //Adapted from https://gist.github.com/DanielSWolf/0ab6a96899cc5377bf54
@@ -9,7 +9,7 @@ namespace TinyUpdate.Create
     /// </summary>
     public class ProgressBar : IDisposable, IProgress<double>
     {
-        private CustomConsoleLogger _logger = new(nameof(ProgressBar));
+        private readonly CustomConsoleLogger _logger = new(nameof(ProgressBar));
         private readonly TimeSpan _animationInterval = TimeSpan.FromSeconds(1.0 / 8);
         private const string Animation = @"|/-\";
 

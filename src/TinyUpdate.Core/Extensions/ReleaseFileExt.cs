@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using SemVersion;
+using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Core.Extensions
@@ -30,7 +32,7 @@ namespace TinyUpdate.Core.Extensions
                 var version = fileName.ToVersion();
                 if (version == null)
                 {
-                    Logger.Warning("we wasn't able to get a version from the filename {0}, skipping...", fileName);
+                    Logger.Warning("We can't grab the version that {0} is from the filename, skipping...", fileName);
                     continue;
                 }
 
@@ -48,6 +50,13 @@ namespace TinyUpdate.Core.Extensions
             }
         }
 
+        /// <summary>
+        /// Get's rid of any unneeded releases
+        /// </summary>
+        /// <param name="releaseFiles">Release files to filter through</param>
+        /// <param name="applicationLocation">Where the application is stored</param>
+        /// <param name="haveDelta">If we want to grab delta updates or </param>
+        /// <param name="applicationVersion">What version the application is currently on</param>
         public static IEnumerable<ReleaseEntry> FilterReleases(
             this IEnumerable<ReleaseEntry> releaseFiles, 
             string applicationLocation,
@@ -56,9 +65,21 @@ namespace TinyUpdate.Core.Extensions
         {
             var userId = Staging.GetOrCreateStagedUserId(applicationLocation);
             return releaseFiles
-                .Where(x => x.IsDelta == haveDelta 
-                            && x.Version > applicationVersion 
-                            && x.IsStagingMatch(userId));
+                .Where(x =>
+                {
+                    var shouldProcess = x.IsDelta == haveDelta
+                            && x.Version > applicationVersion
+                            && x.IsStagingMatch(userId);
+                    
+                    //If we have the OS in the filename then also check that
+                    var dashIndex = x.Filename.LastIndexOf('-');
+                    var match = VersionExt.OsRegex.Match(x.Filename, dashIndex > -1 ? dashIndex : 0);
+                    if (match.Success)
+                    {
+                        return shouldProcess && OSPlatform.Create(match.Value[1..]) == OSHelper.ActiveOS;
+                    }
+                    return shouldProcess;
+                });
         }
     }
 }
