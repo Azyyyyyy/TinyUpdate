@@ -1,12 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\..\..\common.props"/>
+    <Import Project="..\..\..\nuget.props" />
 
     <PropertyGroup>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
-        <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
-        <PackageOutputPath>../../../packages/Updaters</PackageOutputPath>
+        <PackageOutputPath>../../../$(BasePackageOutputPath)/Updaters/Binary</PackageOutputPath>
     </PropertyGroup>
-    <Import Project="../../../Nuget-metadata.csproj" />
     
     <ItemGroup>
       <PackageReference Include="System.Management" Version="5.0.0" />

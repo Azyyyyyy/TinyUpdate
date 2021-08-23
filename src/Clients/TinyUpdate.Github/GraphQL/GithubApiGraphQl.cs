@@ -106,10 +106,10 @@ namespace TinyUpdate.Github.GraphQL
                 return null;
             }
 
-            var disc = releases.Data.Organization.Repository.Releases.Nodes.FirstOrDefault()?.Description;
-            return string.IsNullOrWhiteSpace(disc) ?
+            var description = releases.Data.Organization.Repository.Releases.Nodes.FirstOrDefault()?.Description;
+            return string.IsNullOrWhiteSpace(description) ?
                 null :
-                new ReleaseNote(disc, NoteType.Markdown);
+                new ReleaseNote(description, NoteType.Markdown);
         }
 
         protected override async Task<RateLimit> GetRateLimitTime(HttpResponseMessage responseMessage)

@@ -29,8 +29,8 @@ namespace TinyUpdate.Github
         /// <param name="updateApplier">Update Applier that will apply updates after being downloaded</param>
         /// <param name="organization">Organization that contains the application update files</param>
         /// <param name="repository">Application's repository</param>
-        /// <param name="useGraphQl">If we should use <see cref="GithubApiGraphQl"/> when accessing their api (Will require a <see cref="personalToken"/> which has public_repo)</param>
-        /// <param name="personalToken">Personal token for accessing the repo</param>
+        /// <param name="useGraphQl">If we should use <see cref="GithubApiGraphQl"/> (This will require a <see cref="personalToken"/> which has public_repo)</param>
+        /// <param name="personalToken">Personal token for accessing the repo if needed</param>
         public GithubClient(
             IUpdateApplier updateApplier,
             string organization,
@@ -64,14 +64,9 @@ namespace TinyUpdate.Github
                 return true;
             }
             
-            var requestToCheck = $"response-content-disposition=attachment%3B%20filename%3D{releaseEntry.Filename}";
             void ReportProgress(object? sender, HttpProgressEventArgs args)
             {
-                if (sender is HttpRequestMessage message
-                    && (message.RequestUri?.Query.Contains(requestToCheck) ?? false))
-                {
-                    progress?.Invoke((double) args.BytesTransferred / releaseEntry.Filesize);
-                }
+                progress?.Invoke((double) args.BytesTransferred / releaseEntry.Filesize);
             }
 
             //Download the file

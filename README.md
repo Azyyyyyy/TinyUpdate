@@ -30,13 +30,6 @@ This is fully implemented with Hard Link support and has more modern MsDelta fla
 ### GithubClient
 This is fully implemented with support for REST and for GraphQL (Note that the GraphQL api requires a personal token with public_repo)
 
-## What needs to be implemented?
-## UpdateClient's
-* LocalClient - This will be for any update that are stored on a drive
-* WebClient - This will be for any update that are stored on the internet
+### LocalClient
 
-## Missing
-* Installer/Uninstaller
-* Taskbar and start menu shortcut creation
-* Staging for beta's
-* Events on startup for when application was updated
+### WebClient

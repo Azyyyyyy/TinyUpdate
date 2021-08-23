@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\..\..\common.props" />
+    <Import Project="..\..\..\nuget.props" />
+
+    <PropertyGroup>
+        <PackageOutputPath>../../../$(BasePackageOutputPath)/Clients/Http</PackageOutputPath>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
+    </ItemGroup>
+
+</Project>

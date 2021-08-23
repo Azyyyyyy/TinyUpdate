@@ -1,12 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\..\common.props"/>
+    <Import Project="..\..\nuget.props" />
 
     <PropertyGroup>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
-        <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
-        <PackageOutputPath>../../packages</PackageOutputPath>
+        <PackageOutputPath>../../$(BasePackageOutputPath)</PackageOutputPath>
     </PropertyGroup>
-    <Import Project="../../Nuget-metadata.csproj" />
     
     <!--So we can get what OS we are building for on compiling-->
     <PropertyGroup>
@@ -14,7 +12,6 @@
         <IsOSX>false</IsOSX>
         <IsLinux>false</IsLinux>
     </PropertyGroup>
-
     <PropertyGroup>
         <IsWindows Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'win*'))">true</IsWindows>
         <IsOSX Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'linux*'))">true</IsOSX>
@@ -31,7 +28,6 @@
     <PropertyGroup Condition="'$(IsLinux)'=='true'">
         <DefineConstants>Linux</DefineConstants>
     </PropertyGroup>
-
     <PropertyGroup Condition="'$(IsAny)'=='true'">
         <DefineConstants>Any</DefineConstants>
     </PropertyGroup>
@@ -56,19 +52,16 @@
         <EmbeddedResource Include="Native\**" />
         <None Include="Native\**" />
     </ItemGroup>
-
     <ItemGroup Condition="'$(IsWindows)'=='true'">
         <Compile Include="Native\Windows\**" />
         <EmbeddedResource Include="Native\Windows\**" />
         <None Include="Native\Windows\**" />
     </ItemGroup>
-
     <ItemGroup Condition="'$(IsLinux)'=='true'">
         <Compile Include="Native\Linux\**" />
         <EmbeddedResource Include="Native\Linux\**" />
         <None Include="Native\Linux\**" />
     </ItemGroup>
-
     <ItemGroup Condition="'$(IsOSX)'=='true'">
         <Compile Include="Native\macOS\**" />
         <EmbeddedResource Include="Native\macOS\**" />
@@ -78,5 +71,4 @@
     <ItemGroup>
       <PackageReference Include="SemanticVersion" Version="2.1.0" />
     </ItemGroup>
-
 </Project>

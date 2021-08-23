@@ -4,13 +4,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Management;
 using System.Runtime.InteropServices;
-using TinyUpdate.Binary.LoadCreator;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Temporary;
 
-namespace TinyUpdate.Binary
+namespace TinyUpdate.Binary.LoadCreator
 {
     public static class LoaderCreatorSource
     {

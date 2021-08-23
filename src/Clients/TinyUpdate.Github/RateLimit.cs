@@ -2,7 +2,7 @@
 
 namespace TinyUpdate.Github
 {
-    public class RateLimit
+    public readonly struct RateLimit
     {
         public RateLimit(bool isRateLimited, DateTime? resetTime = null)
         {

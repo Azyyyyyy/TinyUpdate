@@ -3,11 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using TinyUpdate.Binary.LoadCreator;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 
-namespace TinyUpdate.Binary
+namespace TinyUpdate.Binary.LoadCreator
 {
     public static class LoaderCreatorPrebuilt
     {

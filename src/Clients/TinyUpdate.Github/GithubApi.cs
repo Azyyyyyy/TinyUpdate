@@ -64,8 +64,7 @@ namespace TinyUpdate.Github
             long? fileLength = null;
 
             //See if it was recently downloaded, if not delete it
-            if (releaseFileInfo.Exists
-                && DateTime.Now.Subtract(releaseFileInfo.LastWriteTime).TotalDays >= 1)
+            if (releaseFileInfo.Exists && DateTime.Now.Subtract(releaseFileInfo.LastWriteTime).TotalDays >= 1)
             {
                 releaseFileInfo.Delete();
             }
@@ -141,6 +140,7 @@ namespace TinyUpdate.Github
                 return null;
             }
             
+            //Report based on the status code as it might show what the user/Api has done
             Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
             switch (response.StatusCode)
             {
