@@ -15,7 +15,7 @@ namespace TinyUpdate.Github.GraphQL
     /// </summary>
     internal class GithubApiGraphQl : GithubApi
     {
-        public GithubApiGraphQl(string personalToken, HttpClient httpClient, GithubClient githubClient) 
+        public GithubApiGraphQl(string personalToken, HttpClient httpClient, GithubUpdateClient githubClient) 
             : base(githubClient, httpClient, "https://api.github.com/graphql")
         {
             //Personal token needs to be base64

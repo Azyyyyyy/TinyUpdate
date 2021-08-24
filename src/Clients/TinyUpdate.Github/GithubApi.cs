@@ -18,7 +18,7 @@ namespace TinyUpdate.Github
     {
         protected readonly HttpClient HttpClient;
         protected readonly ILogging Logger;
-        private readonly GithubClient _githubClient;
+        private readonly GithubUpdateClient _githubClient;
         private ApplicationMetadata ApplicationMetadata => _githubClient.ApplicationMetadata;
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace TinyUpdate.Github
         /// </summary>
         /// <param name="githubClient">Client that owns this Api</param>
         /// <param name="apiEndpoint">Base endpoint to use</param>
-        protected GithubApi(GithubClient githubClient, HttpClient httpClient, string apiEndpoint)
+        protected GithubApi(GithubUpdateClient githubClient, HttpClient httpClient, string apiEndpoint)
         {
             _githubClient = githubClient ?? throw new ArgumentNullException(nameof(githubClient));
             Logger = LoggingCreator.CreateLogger(GetType().Name);

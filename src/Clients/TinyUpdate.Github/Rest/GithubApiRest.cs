@@ -14,7 +14,7 @@ namespace TinyUpdate.Github.Rest
     /// </summary>
     public class GithubApiRest : GithubApi
     {
-        public GithubApiRest(GithubClient githubClient, HttpClient httpClient)
+        public GithubApiRest(GithubUpdateClient githubClient, HttpClient httpClient)
             : base(githubClient, httpClient, "https://api.github.com") { }
         
         public override async Task<UpdateInfo?> CheckForUpdate(string organization, string repository, bool grabDeltaUpdates)
@@ -45,7 +45,7 @@ namespace TinyUpdate.Github.Rest
             var releases = await GetGithubRelease(organization, repository);
             return string.IsNullOrWhiteSpace(releases?.Body) ? 
                 null :
-                new ReleaseNote(releases.Body, NoteType.Markdown);
+                new ReleaseNote(releases!.Body, NoteType.Markdown);
         }
 
         protected override Task<RateLimit> GetRateLimitTime(HttpResponseMessage responseMessage)

@@ -7,13 +7,13 @@ using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Local
 {
-    public class LocalClient : UpdateClient
+    public class LocalUpdateClient : UpdateClient
     {
         private readonly string _folderLocation;
         private readonly string _releaseFile;
         private readonly string _updateFileFolder;
         private readonly NoteType _changelogKind;
-        public LocalClient(string folderLocation, IUpdateApplier updateApplier, NoteType changelogKind = NoteType.Markdown) : base(updateApplier)
+        public LocalUpdateClient(string folderLocation, IUpdateApplier updateApplier, NoteType changelogKind = NoteType.Markdown) : base(updateApplier)
         {
             _folderLocation = folderLocation;
             _releaseFile = Path.Combine(folderLocation, "RELEASE");

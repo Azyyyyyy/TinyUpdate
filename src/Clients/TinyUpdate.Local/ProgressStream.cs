@@ -42,7 +42,7 @@ namespace TinyUpdate.Local
             return read;
         }
         
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
         {
             return _innerStream.BeginRead(buffer, offset, count, callback, state);
         }
@@ -60,11 +60,11 @@ namespace TinyUpdate.Local
             _writeAction?.Invoke(count);
         }
 
-        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
         {
             return _innerStream.BeginWrite(buffer, offset, count, ar =>
             {
-                callback.Invoke(ar);
+                callback?.Invoke(ar);
                 _writeAction?.Invoke(count);
             }, state);
         }
@@ -134,10 +134,13 @@ namespace TinyUpdate.Local
         {
             _innerStream.SetLength(value);
         }
-
+        
+#if NET5_0_OR_GREATER
+        [Obsolete("This Remoting API is not supported and throws PlatformNotSupportedException.", DiagnosticId = "SYSLIB0010", UrlFormat = "https://aka.ms/dotnet-warnings/{0}")]
+#endif
         public override object InitializeLifetimeService() => _innerStream.InitializeLifetimeService()!;
-        public override string ToString() => _innerStream.ToString();
-        public override bool Equals(object obj) => _innerStream.Equals(obj);
+        public override string? ToString() => _innerStream.ToString();
+        public override bool Equals(object? obj) => _innerStream.Equals(obj);
         public override int GetHashCode() => _innerStream.GetHashCode();
         
         public override bool CanTimeout => _innerStream.CanTimeout;

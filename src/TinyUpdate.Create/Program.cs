@@ -217,8 +217,9 @@ namespace TinyUpdate.Create
                 ? mainLoader.LoadFromAssemblyPath(fileLocation)
                 : null;
 
-            Global.ApplicationNewVersion = assembly?.GetSemanticVersion();
-            Global.ApplicationMetadata.ApplicationName = assembly?.GetName().Name;
+            Global.ApplicationNewVersion = assembly?.GetSemanticVersion()!;
+            Global.ApplicationMetadata.ApplicationName = assembly?.GetName().Name!;
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (Global.CreateDeltaUpdate && Global.OldVersionLocation != null && Global.ApplicationMetadata.ApplicationName != null)
             {
                 using var oldVersionLoader = GetAssembly.MakeAssemblyResolver(Global.OldVersionLocation, out _);

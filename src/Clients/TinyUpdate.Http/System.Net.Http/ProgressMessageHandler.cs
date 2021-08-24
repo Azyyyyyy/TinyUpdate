@@ -41,7 +41,7 @@ namespace System.Net.Http.Handlers
         /// </summary>
         public event EventHandler<HttpProgressEventArgs>? HttpReceiveProgress;
 
-        protected override async Task<HttpResponseMessage?> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             AddRequestProgress(request);
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);

@@ -244,9 +244,9 @@ namespace TinyUpdate.Create.AssemblyHelper
             {
                 //Get what our core assemblies are
                 var coreAssembly = Assembly.GetAssembly(typeof(IUpdateCreator));
-                SharedAssemblies = coreAssembly.GetReferencedAssemblies()
+                SharedAssemblies = coreAssembly!.GetReferencedAssemblies()
                     .Where(x => !string.IsNullOrWhiteSpace(x.Name) && !BlacklistedFiles.Contains(x.Name + ".dll"))
-                    .Select(x => x.Name).Append(coreAssembly.GetName().Name).ToArray();
+                    .Select(x => x.Name).Append(coreAssembly.GetName().Name).ToArray()!;
             }
 
             using var mlc = MakeAssemblyResolver(applicationLocation, out var files);

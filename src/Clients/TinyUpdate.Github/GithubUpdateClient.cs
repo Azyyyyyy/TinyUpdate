@@ -10,7 +10,7 @@ namespace TinyUpdate.Github
     /// <summary>
     /// GitHub client for grabbing updates using their apis!
     /// </summary>
-    public class GithubClient : HttpUpdateClient
+    public class GithubUpdateClient : HttpUpdateClient
     {
         private readonly string _organization;
         private readonly string _repository;
@@ -24,7 +24,7 @@ namespace TinyUpdate.Github
         /// <param name="repository">Application's repository</param>
         /// <param name="useGraphQl">If we should use <see cref="GithubApiGraphQl"/> (This will require a <see cref="personalToken"/> which has public_repo)</param>
         /// <param name="personalToken">Personal token for accessing the repo if needed</param>
-        public GithubClient(
+        public GithubUpdateClient(
             IUpdateApplier updateApplier,
             string organization,
             string repository,
@@ -41,7 +41,7 @@ namespace TinyUpdate.Github
             }
 
             //Get what api we should use and setup httpClient
-            _githubApi = canUseGraphQl ? new GithubApiGraphQl(personalToken, _httpClient, this) : new GithubApiRest(this, _httpClient);
+            _githubApi = canUseGraphQl ? new GithubApiGraphQl(personalToken!, _httpClient, this) : new GithubApiRest(this, _httpClient);
         }
 
         public override Task<UpdateInfo?> CheckForUpdate(bool grabDeltaUpdates = true) => _githubApi.CheckForUpdate(_organization, _repository, grabDeltaUpdates);

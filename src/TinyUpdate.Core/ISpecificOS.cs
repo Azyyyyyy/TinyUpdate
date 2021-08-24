@@ -3,7 +3,7 @@
 namespace TinyUpdate.Core
 {
     /// <summary>
-    /// Interface which lets other services know what OS it runs on
+    /// Interface which lets other services know what OS it should run on
     /// </summary>
     public interface ISpecificOs
     {
