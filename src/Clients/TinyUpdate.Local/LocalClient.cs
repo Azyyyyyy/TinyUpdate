@@ -1,29 +1,68 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Local
 {
     public class LocalClient : UpdateClient
     {
-        public LocalClient(IUpdateApplier updateApplier) : base(updateApplier)
+        private readonly string _folderLocation;
+        private readonly string _releaseFile;
+        private readonly string _updateFileFolder;
+        private readonly NoteType _changelogKind;
+        public LocalClient(string folderLocation, IUpdateApplier updateApplier, NoteType changelogKind = NoteType.Markdown) : base(updateApplier)
         {
+            _folderLocation = folderLocation;
+            _releaseFile = Path.Combine(folderLocation, "RELEASE");
+            _updateFileFolder = Path.Combine(ApplicationMetadata.ApplicationFolder, "packages");
+            _changelogKind = changelogKind;
+            if (!Directory.Exists(folderLocation))
+            {
+                Logger.Warning("{0} directory doesn't exist, this will cause this UpdateClient to not function", folderLocation);
+            }
         }
 
         public override Task<UpdateInfo?> CheckForUpdate(bool grabDeltaUpdates = true)
         {
-            throw new NotImplementedException();
+            return Task.FromResult(ReleaseFileExt.GetUpdateInfo(_releaseFile, ApplicationMetadata, 
+                grabDeltaUpdates, folderLocation: _updateFileFolder));
         }
 
         public override Task<ReleaseNote?> GetChangelog(ReleaseEntry entry)
         {
-            throw new NotImplementedException();
+            var changelogFile = Path.Combine(_folderLocation, "changelogs", "changelog-" + entry.Version);
+            if (!File.Exists(changelogFile))
+            {
+                return Task.FromResult<ReleaseNote?>(null);
+            }
+
+            return Task.FromResult<ReleaseNote?>(new ReleaseNote(File.ReadAllText(changelogFile), _changelogKind));
         }
 
-        public override Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress)
+        public override async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress)
         {
-            throw new NotImplementedException();
+            //No need to copy the file if it's what we expect already
+            if (releaseEntry.IsValidReleaseEntry(ApplicationMetadata.ApplicationVersion, true))
+            {
+                Logger.Information("{0} already exists and is what we expect, working with that", releaseEntry.FileLocation);
+                return true;
+            }
+
+            var bytesWritten = 0d;
+            using var releaseStream = File.Open(releaseEntry.FileLocation, FileMode.Create, FileAccess.Write);
+            using var packageStream = new ProgressStream(
+                File.Open(Path.Combine(_folderLocation, releaseEntry.Filename), FileMode.Open, FileAccess.ReadWrite),
+                (count =>
+                {
+                    bytesWritten += count;
+                    progress?.Invoke(bytesWritten / releaseEntry.Filesize);
+                }), null);
+
+            await packageStream.CopyToAsync(releaseStream);
+            return releaseEntry.CheckReleaseEntry(ApplicationMetadata.ApplicationVersion, true);
         }
     }
 }

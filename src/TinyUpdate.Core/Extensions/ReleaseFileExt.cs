@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -5,6 +6,7 @@ using System.Runtime.InteropServices;
 using SemVersion;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
+using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Core.Extensions
 {
@@ -50,8 +52,53 @@ namespace TinyUpdate.Core.Extensions
             }
         }
 
+        public static UpdateInfo? GetUpdateInfo(this FileInfo fileInfo, ApplicationMetadata metadata, bool grabDeltaUpdates, string? tagName = null, string? folderLocation = null)
+        {
+            return GetUpdateInfo(fileInfo.FullName, metadata, grabDeltaUpdates, tagName, folderLocation);
+        }
+        
+        public static UpdateInfo? GetUpdateInfo(string fileLocation, ApplicationMetadata metadata, bool grabDeltaUpdates, string? tagName = null, string? folderLocation = null)
+        {
+            if (!File.Exists(fileLocation))
+            {
+                Logger.Error("{0} doesn't exist, can't get UpdateInfo", fileLocation);
+                return null;
+            }
+            
+            return new UpdateInfo(metadata.ApplicationVersion,
+                ReleaseFile.ReadReleaseFile(File.ReadLines(fileLocation))
+                    .ToReleaseEntries(folderLocation ?? metadata.TempFolder, tagName)
+                    .FilterReleases(metadata.ApplicationFolder, grabDeltaUpdates, metadata.ApplicationVersion).ToArray());
+        }
+        
         /// <summary>
-        /// Get's rid of any unneeded releases
+        /// Checks that the <see cref="ReleaseEntry"/> can be used
+        /// </summary>
+        /// <param name="releaseEntry"></param>
+        /// <param name="successfullyDownloaded"></param>
+        /// <returns></returns>
+        public static bool CheckReleaseEntry(this ReleaseEntry releaseEntry, SemanticVersion applicationVersion, bool successfullyDownloaded)
+        {
+            Logger.Information("Checking {0}", releaseEntry.Filename);
+            if (successfullyDownloaded && releaseEntry.IsValidReleaseEntry(applicationVersion, true))
+            {
+                return true;
+            }
+                        
+            Logger.Error("Checking file {0} failed after downloading, going to delete it to be safe", releaseEntry.Filename);
+            try
+            {
+                File.Delete(releaseEntry.FileLocation);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e);
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// Gets rid of any unneeded releases
         /// </summary>
         /// <param name="releaseFiles">Release files to filter through</param>
         /// <param name="applicationLocation">Where the application is stored</param>

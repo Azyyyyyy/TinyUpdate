@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 #pragma warning disable 8618
 

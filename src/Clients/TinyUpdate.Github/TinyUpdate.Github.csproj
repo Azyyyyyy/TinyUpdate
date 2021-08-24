@@ -11,6 +11,6 @@
     </ItemGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
+      <ProjectReference Include="..\TinyUpdate.Http\TinyUpdate.Http.csproj" />
     </ItemGroup>
 </Project>

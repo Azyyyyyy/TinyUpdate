@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -8,6 +7,7 @@ using TinyUpdate.Core;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Update;
+using TinyUpdate.Http.Extensions;
 
 namespace TinyUpdate.Github
 {
@@ -26,14 +26,13 @@ namespace TinyUpdate.Github
         /// </summary>
         /// <param name="githubClient">Client that owns this Api</param>
         /// <param name="apiEndpoint">Base endpoint to use</param>
-        protected GithubApi(GithubClient githubClient, string apiEndpoint)
+        protected GithubApi(GithubClient githubClient, HttpClient httpClient, string apiEndpoint)
         {
             _githubClient = githubClient ?? throw new ArgumentNullException(nameof(githubClient));
             Logger = LoggingCreator.CreateLogger(GetType().Name);
-            HttpClient = new HttpClient
-            {
-                BaseAddress = new Uri(apiEndpoint)
-            };
+
+            HttpClient = httpClient;
+            HttpClient.BaseAddress = new Uri(apiEndpoint);
             HttpClient.DefaultRequestHeaders.Add("User-Agent", $"TinyUpdate-{ApplicationMetadata.ApplicationName}-{ApplicationMetadata.ApplicationVersion}");
         }
 
@@ -59,46 +58,20 @@ namespace TinyUpdate.Github
         /// <param name="grabDeltaUpdates">If we want to grab only delta updates from the RELEASE file (If false we only grab full update files)</param>
         protected async Task<UpdateInfo?> DownloadAndParseReleaseFile(string tagName, long fileSize, string downloadUrl, bool grabDeltaUpdates)
         {
-            //Download the RELEASE file if we don't already have it
-            var releaseFileInfo = new FileInfo(Path.Combine(ApplicationMetadata.TempFolder, $"RELEASES-{ApplicationMetadata.ApplicationName}-{tagName}"));
-            long? fileLength = null;
-
-            //See if it was recently downloaded, if not delete it
-            if (releaseFileInfo.Exists && DateTime.Now.Subtract(releaseFileInfo.LastWriteTime).TotalDays >= 1)
-            {
-                releaseFileInfo.Delete();
-            }
-            
-            if (!releaseFileInfo.Exists)
-            {
-                Directory.CreateDirectory(ApplicationMetadata.TempFolder);
-                var response = await GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, downloadUrl));
-                if (response == null)
-                {
-                    Logger.Error("Didn't get anything from Github, can't download");
-                    return null;
-                }
-                
-                using var releaseStream = await response.Content.ReadAsStreamAsync();
-                using var releaseFileStream = File.Open(releaseFileInfo.FullName, FileMode.CreateNew, FileAccess.ReadWrite);
-                await releaseStream.CopyToAsync(releaseFileStream);
-                fileLength = releaseFileStream.Length;
-            }
-            fileLength ??= releaseFileInfo.Length;
+            var releaseFileLocation = Path.Combine(ApplicationMetadata.TempFolder,
+                $"RELEASES-{ApplicationMetadata.ApplicationName}-{tagName}");
+            var fileLength = await _githubClient.DownloadReleaseFile(releaseFileLocation, downloadUrl);
             
             //Just do a sanity check of the file size
             if (fileLength != fileSize)
             {
                 Logger.Error("RELEASE file isn't the length as expected, deleting and returning null...");
-                releaseFileInfo.Delete();
+                File.Delete(releaseFileLocation);
                 return null;
             }
             
             //Create the UpdateInfo
-            return new UpdateInfo(ApplicationMetadata.ApplicationVersion,
-                ReleaseFile.ReadReleaseFile(File.ReadLines(releaseFileInfo.FullName))
-                    .ToReleaseEntries(ApplicationMetadata.TempFolder, tagName)
-                    .FilterReleases(ApplicationMetadata.ApplicationFolder, grabDeltaUpdates, ApplicationMetadata.ApplicationVersion).ToArray());
+            return ReleaseFileExt.GetUpdateInfo(releaseFileLocation, ApplicationMetadata, grabDeltaUpdates, tagName);
         }
 
         private DateTime? _rateLimitTime;
@@ -115,17 +88,12 @@ namespace TinyUpdate.Github
                 _rateLimitTime = null;
             }
 
-            HttpResponseMessage? response;
-            try
+            var response = await HttpClient.GetResponseMessage(requestMessage);
+            if (response == null)
             {
-                response = await HttpClient.SendAsync(requestMessage);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e);
                 return null;
             }
-            
+
             //Check that we got something from it
             if (response.IsSuccessStatusCode)
             {
