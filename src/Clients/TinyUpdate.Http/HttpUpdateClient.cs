@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Net.Http;
-using System.Net.Http.Handlers;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Extensions;
@@ -12,7 +11,6 @@ namespace TinyUpdate.Http
 {
     public class HttpUpdateClient : UpdateClient
     {
-        protected readonly ProgressMessageHandler _progressMessageHandler = new();
         protected readonly HttpClient _httpClient;
         protected readonly NoteType NoteType;
 
@@ -22,8 +20,7 @@ namespace TinyUpdate.Http
         public HttpUpdateClient(Uri uri, IUpdateApplier updateApplier, NoteType changelogKind = NoteType.Markdown) 
             : base(updateApplier)
         {
-            _httpClient = HttpClientFactory.Create(new HttpClientHandler(), _progressMessageHandler);
-            _httpClient.BaseAddress = uri;
+            _httpClient = new HttpClient { BaseAddress = uri };
             NoteType = changelogKind;
         }
 
@@ -62,16 +59,15 @@ namespace TinyUpdate.Http
                 return true;
             }
             
-            void ReportProgress(object? sender, HttpProgressEventArgs args)
-            {
-                progress?.Invoke((double) args.BytesTransferred / releaseEntry.Filesize);
-            }
+            double bytesWritten = 0;
 
             //Download the file
             Logger.Information("Downloading file {0} ({1})", releaseEntry.Filename, releaseEntry.FileLocation);
-            _progressMessageHandler.HttpReceiveProgress += ReportProgress;
-            var successfullyDownloaded = await DownloadUpdateInter(releaseEntry);
-            _progressMessageHandler.HttpReceiveProgress -= ReportProgress;
+            var successfullyDownloaded = await DownloadUpdateInter(releaseEntry, i =>
+            {
+                bytesWritten += i;
+                progress?.Invoke(bytesWritten / releaseEntry.Filesize);
+            });
 
             //Check the file
             Logger.Debug("Successfully downloaded?: {0}", successfullyDownloaded);
@@ -81,7 +77,7 @@ namespace TinyUpdate.Http
         protected virtual string GetUriForReleaseEntry(ReleaseEntry releaseEntry) =>
             _httpClient.BaseAddress + releaseEntry.Filename;
         
-        private async Task<bool> DownloadUpdateInter(ReleaseEntry releaseEntry)
+        private async Task<bool> DownloadUpdateInter(ReleaseEntry releaseEntry, Action<int> progress)
         {
             try
             {
@@ -94,7 +90,8 @@ namespace TinyUpdate.Http
                     File.Delete(releaseEntry.FileLocation);
                 }
             
-                using var releaseFileStream = File.Open(releaseEntry.FileLocation, FileMode.CreateNew, FileAccess.ReadWrite);
+                using var releaseFileStream = new ProgressStream(
+                    File.Open(releaseEntry.FileLocation, FileMode.CreateNew, FileAccess.ReadWrite), writeAction: (count) => progress?.Invoke(count));
                 await releaseStream.CopyToAsync(releaseFileStream);
                 return true;
             }

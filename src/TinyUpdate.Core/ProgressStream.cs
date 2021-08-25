@@ -4,14 +4,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using TinyUpdate.Core.Logging;
 
-namespace TinyUpdate.Local
+namespace TinyUpdate.Core
 {
     public class ProgressStream : Stream
     {
         private readonly Stream _innerStream;
         private readonly Action<int>? _readAction;
         private readonly Action<int>? _writeAction;
-        public ProgressStream(Stream innerStream, Action<int>? readAction, Action<int>? writeAction)
+        public ProgressStream(Stream innerStream, Action<int>? readAction = null, Action<int>? writeAction = null)
         {
             _innerStream = innerStream;
             _readAction = readAction;

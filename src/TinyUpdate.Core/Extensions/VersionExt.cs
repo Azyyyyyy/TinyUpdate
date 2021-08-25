@@ -12,9 +12,9 @@ namespace TinyUpdate.Core.Extensions
     /// </summary>
     public static class VersionExt
     {
-        public static readonly Regex OsRegex = new Regex(@"(-Linux|-Windows|-OSX)?", RegexOptions.Compiled);
+        public static readonly Regex OsRegex = new Regex("(-Linux|-Windows|-OSX)?", RegexOptions.Compiled);
 
-        private static readonly Regex SuffixRegex = new Regex(@"(-full|-delta)?", RegexOptions.Compiled);
+        private static readonly Regex SuffixRegex = new Regex("(-full|-delta)?", RegexOptions.Compiled);
         private static readonly Regex VersionRegex =
             new Regex(@"\d+(\.\d+){0,3}(-[A-Za-z][0-9A-Za-z-]*)?$", RegexOptions.Compiled);
         
@@ -65,7 +65,7 @@ namespace TinyUpdate.Core.Extensions
         {
             var name = SuffixRegex.Replace(fileName, "");
             name = OsRegex.Replace(name, "");
-            name = name[(name.IndexOf('.') + 1)..];
+            name = name[(name.IndexOf('-') + 1)..];
 
             var versionStr = VersionRegex.Match(name);
             return versionStr.Success && SemanticVersion.TryParse(versionStr.Value, out var version) 

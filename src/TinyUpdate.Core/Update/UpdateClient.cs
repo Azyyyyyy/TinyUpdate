@@ -59,7 +59,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="progress">Progress of downloading update</param>
         /// <returns>If we was able to download the update</returns>
         // ReSharper disable once MemberCanBeProtected.Global
-        public abstract Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress);
+        public abstract Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress = null);
 
         /// <summary>
         /// Downloads all updates from a <see cref="UpdateInfo"/> that are going to be applied
@@ -67,7 +67,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="updateInfo">Updates to download</param>
         /// <param name="progress">Progress of downloading updates</param>
         /// <returns>If we was able to download the updates</returns>
-        public virtual async Task<bool> DownloadUpdate(UpdateInfo updateInfo, Action<double>? progress)
+        public virtual async Task<bool> DownloadUpdate(UpdateInfo updateInfo, Action<double>? progress = null)
         {
             var updates = updateInfo.Updates.OrderBy(x => x.Version).ThenByDescending(x => x.IsDelta).ToArray();
 

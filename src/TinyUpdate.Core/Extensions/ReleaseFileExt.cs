@@ -118,10 +118,11 @@ namespace TinyUpdate.Core.Extensions
                             && x.Version > applicationVersion
                             && x.IsStagingMatch(userId);
                     
+                    //TODO: See why this is matching when they is nothing there
                     //If we have the OS in the filename then also check that
                     var dashIndex = x.Filename.LastIndexOf('-');
                     var match = VersionExt.OsRegex.Match(x.Filename, dashIndex > -1 ? dashIndex : 0);
-                    if (match.Success)
+                    if (match.Success && !string.IsNullOrWhiteSpace(match.Value))
                     {
                         return shouldProcess && OSPlatform.Create(match.Value[1..]) == OSHelper.ActiveOS;
                     }

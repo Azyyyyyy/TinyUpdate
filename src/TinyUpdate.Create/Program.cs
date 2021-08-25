@@ -177,6 +177,7 @@ namespace TinyUpdate.Create
                 }
             }
 
+            //TODO: Make it limit how many releases are in the file
             if (!await ReleaseFile.CreateReleaseFile(releaseFiles, Global.OutputLocation))
             {
                 Logger.Error("Can't create release file....");
