@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
 
-namespace TinyUpdate.Github.GraphQL
+namespace TinyUpdate.Github.GraphQl
 {
     /// <summary>
     /// <see cref="GithubApi"/> that uses the GraphQL API (V4). This requires a personal token with public_repo

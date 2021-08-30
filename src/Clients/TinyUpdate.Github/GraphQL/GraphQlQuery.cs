@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace TinyUpdate.Github.GraphQL
+namespace TinyUpdate.Github.GraphQl
 {
     /// <summary>
     /// Basic class to act as GraphQl Query

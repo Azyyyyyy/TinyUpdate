@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Update;
-using TinyUpdate.Github.GraphQL;
+using TinyUpdate.Github.GraphQl;
 using TinyUpdate.Github.Rest;
 using TinyUpdate.Http;
 
