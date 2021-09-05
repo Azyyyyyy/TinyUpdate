@@ -119,7 +119,7 @@ namespace TinyUpdate.Http
             }
         }
 
-        protected async Task<long> DownloadReleaseFile(string releaseFileLocation)
+        protected async Task<long> DownloadReleaseFile(string releaseFileLocation, string? uri = null)
         {
             //Download the RELEASE file if we don't already have it
             var releaseFileInfo = new FileInfo(releaseFileLocation);
@@ -134,7 +134,7 @@ namespace TinyUpdate.Http
             if (!releaseFileInfo.Exists)
             {
                 Directory.CreateDirectory(AppMetadata.TempFolder);
-                using var response = await _httpClient.GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, GetUriForReleaseFile()));
+                using var response = await _httpClient.GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, GetUriForReleaseFile(uri)));
                 if (response is not { IsSuccessStatusCode: true })
                 {
                     Logger.Error("Didn't get anything, can't download");
@@ -152,8 +152,8 @@ namespace TinyUpdate.Http
         protected virtual string GetUriForReleaseEntry(ReleaseEntry releaseEntry) =>
             _httpClient.BaseAddress + releaseEntry.Filename;
         
-        protected virtual string GetUriForReleaseFile() =>
-            _httpClient.BaseAddress + "RELEASE";
+        protected virtual string GetUriForReleaseFile(string? uri = null) =>
+            uri ?? _httpClient.BaseAddress + "RELEASE";
 
         protected virtual string GetUriForChangelog(ReleaseEntry entry) => _httpClient.BaseAddress + "changelogs/" + "changelog-" + entry.Version;
         
