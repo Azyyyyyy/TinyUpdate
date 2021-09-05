@@ -126,7 +126,7 @@ namespace TinyUpdate.Core
                     return false;
                 }
 
-                using var file = StreamUtil.SafeOpenRead(FileLocation);
+                var file = StreamUtil.SafeOpenRead(FileLocation);
                 if (file?.Length != Filesize ||
                     !SHA256Util.CheckSHA256(file, SHA256))
                 {

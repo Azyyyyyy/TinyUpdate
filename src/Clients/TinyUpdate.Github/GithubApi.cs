@@ -19,7 +19,7 @@ namespace TinyUpdate.Github
         protected readonly HttpClient HttpClient;
         protected readonly ILogging Logger;
         private readonly GithubUpdateClient _githubClient;
-        private ApplicationMetadata ApplicationMetadata => _githubClient.ApplicationMetadata;
+        private ApplicationMetadata ApplicationMetadata => _githubClient.AppMetadata;
 
         /// <summary>
         /// Api constructor

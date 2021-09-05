@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Extensions;
+using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Local
@@ -17,7 +18,7 @@ namespace TinyUpdate.Local
         {
             _folderLocation = folderLocation;
             _releaseFile = Path.Combine(folderLocation, "RELEASE");
-            _updateFileFolder = Path.Combine(ApplicationMetadata.ApplicationFolder, "packages");
+            _updateFileFolder = Path.Combine(AppMetadata.ApplicationFolder, "packages");
             _changelogKind = changelogKind;
             if (!Directory.Exists(folderLocation))
             {
@@ -27,7 +28,7 @@ namespace TinyUpdate.Local
 
         public override Task<UpdateInfo?> CheckForUpdate(bool grabDeltaUpdates = true)
         {
-            return Task.FromResult(ReleaseFileExt.GetUpdateInfo(_releaseFile, ApplicationMetadata, 
+            return Task.FromResult(ReleaseFileExt.GetUpdateInfo(_releaseFile, AppMetadata, 
                 grabDeltaUpdates, folderLocation: _updateFileFolder));
         }
 
@@ -45,24 +46,24 @@ namespace TinyUpdate.Local
         public override async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress)
         {
             //No need to copy the file if it's what we expect already
-            if (releaseEntry.IsValidReleaseEntry(ApplicationMetadata.ApplicationVersion, true))
+            if (releaseEntry.IsValidReleaseEntry(AppMetadata.ApplicationVersion, true))
             {
                 Logger.Information("{0} already exists and is what we expect, working with that", releaseEntry.FileLocation);
                 return true;
             }
 
             var bytesWritten = 0d;
-            using var releaseStream = File.Open(releaseEntry.FileLocation, FileMode.Create, FileAccess.Write);
+            using var releaseStream = FileHelper.OpenWrite(releaseEntry.FileLocation, releaseEntry.Filesize);
             using var packageStream = new ProgressStream(
-                File.Open(Path.Combine(_folderLocation, releaseEntry.Filename), FileMode.Open, FileAccess.ReadWrite),
+                FileHelper.MakeFileStream(Path.Combine(_folderLocation, releaseEntry.Filename), FileMode.Open, FileAccess.ReadWrite),
                 (count =>
                 {
                     bytesWritten += count;
                     progress?.Invoke(bytesWritten / releaseEntry.Filesize);
-                }), null);
+                }));
 
             await packageStream.CopyToAsync(releaseStream);
-            return releaseEntry.CheckReleaseEntry(ApplicationMetadata.ApplicationVersion, true);
+            return releaseEntry.CheckReleaseEntry(AppMetadata.ApplicationVersion, true);
         }
     }
 }

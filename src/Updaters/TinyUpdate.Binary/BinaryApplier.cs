@@ -86,12 +86,9 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
-            /*Delete the folder if it exist, likely that application
-             was closed while we was updating*/
-            newPath.RemakeFolder();
-
-            //Do the update!
-            if (!await ApplyUpdate(applicationMetadata, basePath, newPath, entry, progress))
+            //Delete the folder and do the update
+            if (!newPath.RemakeFolder()
+                || !await ApplyUpdate(applicationMetadata, basePath, newPath, entry, progress))
             {
                 return false;
             }
@@ -159,7 +156,10 @@ namespace TinyUpdate.Binary
 
             /*Delete the folder if it exist, likely that application
              was closed while we was updating*/
-            newVersionFolder.RemakeFolder();
+            if (!newVersionFolder.RemakeFolder())
+            {
+                Logger.Error("Wasn't able to delete the existing folder {0}, going to fail here!", newVersionFolder);
+            }
 
             /*Go through every update we have, reporting the
              progress by how many updates we have*/
@@ -375,7 +375,7 @@ namespace TinyUpdate.Binary
             }
 
             //If we get here then we don't have it as a delta file, process as normal
-            var loaderStream = File.OpenWrite(loaderFileLocation + ".new");
+            var loaderStream = FileHelper.OpenWrite(loaderFileLocation + ".new", loaderFile.Filesize);
             await loaderFile.Stream.CopyToAsync(loaderStream);
             loaderFile.Stream.Dispose();
             loaderStream.Dispose();
@@ -489,7 +489,7 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
-            var fileStream = File.OpenWrite(fileLocation);
+            var fileStream = FileHelper.OpenWrite(fileLocation, fileEntry.Filesize);
             await fileEntry.Stream.CopyToAsync(fileStream);
             fileStream.Dispose();
             return CheckUpdatedFile(true, fileLocation, fileEntry);

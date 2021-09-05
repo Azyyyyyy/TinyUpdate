@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Temporary;
 using TinyUpdate.Core.Update;
@@ -49,11 +50,7 @@ namespace TinyUpdate.Binary.Delta
                 inputStream.Seek(0, SeekOrigin.Begin);
             }
 
-            //Create streams for old file and where the new file will be
-            var outputStream = File.OpenWrite(newFileLocation);
             inputStream ??= StreamUtil.SafeOpenRead(originalFileLocation);
-
-            //Check streams that can be null
             if (inputStream == null)
             {
                 _logger.Error("Wasn't able to grab {0} for applying a BSDiff update", originalFileLocation);
@@ -68,6 +65,8 @@ namespace TinyUpdate.Binary.Delta
                 deltaFileStream.Dispose();
                 deltaFileStream = patchMemStream;
             }
+
+            var outputStream = FileHelper.OpenWrite(newFileLocation, inputStream.Length);
             var successfulUpdate = await BinaryPatchUtility.Apply(inputStream, () =>
             {
                 //Copy the files over in a memory stream

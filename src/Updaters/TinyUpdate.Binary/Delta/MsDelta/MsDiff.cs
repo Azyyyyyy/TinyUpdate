@@ -62,7 +62,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
 
             //Put the delta file onto disk
             using var tmpDeltaFile = tempFolder.CreateTemporaryFile(deltaFileName);
-            var tmpFileStream = tmpDeltaFile.GetStream();
+            var tmpFileStream = tmpDeltaFile.GetStream(preallocationSize: deltaFileStream.Length);
             await deltaFileStream.CopyToAsync(tmpFileStream);
             tmpFileStream.Dispose();
             deltaFileStream.Dispose();

@@ -68,7 +68,7 @@ namespace TinyUpdate.Binary.LoadCreator
                 return LoadCreateStatus.Failed;
             }
             
-            var tmpFileStream = File.Create(outputFile);
+            var tmpFileStream = FileHelper.MakeFileStream(outputFile, FileMode.CreateNew, FileAccess.ReadWrite, fileStream.Length);
             using var fileEditStream = new BinaryWriter(tmpFileStream, Encoding.ASCII, false);
             fileStream.Seek(0, SeekOrigin.Begin);
 

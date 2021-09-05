@@ -13,12 +13,12 @@ namespace TinyUpdate.Core.Update
         protected readonly ILogging Logger;
         private readonly IUpdateApplier _updateApplier;
 
-        public ApplicationMetadata ApplicationMetadata { get; set; }
+        public ApplicationMetadata AppMetadata { get; set; }
 
         protected UpdateClient(IUpdateApplier updateApplier)
         {
             _updateApplier = updateApplier;
-            ApplicationMetadata = new ApplicationMetadata();
+            AppMetadata = new ApplicationMetadata();
             Logger = LoggingCreator.CreateLogger(GetType().Name);
         }
 
@@ -101,8 +101,8 @@ namespace TinyUpdate.Core.Update
         /// <param name="releaseEntry">Update to apply</param>
         /// <param name="progress">The progress of this update</param>
         /// <returns>If this update was successfully applied</returns>
-        public async Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, Action<double>? progress) =>
-            await _updateApplier.ApplyUpdate(ApplicationMetadata, releaseEntry, progress);
+        public async Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, Action<double>? progress = null) =>
+            await _updateApplier.ApplyUpdate(AppMetadata, releaseEntry, progress);
 
         /// <summary>
         /// Applies a bunch of updates to the application 
@@ -110,7 +110,7 @@ namespace TinyUpdate.Core.Update
         /// <param name="updateInfo">Updates to apply</param>
         /// <param name="progress">The progress of this update</param>
         /// <returns>If this update was successfully applied</returns>
-        public Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<double>? progress) =>
-            _updateApplier.ApplyUpdate(ApplicationMetadata, updateInfo, progress);
+        public Task<bool> ApplyUpdate(UpdateInfo updateInfo, Action<double>? progress = null) =>
+            _updateApplier.ApplyUpdate(AppMetadata, updateInfo, progress);
     }
 }

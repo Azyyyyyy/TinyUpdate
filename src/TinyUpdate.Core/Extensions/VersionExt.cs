@@ -51,10 +51,20 @@ namespace TinyUpdate.Core.Extensions
             }
             
             var attributes = assembly.CustomAttributes;
-            var attribute = attributes.FirstOrDefault(x => x.AttributeType == typeof(SemanticVersionAttribute));
+            var version = attributes.Select(GetVersionFromAttribute).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
             
-            return attribute != null ?
-                SemanticVersion.Parse(attribute.ConstructorArguments[0].Value.ToString()) : assembly.GetName().Version.ToSemanticVersion();
+            return version != null ?
+                SemanticVersion.Parse(version) : assembly.GetName().Version.ToSemanticVersion();
+        }
+
+        private static string? GetVersionFromAttribute(CustomAttributeData attribute)
+        {
+            if (attribute.AttributeType.FullName == typeof(SemanticVersionAttribute).FullName)
+            {
+                return attribute.ConstructorArguments[0].Value.ToString();
+            }
+
+            return null;
         }
 
         /// <summary>

@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Extensions;
+using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Update;
 using TinyUpdate.Http.Extensions;
 
@@ -11,7 +12,7 @@ namespace TinyUpdate.Http
 {
     public class HttpUpdateClient : UpdateClient
     {
-        protected readonly HttpClient _httpClient;
+        protected HttpClient _httpClient;
         protected readonly NoteType NoteType;
 
         public HttpUpdateClient(string uri, IUpdateApplier updateApplier, NoteType changelogKind = NoteType.Markdown) 
@@ -26,35 +27,34 @@ namespace TinyUpdate.Http
 
         public override async Task<UpdateInfo?> CheckForUpdate(bool grabDeltaUpdates = true)
         {
-            var releaseFileLocation = Path.Combine(ApplicationMetadata.TempFolder, "RELEASE");
+            var releaseFileLocation = Path.Combine(AppMetadata.TempFolder, "RELEASE");
             //if this is the case then we clearly haven't downloaded the RELEASE file
-            if (await DownloadReleaseFile(releaseFileLocation, _httpClient.BaseAddress + "RELEASE") < 0)
+            if (await DownloadReleaseFile(releaseFileLocation) < 0)
             {
                 return null;
             }
 
             //Create the UpdateInfo
-            return ReleaseFileExt.GetUpdateInfo(releaseFileLocation, ApplicationMetadata, grabDeltaUpdates);
+            return ReleaseFileExt.GetUpdateInfo(releaseFileLocation, AppMetadata, grabDeltaUpdates);
         }
 
         public override async Task<ReleaseNote?> GetChangelog(ReleaseEntry entry)
         {
-            var response =
-                await _httpClient.GetResponseMessage(new HttpRequestMessage(HttpMethod.Get,
-                    _httpClient.BaseAddress + "changelogs/" + "changelog-" + entry.Version));
-
+            using var response =
+                await _httpClient.GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, GetUriForChangelog(entry)));
             if (response is not { IsSuccessStatusCode: true })
             {
                 return null;
             }
 
-            return new ReleaseNote(await response.Content.ReadAsStringAsync(), NoteType);
+            using var streamReader = new StreamReader(await GetStreamFromResponse(response));
+            return new ReleaseNote(await streamReader.ReadToEndAsync(), NoteType);
         }
 
-        public override async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress)
+        public override async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, Action<double>? progress = default)
         {
             //If this is the case then we already have the file and it's what we expect, no point in downloading it again
-            if (releaseEntry.IsValidReleaseEntry(ApplicationMetadata.ApplicationVersion, true))
+            if (releaseEntry.IsValidReleaseEntry(AppMetadata.ApplicationVersion, true))
             {
                 return true;
             }
@@ -71,18 +71,28 @@ namespace TinyUpdate.Http
 
             //Check the file
             Logger.Debug("Successfully downloaded?: {0}", successfullyDownloaded);
-            return releaseEntry.CheckReleaseEntry(ApplicationMetadata.ApplicationVersion, successfullyDownloaded);
+            return releaseEntry.CheckReleaseEntry(AppMetadata.ApplicationVersion, successfullyDownloaded);
         }
 
-        protected virtual string GetUriForReleaseEntry(ReleaseEntry releaseEntry) =>
-            _httpClient.BaseAddress + releaseEntry.Filename;
-        
-        private async Task<bool> DownloadUpdateInter(ReleaseEntry releaseEntry, Action<int> progress)
+        protected virtual async Task<bool> DownloadUpdateInter(ReleaseEntry releaseEntry, Action<int>? progress)
         {
             try
             {
-                using var releaseStream = await _httpClient.GetStreamAsync(GetUriForReleaseEntry(releaseEntry));
-
+				var path = Directory.GetParent(releaseEntry.FileLocation);
+				if (path == null)
+				{
+					Logger.Error("Unable to get details needed for putting file on disk");
+					return false;
+				}
+				Directory.CreateDirectory(path.FullName);
+				
+                using var response = await _httpClient.GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, GetUriForReleaseEntry(releaseEntry)));
+                if (response is not { IsSuccessStatusCode: true })
+                {
+                    return false;
+                }
+                using var releaseStream = await GetStreamFromResponse(response);
+                
                 //Delete the file if it already exists
                 if (File.Exists(releaseEntry.FileLocation))
                 {
@@ -90,9 +100,16 @@ namespace TinyUpdate.Http
                     File.Delete(releaseEntry.FileLocation);
                 }
             
-                using var releaseFileStream = new ProgressStream(
-                    File.Open(releaseEntry.FileLocation, FileMode.CreateNew, FileAccess.ReadWrite), writeAction: (count) => progress?.Invoke(count));
+                var releaseFileStream = new ProgressStream(
+                    FileHelper.MakeFileStream(releaseEntry.FileLocation, FileMode.CreateNew, FileAccess.ReadWrite, releaseEntry.Filesize), writeAction: (count) => progress?.Invoke(count));
                 await releaseStream.CopyToAsync(releaseFileStream);
+                releaseFileStream.Dispose();
+
+                if (!releaseEntry.IsValidReleaseEntry(AppMetadata.ApplicationVersion, true))
+				{
+					File.Delete(releaseEntry.FileLocation);
+					return false;
+				}
                 return true;
             }
             catch (Exception e)
@@ -102,7 +119,7 @@ namespace TinyUpdate.Http
             }
         }
 
-        protected async Task<long> DownloadReleaseFile(string releaseFileLocation, string downloadUrl)
+        protected async Task<long> DownloadReleaseFile(string releaseFileLocation)
         {
             //Download the RELEASE file if we don't already have it
             var releaseFileInfo = new FileInfo(releaseFileLocation);
@@ -116,20 +133,30 @@ namespace TinyUpdate.Http
             
             if (!releaseFileInfo.Exists)
             {
-                Directory.CreateDirectory(ApplicationMetadata.TempFolder);
-                var response = await _httpClient.GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, downloadUrl));
-                if (response == null)
+                Directory.CreateDirectory(AppMetadata.TempFolder);
+                using var response = await _httpClient.GetResponseMessage(new HttpRequestMessage(HttpMethod.Get, GetUriForReleaseFile()));
+                if (response is not { IsSuccessStatusCode: true })
                 {
-                    Logger.Error("Didn't get anything from Github, can't download");
+                    Logger.Error("Didn't get anything, can't download");
                     return -1;
                 }
                 
-                using var releaseStream = await response.Content.ReadAsStreamAsync();
-                using var releaseFileStream = File.Open(releaseFileInfo.FullName, FileMode.CreateNew, FileAccess.ReadWrite);
+                using var releaseStream = await GetStreamFromResponse(response);
+                using var releaseFileStream = FileHelper.MakeFileStream(releaseFileInfo.FullName, FileMode.CreateNew, FileAccess.ReadWrite, releaseStream.Length);
                 await releaseStream.CopyToAsync(releaseFileStream);
-                fileLength = releaseFileStream.Length;
+                fileLength = releaseStream.Length;
             }
             return fileLength ?? releaseFileInfo.Length;
         }
+
+        protected virtual string GetUriForReleaseEntry(ReleaseEntry releaseEntry) =>
+            _httpClient.BaseAddress + releaseEntry.Filename;
+        
+        protected virtual string GetUriForReleaseFile() =>
+            _httpClient.BaseAddress + "RELEASE";
+
+        protected virtual string GetUriForChangelog(ReleaseEntry entry) => _httpClient.BaseAddress + "changelogs/" + "changelog-" + entry.Version;
+        
+        protected virtual Task<Stream> GetStreamFromResponse(HttpResponseMessage message) => message.Content.ReadAsStreamAsync();
     }
 }

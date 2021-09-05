@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using TinyUpdate.Core.Helper;
 
 namespace TinyUpdate.Core.Temporary
 {
@@ -14,13 +15,13 @@ namespace TinyUpdate.Core.Temporary
         public string Location { get; }
 
         private FileStream? _fileStream;
-        public FileStream GetStream(FileMode fileMode = FileMode.CreateNew)
+        public FileStream GetStream(FileMode fileMode = FileMode.CreateNew, long preallocationSize = 0)
         {
             if (_fileStream?.SafeFileHandle?.IsClosed ?? false)
             {
                 _fileStream = null;
             }
-            _fileStream ??= File.Open(Location, fileMode);
+            _fileStream ??= FileHelper.MakeFileStream(Location, fileMode, FileAccess.ReadWrite, preallocationSize);
             return _fileStream;
         }
 

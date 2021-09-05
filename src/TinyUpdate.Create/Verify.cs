@@ -42,6 +42,9 @@ namespace TinyUpdate.Create
             }
 
             //Setup
+            var version = Global.ApplicationOldVersion ?? Global.ApplicationNewVersion;
+            Global.ApplicationMetadata.ApplicationVersion = 
+                new SemanticVersion(version.Major.GetValueOrDefault(1) - 1, version.Minor.GetValueOrDefault(1) - 1, version.Patch.GetValueOrDefault(1) - 1, version.Prerelease, version.Build);
             SetupForVerifying(applier);
 
             //Now verify the updates

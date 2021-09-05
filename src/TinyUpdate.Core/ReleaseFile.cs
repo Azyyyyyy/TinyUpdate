@@ -93,8 +93,8 @@ namespace TinyUpdate.Core
             var oldReleases = Array.Empty<ReleaseFile>();
             if (file.Exists)
             {
+                Logging.Warning("{0} already exists, grabbing all valid releases and recreating file", fileLocation);
                 oldReleases = ReadReleaseFile(File.ReadLines(fileLocation)).ToArray();
-                Logging.Warning("{0} already exists, going to delete it and recreate it", fileLocation);
                 file.Delete();
             }
 

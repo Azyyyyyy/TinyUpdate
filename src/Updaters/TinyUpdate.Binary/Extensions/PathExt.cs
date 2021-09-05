@@ -89,16 +89,27 @@ namespace TinyUpdate.Binary.Extensions
         /// This checks if the folder exists, deleting and recreating the folder if it does
         /// </summary>
         /// <param name="folder">Folder to check</param>
-        public static void RemakeFolder(this string folder)
+        public static bool RemakeFolder(this string folder)
         {
             /*Create the folder that's going to contain this update
              deleting the folder if it already exists*/
-            if (Directory.Exists(folder))
+            if (!Directory.Exists(folder))
             {
-                Directory.Delete(folder, true);
+                Directory.CreateDirectory(folder);
+                return true;
             }
 
-            Directory.CreateDirectory(folder);
+            try
+            {
+                Directory.Delete(folder);
+                Directory.CreateDirectory(folder);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e);
+            }
+            return false;
         }
 
         /// <summary>
