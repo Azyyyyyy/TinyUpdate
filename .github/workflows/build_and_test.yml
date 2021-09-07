@@ -38,7 +38,7 @@ jobs:
 
     - name: Restore dependencies
       run: dotnet restore TinyUpdate.sln
-    - name: Build
+    - name: Build (Any)
       run: dotnet build TinyUpdate.sln --no-restore
-    - name: Test
-      run: dotnet test TinyUpdate.sln --no-build --verbosity normal --runtime ${{ matrix.runtime-id }}
+    - name: Build (For OS) and Test
+      run: cd test && dotnet test TinyUpdate.Tests.sln -c Release --runtime ${{ matrix.runtime-id }}
