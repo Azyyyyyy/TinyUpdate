@@ -16,14 +16,23 @@ jobs:
           - os: macos-latest
           - os: windows-latest
           - os: ubuntu-latest
+      fail-fast: false
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET
+
+    # We need net5 + net6 or we fail on testing
+    - name: Setup .NET 5.0.x
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+
+    - name: Setup .NET 6.0.x
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
         include-prerelease: true
+
     - name: Restore dependencies
       run: dotnet restore TinyUpdate.sln
     - name: Build
