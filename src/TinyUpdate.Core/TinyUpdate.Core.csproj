@@ -8,10 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Remove="Native\**" />
-      <EmbeddedResource Remove="Native\**" />
-      <None Remove="Native\**" />
-        
       <Compile Remove="UnofficiallySupported\**" />
       <EmbeddedResource Remove="UnofficiallySupported\**" />
       <None Remove="UnofficiallySupported\**" />
@@ -22,28 +18,7 @@
         <EmbeddedResource Include="UnofficiallySupported\**" />
         <None Include="UnofficiallySupported\**" />
     </ItemGroup>
-
-    <ItemGroup Condition="'$(IsAny)'=='true'">
-        <Compile Include="Native\**" />
-        <EmbeddedResource Include="Native\**" />
-        <None Include="Native\**" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(IsWindows)'=='true'">
-        <Compile Include="Native\Windows\**" />
-        <EmbeddedResource Include="Native\Windows\**" />
-        <None Include="Native\Windows\**" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(IsLinux)'=='true'">
-        <Compile Include="Native\Linux\**" />
-        <EmbeddedResource Include="Native\Linux\**" />
-        <None Include="Native\Linux\**" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(IsOSX)'=='true'">
-        <Compile Include="Native\macOS\**" />
-        <EmbeddedResource Include="Native\macOS\**" />
-        <None Include="Native\macOS\**" />
-    </ItemGroup>
-
+    
     <ItemGroup>
       <PackageReference Include="SemanticVersion" Version="2.1.0" />
     </ItemGroup>
