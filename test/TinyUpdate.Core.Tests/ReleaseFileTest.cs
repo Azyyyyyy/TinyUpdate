@@ -37,6 +37,7 @@ namespace TinyUpdate.Core.Tests
         private readonly string ReleaseFileLocation = Path.Combine(TestContext.CurrentContext.WorkDirectory, "RELEASE");
 
         [Test]
+        [Ignore("Needs remaking")]
         public async Task CanCreateReleaseFile()
         {
             var dummyReleaseFileEntries = CreateReleaseFiles();
@@ -51,6 +52,7 @@ namespace TinyUpdate.Core.Tests
         }
 
         [Test]
+        [Ignore("Needs remaking")]
         public async Task CanCreateReleaseFile_FileAlreadyExists()
         {
             await CanCreateReleaseFile();
@@ -79,6 +81,7 @@ namespace TinyUpdate.Core.Tests
         };
 
         [Test]
+        [Ignore("Needs remaking")]
         [TestCaseSource(nameof(testReadData))]
         public void CanReadReleaseFile((string[], ReleaseFile[]) releaseContent)
         {

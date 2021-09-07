@@ -10,7 +10,7 @@ await updateClient.UpdateApp();
 **Note**: In a real application you wouldn't hard code the path in but use a relative path or use the working path (``Environment.CurrentDirectory``)
 
 your also need to add these usings
-```
+```cs
 using TinyUpdate.Extensions;
 using TinyUpdate.Local;
 using TinyUpdate.Binary;

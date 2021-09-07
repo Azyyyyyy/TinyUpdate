@@ -9,7 +9,13 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+          - os: windows-latest
+          - os: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -22,5 +28,5 @@ jobs:
       run: dotnet restore TinyUpdate.sln
     - name: Build
       run: dotnet build TinyUpdate.sln --no-restore
-    #- name: Test
-    #  run: dotnet test TinyUpdate.sln --no-build --verbosity normal
+    - name: Test
+      run: dotnet test TinyUpdate.sln --no-build --verbosity normal

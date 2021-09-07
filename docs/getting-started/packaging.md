@@ -4,7 +4,7 @@
 ## Prep for building
 
 Before you build your application you need to set your application version, in order to do this go to your csproj file and add this in any ``PropertyGroup`` without a ``Condition``:
-```
+```xml
 <AssemblyVersion>0.0.0.1</AssemblyVersion>
 <FileVersion>0.0.0.1</FileVersion>
 ```
