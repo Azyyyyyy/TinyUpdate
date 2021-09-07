@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Test;
 
 namespace TinyUpdate.Binary.Tests
@@ -9,13 +10,7 @@ namespace TinyUpdate.Binary.Tests
         [OneTimeSetUp]
         public void RunBeforeAnyTests()
         {
-            SetupTests.OneTimeSetUp();
-        }
-
-        [OneTimeTearDown]
-        public void RunAfterAnyTests()
-        {
-            SetupTests.OneTimeTearDown();
+            LoggingCreator.AddLogBuilder(new TestLoggerBuilder());
         }
     }
 }

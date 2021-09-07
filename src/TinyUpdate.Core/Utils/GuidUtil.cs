@@ -23,7 +23,7 @@ namespace TinyUpdate.Core.Utils
             using (var algorithm = SHA1.Create()) {
                 algorithm.TransformBlock(namespaceBytes, 0, namespaceBytes.Length, null, 0);
                 algorithm.TransformFinalBlock(nameBytes, 0, nameBytes.Length);
-                hash = algorithm.Hash;
+                hash = algorithm.Hash!;
             }
 
             // most bytes from the hash are copied straight to the bytes of 
@@ -47,7 +47,7 @@ namespace TinyUpdate.Core.Utils
         }
 
         // Converts a GUID (expressed as a byte array) to/from network order (MSB-first).
-        static void SwapByteOrder(byte[] guid)
+        private static void SwapByteOrder(byte[] guid)
         {
             SwapBytes(guid, 0, 3);
             SwapBytes(guid, 1, 2);
@@ -55,11 +55,9 @@ namespace TinyUpdate.Core.Utils
             SwapBytes(guid, 6, 7);
         }
 
-        static void SwapBytes(byte[] guid, int left, int right)
+        private static void SwapBytes(byte[] guid, int left, int right)
         {
-            byte temp = guid[left];
-            guid[left] = guid[right];
-            guid[right] = temp;
+            (guid[left], guid[right]) = (guid[right], guid[left]);
         }
     }
 }

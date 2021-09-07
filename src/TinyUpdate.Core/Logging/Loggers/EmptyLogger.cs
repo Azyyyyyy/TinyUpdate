@@ -4,7 +4,10 @@ namespace TinyUpdate.Core.Logging.Loggers
 {
     public class EmptyLogger : ILogging
     {
-        public string Name => "";
+        private static EmptyLogger? _staticLogger;
+        public static EmptyLogger StaticLogger => _staticLogger ??= new EmptyLogger();
+
+        public string Name => string.Empty;
         public LogLevel? LogLevel { get; set; }
 
         public void Debug(string message, params object?[] propertyValues)
@@ -26,14 +29,5 @@ namespace TinyUpdate.Core.Logging.Loggers
         public void Error(Exception e, params object?[] propertyValues)
         {
         }
-    }
-
-    /// <summary>
-    /// Builder to create <see cref="EmptyLogger"/>
-    /// </summary>
-    public class EmptyLoggerBuilder : LoggingBuilder
-    {
-        /// <inheritdoc cref="LoggingBuilder.CreateLogger"/>
-        public override ILogging CreateLogger(string name) => new EmptyLogger();
     }
 }

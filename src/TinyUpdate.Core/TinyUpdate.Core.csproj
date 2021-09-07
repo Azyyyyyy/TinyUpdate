@@ -1,41 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="..\..\common.props" />
     <Import Project="..\..\nuget.props" />
+    <Import Project="..\..\os.props" />
 
     <PropertyGroup>
         <PackageOutputPath>../../$(BasePackageOutputPath)</PackageOutputPath>
-    </PropertyGroup>
-    
-    <!--So we can get what OS we are building for on compiling-->
-    <PropertyGroup>
-        <IsWindows>false</IsWindows>
-        <IsOSX>false</IsOSX>
-        <IsLinux>false</IsLinux>
-    </PropertyGroup>
-    <PropertyGroup>
-        <IsWindows Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'win*'))">true</IsWindows>
-        <IsOSX Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'linux*'))">true</IsOSX>
-        <IsLinux Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'osx*'))">true</IsLinux>
-        <IsAny Condition="'$(IsWindows)'=='false' And '$(IsOSX)'=='false' And '$(IsLinux)'=='false'">true</IsAny>
-    </PropertyGroup>
-    
-    <PropertyGroup Condition="'$(IsWindows)'=='true'">
-        <DefineConstants>Windows</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsOSX)'=='true'">
-        <DefineConstants>macOS</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsLinux)'=='true'">
-        <DefineConstants>Linux</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsAny)'=='true'">
-        <DefineConstants>Any</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>
       <Compile Remove="Native\**" />
       <EmbeddedResource Remove="Native\**" />
       <None Remove="Native\**" />
+        
       <Compile Remove="UnofficiallySupported\**" />
       <EmbeddedResource Remove="UnofficiallySupported\**" />
       <None Remove="UnofficiallySupported\**" />

@@ -6,7 +6,7 @@ namespace TinyUpdate.Core.Logging.Loggers
     /// <summary>
     /// Logger that wraps around multiple loggers (Building the loggers itself)
     /// </summary>
-    internal class WrapperLogger : ILogging, IDisposable
+    internal sealed class WrapperLogger : ILogging, IDisposable
     {
         private readonly ILogging[] _loggers;
 
@@ -69,12 +69,26 @@ namespace TinyUpdate.Core.Logging.Loggers
             }
         }
 
+        private bool _disposed;
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            
             foreach (var disposable in _loggers.Select(x => x as IDisposable))
             {
                 disposable?.Dispose();
             }
+            Array.Clear(_loggers, 0, _loggers.Length);
+            GC.SuppressFinalize(this);
+        }
+
+        ~WrapperLogger()
+        {
+            Dispose();
         }
     }
 }

@@ -18,7 +18,7 @@ namespace TinyUpdate.Create
         private double _currentProgress;
         private bool _disposed;
         private int _animationIndex;
-        private string _currentText = "";
+        private string _currentText = string.Empty;
 
         public ProgressBar()
         {

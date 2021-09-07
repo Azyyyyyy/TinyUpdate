@@ -1,4 +1,12 @@
-﻿using System;
+﻿#if TRACE
+#define ALREADYHADTRACE
+#else
+#define TRACE
+#endif
+/*^^ If we don't have TRACE then we want to define it,
+ after all the whole point of this class is to use Trace!*/
+
+using System;
 using System.Diagnostics;
 
 namespace TinyUpdate.Core.Logging.Loggers
@@ -70,3 +78,8 @@ namespace TinyUpdate.Core.Logging.Loggers
         public override ILogging CreateLogger(string name) => new TraceLogger(name);
     }
 }
+
+//We want to remove TRACE if we added ourselves to make sure nothing else gets broken
+#if !ALREADYHADTRACE
+#undef TRACE
+#endif

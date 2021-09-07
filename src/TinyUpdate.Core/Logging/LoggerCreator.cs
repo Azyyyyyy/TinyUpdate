@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using TinyUpdate.Core.Logging.Loggers;
 
 namespace TinyUpdate.Core.Logging
@@ -10,7 +9,11 @@ namespace TinyUpdate.Core.Logging
     /// </summary>
     public static class LoggingCreator
     {
-        private static readonly List<LoggingBuilder> LogBuilders = new();
+        private static LoggingBuilder[] _logBuilders = Array.Empty<LoggingBuilder>();
+        static LoggingCreator()
+        {
+            AppDomain.CurrentDomain.ProcessExit += (sender, args) => Dispose();
+        }
 
         /// <summary>
         /// How much logging we should process when not set in the <see cref="ILogging"/>
@@ -34,25 +37,32 @@ namespace TinyUpdate.Core.Logging
         /// <param name="name">Name of the class that is requesting an <see cref="ILogging"/></param>
         public static ILogging CreateLogger(string name)
         {
-            var logger = new WrapperLogger(name,
-                LogBuilders.Any() ? LogBuilders.ToArray() : new LoggingBuilder[] {new EmptyLoggerBuilder()});
+            ILogging logger = _logBuilders.LongLength switch
+            {
+                0 => EmptyLogger.StaticLogger,
+                1 => _logBuilders[0].CreateLogger(name),
+                _ => new WrapperLogger(name, _logBuilders)
+            };
+
             Loggers.Add(logger);
             return logger;
         }
-
+        
         private static readonly List<ILogging> Loggers = new List<ILogging>();
         /// <summary>
-        /// This lets you manually dispose any loggers that also have <see cref="IDisposable"/>
+        /// This lets you manually dispose any created loggers (Only call this when your application is shutting down)
         /// </summary>
-        public static void DisposeLoggers()
+        private static void Dispose()
         {
-            foreach (var logger in Loggers)
+            Loggers.ForEach(x =>
             {
-                if (logger is IDisposable disposable)
+                if (x is IDisposable d)
                 {
-                    disposable.Dispose();
+                    d.Dispose();
                 }
-            }
+            });
+            Loggers.Clear();
+            Loggers.TrimExcess();
         }
         
         /// <summary>
@@ -61,7 +71,10 @@ namespace TinyUpdate.Core.Logging
         /// <param name="builder"><see cref="LoggingBuilder"/> to use</param>
         public static void AddLogBuilder(LoggingBuilder builder)
         {
-            LogBuilders.Add(builder);
+            var index = _logBuilders.Length;
+            Array.Resize(ref _logBuilders, index + 1);
+            
+            _logBuilders[index] = builder;
         }
     }
 }

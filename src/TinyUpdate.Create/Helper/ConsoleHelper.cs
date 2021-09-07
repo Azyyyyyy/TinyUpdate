@@ -13,7 +13,7 @@ namespace TinyUpdate.Create.Helper
         private static readonly CustomConsoleLogger Logger = new(nameof(ConsoleHelper));
 
         public static string ShowS(int count) => ShowS(count > 1);
-        public static string ShowS(bool show) => show ? "s" : "";
+        public static string ShowS(bool show) => show ? "s" : string.Empty;
 
         /// <summary>
         /// Creates a string that displays the contents of <see cref="TimeSpan"/>
@@ -21,7 +21,7 @@ namespace TinyUpdate.Create.Helper
         /// <param name="timeSpan"><see cref="TimeSpan"/> to use</param>
         public static string TimeSpanToString(TimeSpan timeSpan)
         {
-            var s = "";
+            var s = string.Empty;
             if (timeSpan.Days > 0)
             {
                 s += $"{timeSpan:%d} Day{ShowS(timeSpan.Days)}, ";

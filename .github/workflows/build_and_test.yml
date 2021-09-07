@@ -14,8 +14,11 @@ jobs:
       matrix:
         include:
           - os: macos-latest
+            runtime-id: win-x64
           - os: windows-latest
+            runtime-id: linux-x64
           - os: ubuntu-latest
+            runtime-id: osx-x64
       fail-fast: false
 
     steps:
@@ -38,4 +41,4 @@ jobs:
     - name: Build
       run: dotnet build TinyUpdate.sln --no-restore
     - name: Test
-      run: dotnet test TinyUpdate.sln --no-build --verbosity normal
+      run: dotnet test TinyUpdate.sln --no-build --verbosity normal --runtime ${{ matrix.runtime-id }}

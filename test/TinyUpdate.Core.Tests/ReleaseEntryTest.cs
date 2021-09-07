@@ -37,7 +37,7 @@ namespace TinyUpdate.Core.Tests
         public async Task IsValidReleaseEntry_FilesizeCheck()
         {
             Assert.ThrowsAsync<Exception>(async () =>
-                await DummyReleaseEntry.MakeDummyReleaseEntry(false, "",
+                await DummyReleaseEntry.MakeDummyReleaseEntry(false, string.Empty,
                     invalidReleaseOptions: InvalidReleaseEntry.Filesize));
 
             await RunIsValidReleaseEntryTest(InvalidReleaseEntry.Filesize, true, true);
@@ -59,13 +59,13 @@ namespace TinyUpdate.Core.Tests
             var hash = SHA256Util.CreateSHA256Hash(data);
             var version = new SemanticVersion(1, 2, 0);
             Assert.DoesNotThrow(() => 
-                new ReleaseEntry(hash, "wew", data.Length, false, version, ""));
+                new ReleaseEntry(hash, "wew", data.Length, false, version, string.Empty));
             
             Assert.Throws<Exception>(() => 
-                new ReleaseEntry(hash, "wew", data.Length, true, version, ""));
+                new ReleaseEntry(hash, "wew", data.Length, true, version, string.Empty));
 
             Assert.DoesNotThrow(() => 
-                new ReleaseEntry(hash, "wew", data.Length, true, version, "", oldVersion: new SemanticVersion(1, 1, 0)));
+                new ReleaseEntry(hash, "wew", data.Length, true, version, string.Empty, new SemanticVersion(1, 1, 0)));
         }
         
         [Test]
@@ -80,7 +80,7 @@ namespace TinyUpdate.Core.Tests
             Assert.IsTrue(releaseFile.IsValidReleaseEntry(new SemanticVersion(1, 0, 0), true), "File checking failed, Returning false when we should have true");
             
             //Now we make one with a invalid filename name (no filename + invalid name), we should throw when this is the case
-            Assert.ThrowsAsync<InvalidFileNameException>(async () => await DummyReleaseEntry.MakeDummyReleaseEntry(false, "", ""), "We didn't throw on a filename that is nothing!");
+            Assert.ThrowsAsync<InvalidFileNameException>(async () => await DummyReleaseEntry.MakeDummyReleaseEntry(false, string.Empty, string.Empty), "We didn't throw on a filename that is nothing!");
             Assert.ThrowsAsync<InvalidFileNameException>(async () => await DummyReleaseEntry.MakeDummyReleaseEntry(false, CreateInvalidFilename()), "We didn't throw on a filename that is invalid!");
         }
 

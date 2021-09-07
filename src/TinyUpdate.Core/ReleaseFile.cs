@@ -112,11 +112,11 @@ namespace TinyUpdate.Core
             var s = $"{SHA256} {Name} {Size}";
             if (OldVersion != null)
             {
-                s += " " + OldVersion;
+                s += ' ' + OldVersion.ToString();
             }
             if (StagingPercentage.HasValue)
             {
-                s += " " + StagingPercentage;
+                s += ' ' + StagingPercentage;
             }
             return s;
         }

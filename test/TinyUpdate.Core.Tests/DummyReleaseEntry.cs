@@ -74,7 +74,7 @@ namespace TinyUpdate.Core.Tests
                 }
             }*/
 
-            return new ReleaseEntry(sha256, filename, 0, isDelta, version, "");
+            return new ReleaseEntry(sha256, filename, 0, isDelta, version, string.Empty);
         }
     }
 }

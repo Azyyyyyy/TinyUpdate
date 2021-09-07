@@ -86,7 +86,7 @@ namespace TinyUpdate.Create
             {
                 // ReSharper disable once ConstantNullCoalescingCondition
                 Global.NewVersionLocation ??= ConsoleHelper.RequestFolder(
-                    $"Type in where the{(Global.CreateDeltaUpdate ? " new version of the" : "")} application is");
+                    $"Type in where the{(Global.CreateDeltaUpdate ? " new version of the" : string.Empty)} application is");
             }
 
             if (Global.CreateDeltaUpdate)
@@ -254,7 +254,7 @@ namespace TinyUpdate.Create
 
         public static string GetOutputLocation(bool deltaFile, string extension) =>
             Path.Combine(Global.OutputLocation,
-                $"{Global.ApplicationMetadata.ApplicationName}.{Global.ApplicationNewVersion}-{(deltaFile ? "delta" : "full")}{(Global.IntendedOs != null ? $"-{Global.IntendedOs}" : "")}{extension}");
+                $"{Global.ApplicationMetadata.ApplicationName}.{Global.ApplicationNewVersion}-{(deltaFile ? "delta" : "full")}{(Global.IntendedOs != null ? $"-{Global.IntendedOs}" : string.Empty)}{extension}");
 
         private const string TinyUpdateText = @"
   _____  _                _   _             _         _        

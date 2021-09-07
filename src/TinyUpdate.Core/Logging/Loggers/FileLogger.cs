@@ -89,6 +89,7 @@ namespace TinyUpdate.Core.Logging.Loggers
             _dir = dir;
         }
 
+        //TODO: Fix issue with making a logger with same name multiple times
         private readonly List<FileLogger> _loggers = new List<FileLogger>();
         /// <inheritdoc cref="LoggingBuilder.CreateLogger"/>
         public override ILogging CreateLogger(string name)

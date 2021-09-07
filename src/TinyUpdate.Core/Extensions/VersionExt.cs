@@ -29,7 +29,7 @@ namespace TinyUpdate.Core.Extensions
 
         private static string GetRevisionString(Version version)
         {
-            var s = "";
+            var s = string.Empty;
             if (version.Revision > 0)
             {
                 s += "+r" + version.Revision;
@@ -59,12 +59,8 @@ namespace TinyUpdate.Core.Extensions
 
         private static string? GetVersionFromAttribute(CustomAttributeData attribute)
         {
-            if (attribute.AttributeType.FullName == typeof(SemanticVersionAttribute).FullName)
-            {
-                return attribute.ConstructorArguments[0].Value.ToString();
-            }
-
-            return null;
+            return attribute.AttributeType.FullName == typeof(SemanticVersionAttribute).FullName ? 
+                attribute.ConstructorArguments[0].Value.ToString() : null;
         }
 
         /// <summary>
@@ -73,8 +69,8 @@ namespace TinyUpdate.Core.Extensions
         /// <param name="fileName">The filename that contains a <see cref="Version"/></param>
         public static SemanticVersion? ToVersion(this string fileName)
         {
-            var name = SuffixRegex.Replace(fileName, "");
-            name = OsRegex.Replace(name, "");
+            var name = SuffixRegex.Replace(fileName, string.Empty);
+            name = OsRegex.Replace(name, string.Empty);
             name = name[(name.IndexOf('-') + 1)..];
 
             var versionStr = VersionRegex.Match(name);

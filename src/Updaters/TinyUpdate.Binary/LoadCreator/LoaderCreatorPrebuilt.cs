@@ -54,7 +54,7 @@ namespace TinyUpdate.Binary.LoadCreator
                 }
 
                 var app = fileStream.ReadExactly(PATHLINE.Length - 1).Select(x => (char)x);
-                if ('{' + string.Join("", app) == PATHLINE)
+                if ('{' + string.Join(string.Empty, app) == PATHLINE)
                 {
                     end = fileStream.Position;
                     start = fileStream.Position - PATHLINE.Length;

@@ -48,7 +48,7 @@ namespace TinyUpdate.Core.Tests.Extensions
         }
         
         [Test]
-        public void CheckReleaseEntry_ShouldFailVaildCheck()
+        public void CheckReleaseEntry_ShouldFailValidCheck()
         {
             Assert.Inconclusive();
         }

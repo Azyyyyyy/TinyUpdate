@@ -64,7 +64,7 @@ namespace TinyUpdate.Core.Utils
         /// <param name="bytes"><see cref="byte"/>[] to use for creating SHA256 hash</param>
         public static string CreateSHA256Hash(byte[] bytes)
         {
-            string result = "";
+            string result = string.Empty;
             foreach (var b in bytes)
             {
                 result = result + b.ToString("X2");

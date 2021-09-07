@@ -75,7 +75,7 @@ namespace TinyUpdate.Core.Logging.Loggers
             {
                 lock (_writeLock)
                 {
-                    Console.WriteLine($"[{type} - {Name}]: " + string.Format(message, propertyValues));
+                    Console.Out.WriteLine($"[{type} - {Name}]: " + string.Format(message, propertyValues));
                     return;
                 }
             }
@@ -86,10 +86,10 @@ namespace TinyUpdate.Core.Logging.Loggers
                 Console.ForegroundColor = colour;
                 if (Console.CursorLeft != 0)
                 {
-                    Console.Write(Environment.NewLine);
+                    Console.Out.Write(Environment.NewLine);
                 }
 
-                Console.Write($"[{type} - {Name}]: ");
+                Console.Out.Write($"[{type} - {Name}]: ");
 
                 Console.ForegroundColor = oldColour;
             }
@@ -111,12 +111,12 @@ namespace TinyUpdate.Core.Logging.Loggers
             {
                 if (checkCursor && Console.CursorLeft != 0)
                 {
-                    Console.Write(Environment.NewLine);
+                    Console.Out.Write(Environment.NewLine);
                 }
 
                 if (string.IsNullOrWhiteSpace(message))
                 {
-                    Console.WriteLine();
+                    Console.Out.WriteLine();
                     return;
                 }
 
@@ -131,22 +131,22 @@ namespace TinyUpdate.Core.Logging.Loggers
                     {
                         if (writeNewLineOnEnd)
                         {
-                            Console.WriteLine(message);
+                            Console.Out.Write(message);
                             break;
                         }
 
-                        Console.Write(message);
+                        Console.Out.Write(message);
                         break;
                     }
 
-                    Console.Write(message[..(startBracketInt - 1)]);
+                    Console.Out.Write(message[..(startBracketInt - 1)]);
                     if (!int.TryParse(message[startBracketInt..endBracketInt], out var number))
                     {
                         throw new FormatException();
                     }
 
                     Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.Write(propertyValues[number]);
+                    Console.Out.Write(propertyValues[number]);
                     Console.ForegroundColor = oldColour;
                     message = message.Substring(endBracketInt + 1, message[(endBracketInt + 1)..].Length);
                 }

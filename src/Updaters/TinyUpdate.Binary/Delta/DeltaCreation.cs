@@ -31,7 +31,7 @@ namespace TinyUpdate.Binary.Delta
             out Stream? deltaFileStream,
             Action<double>? progress = null)
         {
-            extension = "";
+            extension = string.Empty;
             deltaFileStream = null;
             foreach (var deltaUpdater in DeltaUpdaters.Updaters)
             {

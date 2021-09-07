@@ -4,27 +4,6 @@ using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Test
 {
-    /// <summary>
-    /// Hooks up anything needed to assist with getting results and logging
-    /// </summary>
-    public static class SetupTests
-    {
-        /// <summary>
-        /// Setup to call before any tests happen
-        /// </summary>
-        public static void OneTimeSetUp()
-        {
-            LoggingCreator.AddLogBuilder(new TestLoggerBuilder());
-        }
-
-        /// <summary>
-        /// Setup to call after all tests have happened
-        /// </summary>
-        public static void OneTimeTearDown()
-        {
-        }
-    }
-    
     public class TestLogger : ILogging
     {
         public TestLogger(string name)
