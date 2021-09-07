@@ -8,8 +8,8 @@
     </PropertyGroup>
     <PropertyGroup>
         <IsWindows Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'win*'))">true</IsWindows>
-        <IsOSX Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'linux*'))">true</IsOSX>
-        <IsLinux Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'osx*'))">true</IsLinux>
+        <IsOSX Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'osx*'))">true</IsOSX>
+        <IsLinux Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(RuntimeIdentifier), 'linux*'))">true</IsLinux>
         <IsAny Condition="'$(IsWindows)'=='false' And '$(IsOSX)'=='false' And '$(IsLinux)'=='false'">true</IsAny>
     </PropertyGroup>
     
