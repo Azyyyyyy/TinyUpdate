@@ -1,6 +1,4 @@
-﻿#if TRACE
-#define ALREADYHADTRACE
-#else
+﻿#if !TRACE
 #define TRACE
 #endif
 /*^^ If we don't have TRACE then we want to define it,
@@ -78,8 +76,3 @@ namespace TinyUpdate.Core.Logging.Loggers
         public override ILogging CreateLogger(string name) => new TraceLogger(name);
     }
 }
-
-//We want to remove TRACE if we added ourselves to make sure nothing else gets broken
-#if !ALREADYHADTRACE
-#undef TRACE
-#endif
