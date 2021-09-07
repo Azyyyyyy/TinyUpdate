@@ -14,11 +14,11 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            runtime-id: win-x64
-          - os: windows-latest
-            runtime-id: linux-x64
-          - os: ubuntu-latest
             runtime-id: osx-x64
+          - os: windows-latest
+            runtime-id: win-x64
+          - os: ubuntu-latest
+            runtime-id: linux-x64
       fail-fast: false
 
     steps:
