@@ -14,7 +14,7 @@ namespace TinyUpdate.Core.Helper
 #if NET6_0_OR_GREATER
             return File.Open(path, new FileStreamOptions { Mode = mode, Access = access, PreallocationSize = preallocationSize});
 #else
-            return File.Open(path, mode);
+            return File.Open(path, mode, access);
 #endif
         }
     }

@@ -5,6 +5,7 @@ using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Core.Tests.Extensions
 {
+    //TODO: Check this to see if it doesn't check a certain way
     public class EnumerableExtTest
     {
         private static EnumerableExtTestData[] _testData =
@@ -16,15 +17,12 @@ namespace TinyUpdate.Core.Tests.Extensions
             new(new []
             {
                 "One", "Two", "Three"
-            }, 
-                2),
+            }, 2),
             new(new []
             {
                 "hdsfkjhdsfkjh", "ruirbgmdnbf", "wuhernmcs;foif", "djdjfd993jz,chkz"
-            },
-            2),
+            },2),
             new(Array.Empty<object?>(), -1),
-            new(new object?[0], -1)
         };
         
         [Test]

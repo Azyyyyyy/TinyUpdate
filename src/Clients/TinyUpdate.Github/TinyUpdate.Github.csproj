@@ -6,7 +6,7 @@
         <PackageOutputPath>../../../$(BasePackageOutputPath)/Clients/Github</PackageOutputPath>
     </PropertyGroup>
     
-    <ItemGroup Condition="$(TargetFramework) != 'net5.0'">
+    <ItemGroup Condition="$(TargetFramework) == 'netstandard2.0' or $(TargetFramework) == 'netstandard2.1'">
         <PackageReference Include="System.Text.Json" Version="5.0.2" />
     </ItemGroup>
     
