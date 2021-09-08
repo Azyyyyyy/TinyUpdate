@@ -115,13 +115,13 @@ namespace TinyUpdate.Binary.Extensions
                 {
                     fileEntries.Add(new FileEntry(filename, filepath)
                     {
-                        SHA256 = sha256Hash,
+                        SHA256 = sha256Hash!,
                         Filesize = filesize
                     });
                     continue;
                 }
 
-                fileEntries[entryIndex].SHA256 = sha256Hash;
+                fileEntries[entryIndex].SHA256 = sha256Hash!;
                 fileEntries[entryIndex].Filesize = filesize;
 
                 //Clear stream if we don't need it

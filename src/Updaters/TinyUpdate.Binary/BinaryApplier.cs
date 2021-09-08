@@ -159,6 +159,7 @@ namespace TinyUpdate.Binary
             if (!newVersionFolder.RemakeFolder())
             {
                 Logger.Error("Wasn't able to delete the existing folder {0}, going to fail here!", newVersionFolder);
+                return false;
             }
 
             /*Go through every update we have, reporting the

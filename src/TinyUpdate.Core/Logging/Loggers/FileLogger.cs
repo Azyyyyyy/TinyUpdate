@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Core.Logging.Loggers
@@ -10,7 +11,7 @@ namespace TinyUpdate.Core.Logging.Loggers
     /// </summary>
     public class FileLogger : ILogging, IDisposable
     {
-        private readonly Lazy<TextWriter> _fileWriter;
+        internal Lazy<TextWriter> _fileWriter;
         public FileLogger(string name, string dir, string file)
         {
             Name = name;
@@ -68,11 +69,53 @@ namespace TinyUpdate.Core.Logging.Loggers
             }
         }
 
+        //For how many places currently have this stored
+        private readonly object _counterLock = new object();
+        private int _counter;
+        internal int Counter
+        {
+            get
+            {
+                lock (_counterLock)
+                {
+                    return _counter;
+                }
+            }
+            set
+            {
+                lock (_counterLock)
+                {
+                    _counter = value;
+                }
+            }
+        }
+
+        ~FileLogger()
+        {
+            Dispose();
+        }
+
+        private bool _disposed;
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+
             if (_fileWriter.IsValueCreated)
             {
                 _fileWriter.Value.Flush();
+            }
+
+            //If no-one else is using this then dispose of it
+            Counter--;
+            if (Counter <= 0
+            && _fileWriter.IsValueCreated)
+            {
+                _fileWriter.Value.Dispose();
+                GC.SuppressFinalize(this);
             }
         }
     }
@@ -89,13 +132,17 @@ namespace TinyUpdate.Core.Logging.Loggers
             _dir = dir;
         }
 
-        //TODO: Fix issue with making a logger with same name multiple times
         private readonly List<FileLogger> _loggers = new List<FileLogger>();
         /// <inheritdoc cref="LoggingBuilder.CreateLogger"/>
         public override ILogging CreateLogger(string name)
         {
-            var logger = new FileLogger(name, Path.Combine(_dir, name), _time.ToFileName() + ".log");
-            _loggers.Add(logger);
+            var logger = _loggers.FirstOrDefault(x => x.Name == name);
+            if (logger == null)
+            {
+                logger = new FileLogger(name, Path.Combine(_dir, name), _time.ToFileName() + ".log");
+                _loggers.Add(logger);
+            }
+            logger.Counter++;
             return logger;
         }
 

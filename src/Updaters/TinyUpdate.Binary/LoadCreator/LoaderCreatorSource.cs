@@ -143,12 +143,12 @@ namespace TinyUpdate.Binary.LoadCreator
 
         private static string? GetCmake()
         {
-            var pathContents = (string)Environment.GetEnvironmentVariables(EnvironmentVariableTarget.User)["Path"];
+            var pathContents = (string?)Environment.GetEnvironmentVariables(EnvironmentVariableTarget.User)["Path"] ?? ";";
             if (!pathContents.EndsWith(";"))
             {
                 pathContents += ';';
             }
-            pathContents += (string) Environment.GetEnvironmentVariables(EnvironmentVariableTarget.Machine)["Path"];
+            pathContents += (string?)Environment.GetEnvironmentVariables(EnvironmentVariableTarget.Machine)["Path"];
 
             var variables = pathContents.Split(';');
             foreach (var variable in variables)
@@ -164,6 +164,11 @@ namespace TinyUpdate.Binary.LoadCreator
         
         private static string? GetVsTools()
         {
+            //We already check in CreateLoader but makes the compiler happy
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return null;
+            }
             ManagementObjectCollection mcCollection;
 
             try
@@ -182,10 +187,10 @@ namespace TinyUpdate.Binary.LoadCreator
             foreach (var result in mcCollection)
             {
                 vsInstall ??= result;
-                if ((string)result["ProductId"] == "Microsoft.VisualStudio.Product.BuildTools")
+                if ((string?)result?["ProductId"] == "Microsoft.VisualStudio.Product.BuildTools")
                 {
                     Logger.Debug("Found VS Build Tools, using that install");
-                    return (string)result["InstallLocation"];
+                    return (string?)result["InstallLocation"];
                 }
             }
 
@@ -196,7 +201,7 @@ namespace TinyUpdate.Binary.LoadCreator
                 return null;
             }
 
-            Logger.Information("Found VS install ({0}), using that", vsInstall["Name"]);
+            Logger.Information("Found VS install ({0}), using that", vsInstall?["Name"]);
             return installLocation;
         }
     }

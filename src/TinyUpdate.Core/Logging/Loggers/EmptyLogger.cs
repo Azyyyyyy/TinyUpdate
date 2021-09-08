@@ -11,23 +11,18 @@ namespace TinyUpdate.Core.Logging.Loggers
         public LogLevel? LogLevel { get; set; }
 
         public void Debug(string message, params object?[] propertyValues)
-        {
-        }
+        { }
 
         public void Information(string message, params object?[] propertyValues)
-        {
-        }
+        { }
 
         public void Warning(string message, params object?[] propertyValues)
-        {
-        }
+        { }
 
         public void Error(string message, params object?[] propertyValues)
-        {
-        }
+        { }
 
         public void Error(Exception e, params object?[] propertyValues)
-        {
-        }
+        { }
     }
 }
