@@ -63,8 +63,8 @@ namespace TinyUpdate.Create
             AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
             {
                 Logger.Error("Unhandled exception has happened");
-                Logger.Error("{0}", eventArgs.ExceptionObject);
-                Logger.Error("Is terminating due to error?: {0}", eventArgs.IsTerminating);
+                Logger.Error("{0}", (eventArgs.ExceptionObject.ToString() ?? null));
+                Logger.Error("Is terminating: {0}", eventArgs.IsTerminating);
             };
             
             //Run the application if we get this far

@@ -6,6 +6,7 @@
 
 using System;
 using System.Diagnostics;
+using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Core.Logging.Loggers
 {
@@ -45,7 +46,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
         public void Error(Exception e, params object?[] propertyValues)
         {
-            Error(e.Message, propertyValues);
+            Error(e.Message + this.GetPropertyDetails(propertyValues), propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Information"/>

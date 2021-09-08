@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using TinyUpdate.Core.Extensions;
 
 namespace TinyUpdate.Core.Logging.Loggers
 {
@@ -20,31 +22,31 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Debug"/>
         public void Debug(string message, params object?[] propertyValues)
         {
-            Write("DEBUG", ConsoleColor.Blue, Logging.LogLevel.Trace, message, propertyValues);
+            WriteLine("DEBUG", ConsoleColor.Blue, Logging.LogLevel.Trace, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Error(string, object[])"/>
         public void Error(string message, params object?[] propertyValues)
         {
-            Write("ERROR", ConsoleColor.Red, Logging.LogLevel.Error, message, propertyValues);
+            WriteLine("ERROR", ConsoleColor.Red, Logging.LogLevel.Error, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
         public void Error(Exception e, params object?[] propertyValues)
         {
-            Error(e.Message, propertyValues);
+            Error(e.Message + this.GetPropertyDetails(propertyValues), propertyValues);
         }
-
+        
         /// <inheritdoc cref="ILogging.Information"/>
         public void Information(string message, params object?[] propertyValues)
         {
-            Write("INFO", ConsoleColor.Cyan, Logging.LogLevel.Info, message, propertyValues);
+            WriteLine("INFO", ConsoleColor.Cyan, Logging.LogLevel.Info, message, propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Warning"/>
         public void Warning(string message, params object?[] propertyValues)
         {
-            Write("WARNING", ConsoleColor.Yellow, Logging.LogLevel.Warn, message, propertyValues);
+            WriteLine("WARNING", ConsoleColor.Yellow, Logging.LogLevel.Warn, message, propertyValues);
         }
 
         /// <summary>
@@ -55,7 +57,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <param name="logLevel">The log level that this is</param>
         /// <param name="message">Message to output</param>
         /// <param name="propertyValues">objects that should be formatted into the outputted message</param>
-        private void Write(string type, ConsoleColor colour, LogLevel logLevel, string message,
+        private void WriteLine(string type, ConsoleColor colour, LogLevel logLevel, string message,
             params object?[] propertyValues)
         {
             if (!LoggingCreator.ShouldProcess(LogLevel, logLevel))
@@ -63,60 +65,37 @@ namespace TinyUpdate.Core.Logging.Loggers
                 return;
             }
 
-            WriteInit(type, colour, logLevel, message, propertyValues);
-        }
-        
-        private void WriteInit(string type, ConsoleColor colour, LogLevel logLevel, string message,
-            params object?[] propertyValues)
-        {
             //If the output is being outputted then we can't
             //set the colours so no need to do all the fancy logic for colouring
-                if (Console.IsOutputRedirected)
+            if (Console.IsOutputRedirected)
             {
-                lock (WriteLock)
+                lock (WriteLineLock)
                 {
                     Console.Out.WriteLine($"[{type} - {Name}]: " + string.Format(message, propertyValues));
                     return;
                 }
             }
 
-            lock (WriteLock)
+            lock (WriteLineLock)
             {
                 var oldColour = Console.ForegroundColor;
                 Console.ForegroundColor = colour;
-                if (Console.CursorLeft != 0)
-                {
-                    Console.Out.Write(Environment.NewLine);
-                }
-
                 Console.Out.Write($"[{type} - {Name}]: ");
-
                 Console.ForegroundColor = oldColour;
+
+                WriteFormattedMessage(message + Environment.NewLine, propertyValues);
             }
-            WriteMessage(message, true, false, false, propertyValues);
         }
 
-        // ReSharper disable once MemberCanBePrivate.Global
-        protected void WriteMessage(string message, bool writeNewLineOnEnd, bool checkCursor, bool processWaitCheck,
-            params object?[] propertyValues)
-        {
-            WriteMessageInit(message, writeNewLineOnEnd, checkCursor, processWaitCheck, propertyValues);
-        }
-
+        private static readonly object WriteLineLock = new object();
         private static readonly object WriteLock = new object();
-        private static void WriteMessageInit(string message, bool writeNewLineOnEnd, bool checkCursor,
-            bool processWaitCheck, params object?[] propertyValues)
+        // ReSharper disable once MemberCanBePrivate.Global
+        protected static void WriteFormattedMessage(string message, params object?[] propertyValues)
         {
             lock (WriteLock)
             {
-                if (checkCursor && Console.CursorLeft != 0)
-                {
-                    Console.Out.Write(Environment.NewLine);
-                }
-
                 if (string.IsNullOrWhiteSpace(message))
                 {
-                    Console.Out.WriteLine();
                     return;
                 }
 
@@ -129,14 +108,8 @@ namespace TinyUpdate.Core.Logging.Loggers
                      or the message has no properties to show*/
                     if (startBracketInt == 0 && endBracketInt == -1)
                     {
-                        if (writeNewLineOnEnd)
-                        {
-                            Console.Out.Write(message);
-                            break;
-                        }
-
                         Console.Out.Write(message);
-                        break;
+                        return;
                     }
 
                     Console.Out.Write(message[..(startBracketInt - 1)]);
@@ -145,12 +118,38 @@ namespace TinyUpdate.Core.Logging.Loggers
                         throw new FormatException();
                     }
 
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.Out.Write(propertyValues[number]);
+                    Console.ForegroundColor = GetColourBasedOnType(propertyValues[number]);
+                    Console.Out.Write(propertyValues[number] ?? "null");
                     Console.ForegroundColor = oldColour;
                     message = message.Substring(endBracketInt + 1, message[(endBracketInt + 1)..].Length);
                 }
             }
+        }
+
+        private static ConsoleColor GetColourBasedOnType(object? o)
+        {
+            return o switch
+            {
+                null => ConsoleColor.Blue,
+                bool => ConsoleColor.Blue,
+                string => ConsoleColor.Cyan,
+                _ when IsNumber(o) => ConsoleColor.Magenta,
+                _ => ConsoleColor.Green
+            };
+        }
+
+        private static bool IsNumber(object o)
+        {
+#if NET6_0_OR_GREATER
+            return o.GetType().GetInterfaces().Any(x => (x.Namespace + "." + x.Name) == "System.INumber`1");
+#else
+            if (o is not ValueType)
+            {
+                return false;
+            }
+            return o is int or uint or long or ulong or decimal or byte 
+                or sbyte or short or ushort or double or float;
+#endif
         }
     }
 

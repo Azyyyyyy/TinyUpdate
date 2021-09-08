@@ -16,13 +16,13 @@ namespace TinyUpdate.Create
         /// <inheritdoc cref="Console.WriteLine(string, object[])"/>
         public void WriteLine(string message = "", params object?[] propertyValues)
         {
-            WriteMessage(message, true, true, true, propertyValues);
+            WriteFormattedMessage(message + Environment.NewLine, propertyValues);
         }
 
         /// <inheritdoc cref="Console.Write(string, object[])"/>
         public void Write(string message, params object?[] propertyValues)
         {
-            WriteMessage(message, false, false, true, propertyValues);
+            WriteFormattedMessage(message, propertyValues);
         }
     }
 

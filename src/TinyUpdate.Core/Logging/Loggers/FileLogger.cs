@@ -12,6 +12,7 @@ namespace TinyUpdate.Core.Logging.Loggers
     public class FileLogger : ILogging, IDisposable
     {
         internal Lazy<TextWriter> _fileWriter;
+        private readonly object _writeLock = new object();
         public FileLogger(string name, string dir, string file)
         {
             Name = name;
@@ -30,45 +31,57 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Debug"/>
         public void Debug(string message, params object?[] propertyValues)
         {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Trace))
+            lock (_writeLock)
             {
-                _fileWriter.Value.WriteLine("[DEBUG] " + message, propertyValues);
+                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Trace))
+                {
+                    _fileWriter.Value.WriteLine("[DEBUG] " + message, propertyValues);
+                }
             }
         }
 
         /// <inheritdoc cref="ILogging.Error(string, object[])"/>
         public void Error(string message, params object?[] propertyValues)
         {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Error))
+            lock (_writeLock)
             {
-                _fileWriter.Value.WriteLine("[ERROR] " + message, propertyValues);
+                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Error))
+                {
+                    _fileWriter.Value.WriteLine("[ERROR] " + message, propertyValues);
+                }
             }
         }
 
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
         public void Error(Exception e, params object?[] propertyValues)
         {
-            Error(e.Message, propertyValues);
+            Error(e.Message + this.GetPropertyDetails(propertyValues), propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Information"/>
         public void Information(string message, params object?[] propertyValues)
         {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Info))
+            lock (_writeLock)
             {
-                _fileWriter.Value.WriteLine("[INFO] " + message, propertyValues);
+                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Info))
+                {
+                    _fileWriter.Value.WriteLine("[INFO] " + message, propertyValues);
+                }
             }
         }
 
         /// <inheritdoc cref="ILogging.Warning"/>
         public void Warning(string message, params object?[] propertyValues)
         {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Warn))
+            lock (_writeLock)
             {
-                _fileWriter.Value.WriteLine("[WARN] " + message, propertyValues);
+                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Warn))
+                {
+                    _fileWriter.Value.WriteLine("[WARN] " + message, propertyValues);
+                }
             }
         }
-
+        
         //For how many places currently have this stored
         private readonly object _counterLock = new object();
         private int _counter;
@@ -111,10 +124,12 @@ namespace TinyUpdate.Core.Logging.Loggers
 
             //If no-one else is using this then dispose of it
             Counter--;
-            if (Counter <= 0
-            && _fileWriter.IsValueCreated)
+            if (Counter <= 0)
             {
-                _fileWriter.Value.Dispose();
+                if (_fileWriter.IsValueCreated)
+                {
+                    _fileWriter.Value.Dispose();
+                }
                 GC.SuppressFinalize(this);
             }
         }

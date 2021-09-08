@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging.Loggers;
 
 namespace TinyUpdate.Core.Tests.Logging.Loggers
@@ -22,10 +23,11 @@ namespace TinyUpdate.Core.Tests.Logging.Loggers
             _stream.Dispose();
         }
         
-        protected override Task TestExceptionOverload(object props)
+        protected override string GetExceptionMessage(Exception e, object?[] props)
         {
-            return Task.CompletedTask;
-            //throw new NotImplementedException();
+            return e.Message + string.Format(Logger.GetPropertyDetails(props) ?? string.Empty, props);
         }
+        
+        protected override string GetWholeOutput() => _stream.ToString();
     }
 }
