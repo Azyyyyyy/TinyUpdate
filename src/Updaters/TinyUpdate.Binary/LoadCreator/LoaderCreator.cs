@@ -7,7 +7,7 @@ using TinyUpdate.Core.Temporary;
 
 namespace TinyUpdate.Binary.LoadCreator
 {
-    public class LoaderCreator
+    public static class LoaderCreator
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(LoaderCreator));
         internal static readonly Assembly Assembly = typeof(LoaderCreatorSource).GetTypeInfo().Assembly;

@@ -643,9 +643,7 @@ namespace TinyUpdate.Binary
 
         private static void Swap(ref int first, ref int second)
         {
-            int temp = first;
-            first = second;
-            second = temp;
+            (first, second) = (second, first);
         }
 
         private static long ReadInt64(byte[] buf, int offset)

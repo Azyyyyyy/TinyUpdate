@@ -25,7 +25,15 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryApplier : IUpdateApplier
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryApplier));
+        public BinaryApplier()
+        {
+            Logger = LoggingCreator.CreateLogger(GetType().Name);
+        }
+        private readonly ILogging Logger;
+
+        public virtual bool ShouldContainLoader => true;
+        public virtual bool ShouldRemoveOldBuilds => true;
+        public virtual string Extension => ".tuup";
 
         public void RemoveOldBuilds(ApplicationMetadata applicationMetadata)
         {
@@ -56,15 +64,10 @@ namespace TinyUpdate.Binary
             }
         }
 
-        /// <inheritdoc cref="IUpdateApplier.GetApplicationPath(string, SemanticVersion?)"/>
         [return: NotNullIfNotNull("version")]
-        public string? GetApplicationPath(string applicationFolder, SemanticVersion? version) =>
+        public virtual string? GetApplicationPath(string applicationFolder, SemanticVersion? version) =>
             version == null ? null : Path.Combine(applicationFolder, version.GetApplicationFolder());
 
-        /// <inheritdoc cref="IUpdateApplier.Extension"/>
-        public string Extension => ".tuup";
-
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, ReleaseEntry, Action{double})"/>
         public async Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, ReleaseEntry entry, Action<double>? progress = null)
         {
             //Check that we made the update (by using the file extension)
@@ -93,11 +96,13 @@ namespace TinyUpdate.Binary
                 return false;
             }
 
-            RemoveOldBuilds(applicationMetadata);
+            if (ShouldRemoveOldBuilds)
+            {
+                RemoveOldBuilds(applicationMetadata);
+            }
             return true;
         }
 
-        /// <inheritdoc cref="IUpdateApplier.ApplyUpdate(ApplicationMetadata, UpdateInfo, Action{double})"/>
         public async Task<bool> ApplyUpdate(ApplicationMetadata applicationMetadata, UpdateInfo updateInfo, Action<double>? progress = null)
         {
             //Check that we have some kind of update to apply
@@ -189,7 +194,10 @@ namespace TinyUpdate.Binary
                 doneFirstUpdate = true;
             }
 
-            RemoveOldBuilds(applicationMetadata);
+            if (ShouldRemoveOldBuilds)
+            {
+                RemoveOldBuilds(applicationMetadata);
+            }
             return true;
         }
 
@@ -329,7 +337,8 @@ namespace TinyUpdate.Binary
                 return true;
             }
             //Drop the loader onto disk now we know that everything was done correctly
-            if (!await ProcessLoaderFile(tempFolder, applicationMetadata.ApplicationFolder, updateEntry.LoaderFile))
+            if (ShouldContainLoader && updateEntry.LoaderFile == null
+                || !await ProcessLoaderFile(tempFolder, applicationMetadata.ApplicationFolder, updateEntry.LoaderFile!))
             {
                 Cleanup(updateEntry.All, tempFolder, progressReport);
                 return false;
@@ -340,7 +349,7 @@ namespace TinyUpdate.Binary
             return true;
         }
 
-        private static bool CheckLoaderAndReturn(string fileLocation, FileEntry loaderFile)
+        private bool CheckLoaderAndReturn(string fileLocation, FileEntry loaderFile)
         {
             if (!CheckUpdatedFile(true, fileLocation + ".new", loaderFile))
             {
@@ -352,7 +361,7 @@ namespace TinyUpdate.Binary
             return true;
         }
         
-        private static async Task<bool> ProcessLoaderFile(TemporaryFolder tempFolder, string applicationFolder, FileEntry loaderFile)
+        private async Task<bool> ProcessLoaderFile(TemporaryFolder tempFolder, string applicationFolder, FileEntry loaderFile)
         {
             if (loaderFile.Stream == null)
             {
@@ -391,7 +400,7 @@ namespace TinyUpdate.Binary
         /// <param name="fileLocation">Where the file is</param>
         /// <param name="fileEntry">Details about the file</param>
         /// <returns>If it's what we expect</returns>
-        private static bool CheckUpdatedFile(bool applySuccessful, string fileLocation, FileEntry fileEntry)
+        private bool CheckUpdatedFile(bool applySuccessful, string fileLocation, FileEntry fileEntry)
         {
             if (!applySuccessful)
             {
@@ -431,7 +440,7 @@ namespace TinyUpdate.Binary
         /// <param name="newFile">Where the "new" file will be</param>
         /// <param name="fileEntry">File entry for this file</param>
         /// <returns>If this file was successfully updated</returns>
-        private static bool ProcessSameFile(string originalFile, string newFile, FileEntry fileEntry)
+        private bool ProcessSameFile(string originalFile, string newFile, FileEntry fileEntry)
         {
             /*If we got here then it means that we are working on a file that we *should* have, check that is the case*/
             Logger.Debug("File wasn't updated, making sure file exists and then making hard link");
@@ -482,7 +491,7 @@ namespace TinyUpdate.Binary
         /// <param name="fileEntry">Entry with the file that needs to be copied</param>
         /// <param name="fileLocation">Where the file should go</param>
         /// <returns>If we was able to process the file</returns>
-        private static async Task<bool> ProcessNewFile(FileEntry fileEntry, string fileLocation)
+        private async Task<bool> ProcessNewFile(FileEntry fileEntry, string fileLocation)
         {
             if (fileEntry.Stream == null)
             {

@@ -47,5 +47,15 @@ namespace TinyUpdate.Core.Update
         /// Extension to be used on this kind of update file
         /// </summary>
         public string Extension { get; }
+
+        /// <summary>
+        /// If this <see cref="IUpdateApplier"/> should be given an application loader
+        /// </summary>
+        public bool ShouldContainLoader { get; }
+
+        /// <summary>
+        /// If this <see cref="IUpdateApplier"/> should remove old builds of the application
+        /// </summary>
+        public bool ShouldRemoveOldBuilds { get; }
     }
 }

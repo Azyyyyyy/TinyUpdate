@@ -55,5 +55,10 @@ namespace TinyUpdate.Core.Update
         /// Extension to be used on this kind of update file
         /// </summary>
         public string Extension { get; }
+
+        /// <summary>
+        /// If we should make a loader for this application
+        /// </summary>
+        public bool ShouldMakeLoader { get; }
     }
 }

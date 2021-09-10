@@ -9,7 +9,7 @@ namespace TinyUpdate.Core.Logging
     /// </summary>
     public static class LoggingCreator
     {
-        private static LoggingBuilder[] _logBuilders = Array.Empty<LoggingBuilder>();
+        internal static LoggingBuilder[] _logBuilders = Array.Empty<LoggingBuilder>();
         static LoggingCreator()
         {
             AppDomain.CurrentDomain.ProcessExit += (sender, args) => Dispose();

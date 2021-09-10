@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -42,7 +41,6 @@ namespace TinyUpdate.Core.Extensions
         /// Grabs the <see cref="SemanticVersion"/> from an assembly
         /// </summary>
         /// <param name="assembly">Assembly to look through</param>
-        [return: NotNullIfNotNull("assembly")]
         public static SemanticVersion? GetSemanticVersion(this Assembly? assembly)
         {
             if (assembly == null)
@@ -54,13 +52,13 @@ namespace TinyUpdate.Core.Extensions
             var version = attributes.Select(GetVersionFromAttribute).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
             
             return version != null ?
-                SemanticVersion.Parse(version) : assembly.GetName().Version.ToSemanticVersion();
+                SemanticVersion.Parse(version) : assembly.GetName().Version?.ToSemanticVersion();
         }
 
         private static string? GetVersionFromAttribute(CustomAttributeData attribute)
         {
             return attribute.AttributeType.FullName == typeof(SemanticVersionAttribute).FullName ? 
-                attribute.ConstructorArguments[0].Value.ToString() : null;
+                attribute.ConstructorArguments[0].Value?.ToString() : null;
         }
 
         /// <summary>

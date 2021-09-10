@@ -15,7 +15,7 @@
         {
             //Invokes the correct logic based on OS
             return TaskHelper.RunTaskBasedOnOS(
-                () => Native.Windows.Invoke.CreateHardLink(originalFile, linkLocation),
+                () => Native.Windows.Invokes.CreateHardLink(originalFile, linkLocation),
                 () => Native.Linux.Invokes.CreateHardLink(originalFile, linkLocation),
                 () => false); //Apple doesn't like people doing hard links, no point in even trying :KEK:
         }

@@ -142,9 +142,9 @@ namespace TinyUpdate.Http
                 }
                 
                 using var releaseStream = await GetStreamFromResponse(response);
-                using var releaseFileStream = FileHelper.MakeFileStream(releaseFileInfo.FullName, FileMode.CreateNew, FileAccess.ReadWrite, releaseStream.Length);
+                using var releaseFileStream = FileHelper.MakeFileStream(releaseFileInfo.FullName, FileMode.CreateNew, FileAccess.ReadWrite, releaseStream.CanSeek ? releaseStream.Length : 0);
                 await releaseStream.CopyToAsync(releaseFileStream);
-                fileLength = releaseStream.Length;
+                fileLength = releaseFileStream.Length;
             }
             return fileLength ?? releaseFileInfo.Length;
         }

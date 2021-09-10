@@ -24,12 +24,16 @@ namespace TinyUpdate.Binary
     /// </summary>
     public class BinaryCreator : IUpdateCreator
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(BinaryCreator));
+        public BinaryCreator()
+        {
+            Logger = LoggingCreator.CreateLogger(GetType().Name);
+        }
+        private readonly ILogging Logger;
+        
+        public virtual string Extension => ".tuup";
 
-        /// <inheritdoc cref="IUpdateCreator.Extension"/>
-        public string Extension => ".tuup";
+        public virtual bool ShouldMakeLoader => true;
 
-        /// <inheritdoc cref="IUpdateCreator.CreateDeltaPackage"/>
         [SuppressMessage("ReSharper", "AccessToModifiedClosure")]
         public bool CreateDeltaPackage(
             ApplicationMetadata applicationMetadata,
@@ -175,7 +179,8 @@ namespace TinyUpdate.Binary
                 return false;
             }
             
-            if (!AddLoaderFile(
+            if (ShouldMakeLoader &&
+                !AddLoaderFile(
                 tempFolder,
                 applicationMetadata, 
                 zipArchive, 
@@ -256,7 +261,7 @@ namespace TinyUpdate.Binary
         /// <summary>
         /// Creates a <see cref="ZipArchive"/> to store the update
         /// </summary>
-        private static ZipArchive CreateZipArchive(string updateFileLocation)
+        private ZipArchive CreateZipArchive(string updateFileLocation)
         {
             if (File.Exists(updateFileLocation))
             {
@@ -324,7 +329,7 @@ namespace TinyUpdate.Binary
             }
 
             //If we get here then we might also have the old loader, try to diff by using it
-            foreach (var file in Directory.EnumerateFiles(outputLocation, "*" + Extension))
+            foreach (var file in Directory.EnumerateFiles(outputLocation!, "*" + Extension))
             {
                 if (string.IsNullOrWhiteSpace(file))
                 {
@@ -396,7 +401,7 @@ namespace TinyUpdate.Binary
         /// <param name="progress">Progress of creating delta file (If possible)</param>
         /// <param name="extensionEnd">What to add onto the end of the extension (If needed)</param>
         /// <returns>If we was able to create the delta file</returns>
-        private static bool AddDeltaFile(
+        private bool AddDeltaFile(
             TemporaryFolder tempFolder, 
             ZipArchive zipArchive, 
             string baseFileLocation,

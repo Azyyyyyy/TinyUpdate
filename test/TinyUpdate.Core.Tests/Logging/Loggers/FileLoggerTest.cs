@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading.Tasks;
 using NUnit.Framework;
 using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging.Loggers;
@@ -25,7 +24,7 @@ namespace TinyUpdate.Core.Tests.Logging.Loggers
         
         protected override string GetExceptionMessage(Exception e, object?[] props)
         {
-            return e.Message + string.Format(Logger.GetPropertyDetails(props) ?? string.Empty, props);
+            return e.Message + string.Format(ILoggingHelper.GetPropertyDetails(props) ?? string.Empty, props);
         }
         
         protected override string GetWholeOutput() => _stream.ToString();

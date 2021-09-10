@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace TinyUpdate.Core.Native.Windows
 {
-    internal static class Invoke
+    internal static class Invokes
     {
         [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
         private static extern bool CreateHardLink(

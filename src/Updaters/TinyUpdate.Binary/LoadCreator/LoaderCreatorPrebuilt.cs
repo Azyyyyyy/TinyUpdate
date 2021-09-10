@@ -11,7 +11,7 @@ namespace TinyUpdate.Binary.LoadCreator
     public static class LoaderCreatorPrebuilt
     {
         private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(LoaderCreatorSource));
-        private const string PATHLINE = "{APPLICATIONLOCATION}";
+        private const string Pathline = "{APPLICATIONLOCATION}";
 
         /// <summary>
         /// Creates the loader that will be needed for loading the application
@@ -53,11 +53,11 @@ namespace TinyUpdate.Binary.LoadCreator
                     continue;
                 }
 
-                var app = fileStream.ReadExactly(PATHLINE.Length - 1).Select(x => (char)x);
-                if ('{' + string.Join(string.Empty, app) == PATHLINE)
+                var app = fileStream.ReadExactly(Pathline.Length - 1).Select(x => (char)x);
+                if ('{' + string.Join(string.Empty, app) == Pathline)
                 {
                     end = fileStream.Position;
-                    start = fileStream.Position - PATHLINE.Length;
+                    start = fileStream.Position - Pathline.Length;
                     break;
                 }
             }

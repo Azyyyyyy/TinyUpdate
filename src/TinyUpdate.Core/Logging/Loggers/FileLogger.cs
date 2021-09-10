@@ -55,7 +55,7 @@ namespace TinyUpdate.Core.Logging.Loggers
         /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
         public void Error(Exception e, params object?[] propertyValues)
         {
-            Error(e.Message + this.GetPropertyDetails(propertyValues), propertyValues);
+            Error(e.Message + ILoggingHelper.GetPropertyDetails(propertyValues), propertyValues);
         }
 
         /// <inheritdoc cref="ILogging.Information"/>

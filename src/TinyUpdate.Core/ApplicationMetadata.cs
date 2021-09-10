@@ -26,14 +26,14 @@ namespace TinyUpdate.Core
                 return;
             }
             var applicationName = runningAssembly.GetName();
-            ApplicationVersion = runningAssembly.GetSemanticVersion();
-            ApplicationName = applicationName.Name;
+            ApplicationVersion = runningAssembly.GetSemanticVersion() ?? SemanticVersion.BaseVersion();
+            ApplicationName = applicationName.Name!;
 
             var folder = runningAssembly.Location;
             folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
             folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
             ApplicationFolder = folder;
-            _tempFolder = Path.Combine(_tempFolder, Path.GetFileName(ApplicationFolder));
+            _tempFolder = Path.Combine(_tempFolder, Path.GetFileName(ApplicationName));
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace TinyUpdate.Core
             }
         }
 
-        private string _applicationName;
+        private string _applicationName = string.Empty;
         public string ApplicationName
         {
             get => _applicationName;
@@ -74,7 +74,7 @@ namespace TinyUpdate.Core
             }
         }
 
-        private string _applicationFolder;
+        private string _applicationFolder = string.Empty;
         /// <summary>
         /// The folder that contains the application files
         /// </summary>

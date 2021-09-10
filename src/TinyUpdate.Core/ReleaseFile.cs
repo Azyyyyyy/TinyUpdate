@@ -47,7 +47,7 @@ namespace TinyUpdate.Core
         /// </summary>
         public SemanticVersion? OldVersion { get; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is ReleaseFile otherReleaseFile
                    && Equals(otherReleaseFile);
@@ -155,7 +155,7 @@ namespace TinyUpdate.Core
             var sha256 = lineS[0];
             var fileName = lineS[1];
             SemanticVersion? oldVersion = null;
-            int stagingPercentage = 0;
+            var stagingPercentage = 0;
 
             var hasFilesize = long.TryParse(lineS[2], out var fileSize);
             var hasOldVersion = lineS.Length > 3 && SemanticVersion.TryParse(lineS[3], out oldVersion);

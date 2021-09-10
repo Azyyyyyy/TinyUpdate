@@ -54,7 +54,7 @@ namespace TinyUpdate.Core.Utils
         public static string CreateSHA256Hash(Stream stream)
         {
             stream.Seek(0, SeekOrigin.Begin);
-            using SHA256Managed sha256 = new();
+            using SHA256 sha256 = SHA256.Create();
             return CreateSHA256Hash(sha256.ComputeHash(stream));
         }
 

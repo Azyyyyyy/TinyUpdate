@@ -4,9 +4,9 @@ using TinyUpdate.Core.Logging;
 
 namespace TinyUpdate.Core.Extensions
 {
-    public static class ILoggingExt
+    public static class ILoggingHelper
     {
-        public static string? GetPropertyDetails(this ILogging loggingExt, object?[] propertyValues)
+        public static string? GetPropertyDetails(object?[] propertyValues)
         {
             if (!propertyValues.Any())
             {
