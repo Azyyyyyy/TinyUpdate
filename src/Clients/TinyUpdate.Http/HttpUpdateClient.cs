@@ -71,7 +71,12 @@ namespace TinyUpdate.Http
 
             //Check the file
             Logger.Debug("Successfully downloaded?: {0}", successfullyDownloaded);
-            return releaseEntry.CheckReleaseEntry(AppMetadata.ApplicationVersion, successfullyDownloaded);
+            if (!releaseEntry.CheckReleaseEntry(AppMetadata.ApplicationVersion, successfullyDownloaded))
+            {
+                File.Delete(releaseEntry.FileLocation);
+                return false;
+            }
+            return true;
         }
 
         protected virtual async Task<bool> DownloadUpdateInter(ReleaseEntry releaseEntry, Action<int>? progress)
@@ -104,12 +109,6 @@ namespace TinyUpdate.Http
                     FileHelper.MakeFileStream(releaseEntry.FileLocation, FileMode.CreateNew, FileAccess.ReadWrite, releaseEntry.Filesize), writeAction: (count) => progress?.Invoke(count));
                 await releaseStream.CopyToAsync(releaseFileStream);
                 releaseFileStream.Dispose();
-
-                if (!releaseEntry.IsValidReleaseEntry(AppMetadata.ApplicationVersion, true))
-				{
-					File.Delete(releaseEntry.FileLocation);
-					return false;
-				}
                 return true;
             }
             catch (Exception e)

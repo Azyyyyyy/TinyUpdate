@@ -26,9 +26,9 @@ namespace TinyUpdate.Binary
     {
         public BinaryCreator()
         {
-            Logger = LoggingCreator.CreateLogger(GetType().Name);
+            _logger = LoggingCreator.CreateLogger(GetType().Name);
         }
-        private readonly ILogging Logger;
+        private readonly ILogging _logger;
         
         public virtual string Extension => ".tuup";
 
@@ -49,11 +49,11 @@ namespace TinyUpdate.Binary
             if (!Directory.Exists(newVersionLocation) 
                 || !Directory.Exists(baseVersionLocation))
             {
-                Logger.Error("One of the folders don't exist, can't create delta update....");
+                _logger.Error("One of the folders don't exist, can't create delta update....");
                 return false;
             }
 
-            Logger.Debug("Creating delta file");
+            _logger.Debug("Creating delta file");
             var zipArchive = CreateZipArchive(deltaUpdateLocation);
             var tempFolder = new TemporaryFolder(applicationMetadata.TempFolder);
 
@@ -83,10 +83,10 @@ namespace TinyUpdate.Binary
             var deltaFiles = new List<string>(sameFiles.Length);
 
             //First process any files that didn't change, don't even count them in the progress as it will be quick af
-            Logger.Information("Processing files that are in both versions");
+            _logger.Information("Processing files that are in both versions");
             foreach (var maybeDeltaFile in sameFiles)
             {
-                Logger.Debug("Processing possible delta file {0}", maybeDeltaFile);
+                _logger.Debug("Processing possible delta file {0}", maybeDeltaFile);
                 var newFileLocation = Path.Combine(newVersionLocation, maybeDeltaFile);
 
                 /*See if we got a delta file, if so then store it for
@@ -99,7 +99,7 @@ namespace TinyUpdate.Binary
                 }
 
                 //Add a pointer to the file that hasn't changed
-                Logger.Debug("{0} hasn't changed, processing as unchanged file", maybeDeltaFile);
+                _logger.Debug("{0} hasn't changed, processing as unchanged file", maybeDeltaFile);
 
                 using var fileStream = File.OpenRead(newFileLocation);
                 if (AddSameFile(zipArchive, maybeDeltaFile, SHA256Util.CreateSHA256Hash(fileStream)))
@@ -107,25 +107,26 @@ namespace TinyUpdate.Binary
                     progressReport.ProcessedFile();
                     continue;
                 }
-                Logger.Warning("We wasn't able to add {0} as a file that was unchanged, adding as a \"new\" file",
+                _logger.Warning("We wasn't able to add {0} as a file that was unchanged, adding as a \"new\" file",
                     maybeDeltaFile);
 
                 //We wasn't able to add the file as a pointer, try to add it as a new file
                 if (!AddNewFile(zipArchive, fileStream, maybeDeltaFile))
                 {
                     //Hard bail if we can't even do that
-                    Logger.Error("Wasn't able to process {0} as a new file as well, bailing", maybeDeltaFile);
+                    _logger.Error("Wasn't able to process {0} as a new file as well, bailing", maybeDeltaFile);
                     Cleanup();
                     return false;
                 }
                 progressReport.ProcessedFile();
             }
 
+            //TODO: add "moved files"
             //Now process files that was added into the new version
-            Logger.Information("Processing files that only exist in the new version");
+            _logger.Information("Processing files that only exist in the new version");
             foreach (var newFile in newFiles)
             {
-                Logger.Debug("Processing new file {0}", newFile);
+                _logger.Debug("Processing new file {0}", newFile);
 
                 //Process new file
                 using var fileStream = File.OpenRead(Path.Combine(newVersionLocation, newFile));
@@ -136,7 +137,7 @@ namespace TinyUpdate.Binary
                 }
 
                 //if we can't add it then hard fail, can't do anything to save this
-                Logger.Error("Wasn't able to process new file, bailing");
+                _logger.Error("Wasn't able to process new file, bailing");
                 Cleanup();
                 return false;
             }
@@ -145,7 +146,7 @@ namespace TinyUpdate.Binary
             var result = Parallel.ForEach(deltaFiles, (deltaFile, state) =>
                 {
                     var deltaFileLocation = Path.Combine(newVersionLocation, deltaFile);
-                    Logger.Debug("Processing changed file {0}", deltaFile);
+                    _logger.Debug("Processing changed file {0}", deltaFile);
 
                     //Try to add the file as a delta file
                     if (AddDeltaFile(tempFolder,
@@ -160,7 +161,7 @@ namespace TinyUpdate.Binary
                     }
 
                     //If we can't make the file as a delta file try to create it as a "new" file
-                    Logger.Warning("Wasn't able to make delta file, adding file as \"new\" file");
+                    _logger.Warning("Wasn't able to make delta file, adding file as \"new\" file");
                     using var fileStream = File.OpenRead(Path.Combine(newVersionLocation, deltaFileLocation));
                     if (AddNewFile(zipArchive, fileStream, deltaFile))
                     {
@@ -169,7 +170,7 @@ namespace TinyUpdate.Binary
                     }
 
                     //Hard bail if we can't even do that
-                    Logger.Error("Wasn't able to process file as a new file, bailing");
+                    _logger.Error("Wasn't able to process file as a new file, bailing");
                     Cleanup();
                     state.Break();
                 });
@@ -190,14 +191,14 @@ namespace TinyUpdate.Binary
                 oldVersion,
                 outputFolder))
             {
-                Logger.Error("Wasn't able to create loader for this application");
+                _logger.Error("Wasn't able to create loader for this application");
                 Cleanup();
                 return false;
             }
             progressReport.ProcessedFile();
 
             //We have created the delta file if we get here, do cleanup and then report as success!
-            Logger.Information("We are done with creating the delta file, cleaning up");
+            _logger.Information("We are done with creating the delta file, cleaning up");
             Cleanup();
             return true;
         }
@@ -213,10 +214,10 @@ namespace TinyUpdate.Binary
         {
             if (!Directory.Exists(applicationLocation))
             {
-                Logger.Error("{0} doesn't exist, can't create update", applicationLocation);
+                _logger.Error("{0} doesn't exist, can't create update", applicationLocation);
                 return false;
             }
-            Logger.Debug("Creating full update file");
+            _logger.Debug("Creating full update file");
 
             var zipArchive = CreateZipArchive(fullUpdateLocation);
             var files = Directory.EnumerateFiles(applicationLocation, "*", SearchOption.AllDirectories).ToArray();
@@ -241,15 +242,16 @@ namespace TinyUpdate.Binary
                 }
 
                 //if we can't add it then hard fail, can't do anything to save this
-                Logger.Error("Wasn't able to process file, bailing");
+                _logger.Error("Wasn't able to process file, bailing");
                 Cleanup();
                 return false;
             }
 
             //Add the loader into the package
-            if (!AddLoaderFile(tempFolder, applicationMetadata, zipArchive, version, applicationLocation))
+            if (ShouldMakeLoader &&
+                !AddLoaderFile(tempFolder, applicationMetadata, zipArchive, version, applicationLocation))
             {
-                Logger.Error("Wasn't able to create loader for this application");
+                _logger.Error("Wasn't able to create loader for this application");
                 Cleanup();
                 return false;
             }
@@ -265,7 +267,7 @@ namespace TinyUpdate.Binary
         {
             if (File.Exists(updateFileLocation))
             {
-                Logger.Warning("{0} already exists, deleting...", updateFileLocation);
+                _logger.Warning("{0} already exists, deleting...", updateFileLocation);
                 File.Delete(updateFileLocation);
             }
 
@@ -320,7 +322,7 @@ namespace TinyUpdate.Binary
             if (successful != LoadCreateStatus.Successful)
             {
                 var canContinue = successful == LoadCreateStatus.UnableToCreate;
-                Logger.Error("We wasn't able to create loader! (Going to fail file creation?: {0})", canContinue);
+                _logger.Error("We wasn't able to create loader! (Going to fail file creation?: {0})", canContinue);
                 return canContinue;
             }
             if (oldVersion == null || !Directory.Exists(outputLocation))
@@ -333,7 +335,7 @@ namespace TinyUpdate.Binary
             {
                 if (string.IsNullOrWhiteSpace(file))
                 {
-                    Logger.Warning("We somehow got an entry for {0} which was nothing", outputLocation);
+                    _logger.Warning("We somehow got an entry for {0} which was nothing", outputLocation);
                     continue;
                 }
                 
@@ -356,7 +358,7 @@ namespace TinyUpdate.Binary
                 catch (Exception e)
                 {
                     stream?.Dispose();
-                    Logger.Error(e);
+                    _logger.Error(e);
                     continue;
                 }
 
@@ -380,7 +382,7 @@ namespace TinyUpdate.Binary
                         extensionEnd: "load");
                 if (!deltaSuccessful)
                 {
-                    Logger.Warning("Wasn't able to diff loader, just going to add the load in as normal");
+                    _logger.Warning("Wasn't able to diff loader, just going to add the load in as normal");
                 }
                 fileArch.Dispose();
                 return deltaSuccessful || AddFile();
@@ -424,20 +426,31 @@ namespace TinyUpdate.Binary
                 out var deltaFileStream))
             {
                 //Wasn't able to create delta file, report back as fail
-                Logger.Error("Wasn't able to create delta file");
+                _logger.Error("Wasn't able to create delta file");
                 return false;
             }
 
             //Check that we got something to work with
             if (deltaFileStream == null && !File.Exists(tmpDeltaFile.Location))
             {
-                Logger.Error("We have no delta file/stream to work off somehow");
+                _logger.Error("We have no delta file/stream to work off somehow");
                 return false;
             }
 
             //Get hash and filesize to add to file
             var newFileStream = File.OpenRead(newFileLocation);
             var newFilesize = newFileStream.Length;
+            
+            /*Check that the delta file will take up less space, if not fail here
+             as it's not worth making it a delta file (Will take more time and processing power then just copying on the user's device)*/
+            if ((deltaFileStream?.Length ?? new FileInfo(tmpDeltaFile.Location).Length) >= newFilesize)
+            {
+                _logger.Warning("{0} will take up more space as a delta file then as a \"new\" file, failing to trigger it being added as a new file", baseFileLocation.GetRelativePath(newFileLocation));
+                newFileStream.Dispose();
+                deltaFileStream?.Dispose();
+                return false;
+            }
+            
             var hash = SHA256Util.CreateSHA256Hash(newFileStream);
             newFileStream.Dispose();
 

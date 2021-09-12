@@ -27,9 +27,9 @@ namespace TinyUpdate.Binary
     {
         public BinaryApplier()
         {
-            Logger = LoggingCreator.CreateLogger(GetType().Name);
+            _logger = LoggingCreator.CreateLogger(GetType().Name);
         }
-        private readonly ILogging Logger;
+        private readonly ILogging _logger;
 
         public virtual bool ShouldContainLoader => true;
         public virtual bool ShouldRemoveOldBuilds => true;
@@ -51,15 +51,15 @@ namespace TinyUpdate.Binary
                     continue;
                 }
                 
-                Logger.Information("{0} is an outdated version of this application (Version {1}), deleting...", folder, folderVersion);
+                _logger.Information("{0} is an outdated version of this application (Version {1}), deleting...", folder, folderVersion);
                 try
                 {
                     Directory.Delete(folder, true);
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Unable to delete {1}. Exception is below", folder);
-                    Logger.Error(e);
+                    _logger.Error("Unable to delete {1}. Exception is below", folder);
+                    _logger.Error(e);
                 }
             }
         }
@@ -73,7 +73,7 @@ namespace TinyUpdate.Binary
             //Check that we made the update (by using the file extension)
             if (Path.GetExtension(entry.Filename) != Extension)
             {
-                Logger.Error("{0} is not an update made by {1}, bail...", entry.FileLocation, nameof(BinaryCreator));
+                _logger.Error("{0} is not an update made by {1}, bail...", entry.FileLocation, nameof(BinaryCreator));
                 return false;
             }
 
@@ -85,7 +85,7 @@ namespace TinyUpdate.Binary
              (This also shows that something is *REALLY* wrong)*/
             if (!Directory.Exists(basePath))
             {
-                Logger.Error("{0} doesn't exist, can't update", basePath);
+                _logger.Error("{0} doesn't exist, can't update", basePath);
                 return false;
             }
 
@@ -108,7 +108,7 @@ namespace TinyUpdate.Binary
             //Check that we have some kind of update to apply
             if (!updateInfo.HasUpdate)
             {
-                Logger.Error("We don't have any update to apply!!");
+                _logger.Error("We don't have any update to apply!!");
                 return false;
             }
 
@@ -116,14 +116,14 @@ namespace TinyUpdate.Binary
             if (updateInfo.Updates.Any(x => x.IsDelta)
                 && updateInfo.Updates.Any(x => !x.IsDelta))
             {
-                Logger.Error("You can't mix delta and full updates to be installed!!");
+                _logger.Error("You can't mix delta and full updates to be installed!!");
                 return false;
             }
             
             //Check that if we are doing a full package then they isn't more then one
             if (updateInfo.Updates.Count(x => !x.IsDelta) > 1)
             {
-                Logger.Error("We shouldn't be given more then one full update!!");
+                _logger.Error("We shouldn't be given more then one full update!!");
                 return false;
             }
 
@@ -135,7 +135,7 @@ namespace TinyUpdate.Binary
                 //Check that we made the update (by using the file extension)
                 if (Path.GetExtension(update.Filename) != Extension)
                 {
-                    Logger.Error("{0} is not an update made by {1}, bail...", update.FileLocation, nameof(BinaryCreator));
+                    _logger.Error("{0} is not an update made by {1}, bail...", update.FileLocation, nameof(BinaryCreator));
                     return false;
                 }
                 
@@ -143,7 +143,7 @@ namespace TinyUpdate.Binary
                 if (update.IsDelta
                     && (!update.OldVersion?.Equals(lastUpdateVersion) ?? false))
                 {
-                    Logger.Error("Can't update to {0} due to update not being created from {1}", 
+                    _logger.Error("Can't update to {0} due to update not being created from {1}", 
                         update.Version, lastUpdateVersion);
                     return false;
                 }
@@ -155,7 +155,7 @@ namespace TinyUpdate.Binary
             var newVersionFolder = GetApplicationPath(applicationMetadata.ApplicationFolder, updateInfo.NewVersion);
             if (string.IsNullOrWhiteSpace(newVersionFolder))
             {
-                Logger.Error("Can't get folder for the new version");
+                _logger.Error("Can't get folder for the new version");
                 return false;
             }
 
@@ -163,7 +163,7 @@ namespace TinyUpdate.Binary
              was closed while we was updating*/
             if (!newVersionFolder.RemakeFolder())
             {
-                Logger.Error("Wasn't able to delete the existing folder {0}, going to fail here!", newVersionFolder);
+                _logger.Error("Wasn't able to delete the existing folder {0}, going to fail here!", newVersionFolder);
                 return false;
             }
 
@@ -184,7 +184,7 @@ namespace TinyUpdate.Binary
                 if (!await ApplyUpdate(applicationMetadata, basePath, newVersionFolder, updateEntry,
                     updateProgress => progress?.Invoke((updateProgress + updateCounter) / updateInfo.Updates.Length)))
                 {
-                    Logger.Error("Applying version {0} failed (Last successful update: {1})", 
+                    _logger.Error("Applying version {0} failed (Last successful update: {1})", 
                         updateEntry.Version, lastSuccessfulUpdate?.ToString() ?? "None");
                     return false;
                 }
@@ -224,14 +224,14 @@ namespace TinyUpdate.Binary
         {
             if (!File.Exists(entry.FileLocation))
             {
-                Logger.Error("Update file doesn't exist...");
+                _logger.Error("Update file doesn't exist...");
                 return false;
             }
 
             //If we fail then delete the file, it's better to re-download then to get a virus!
             if (!entry.IsValidReleaseEntry(applicationMetadata.ApplicationVersion,true))
             {
-                Logger.Error("Update file doesn't match what we expect... deleting update file and bailing");
+                _logger.Error("Update file doesn't match what we expect... deleting update file and bailing");
                 File.Delete(entry.FileLocation);
                 return false;
             }
@@ -244,7 +244,7 @@ namespace TinyUpdate.Binary
             if (updateEntry == null || updateEntry.Count == 0)
             {
                 /*This only happens when something is up with the update file, delete and return false*/
-                Logger.Error("Something happened while grabbing files in update file... deleting update file and bailing");
+                _logger.Error("Something happened while grabbing files in update file... deleting update file and bailing");
                 File.Delete(entry.FileLocation);
                 return false;
             }
@@ -253,7 +253,7 @@ namespace TinyUpdate.Binary
             //We want to do the files that didn't change first
             foreach (var file in updateEntry.SameFile.OrderByDescending(x => x.Filesize))
             {
-                Logger.Debug("Processing unchanged file ({0})", file.FileLocation);
+                _logger.Debug("Processing unchanged file ({0})", file.FileLocation);
 
                 //Create folder (if it exists)
                 newPath.CreateDirectory(file.FolderPath);
@@ -277,7 +277,7 @@ namespace TinyUpdate.Binary
             //Note that this should be the only loop that is used when doing a full update
             foreach (var newFile in updateEntry.NewFile)
             {
-                Logger.Debug("Processing new file ({0})", newFile.FileLocation);
+                _logger.Debug("Processing new file ({0})", newFile.FileLocation);
 
                 //Create folder (if it exists)
                 newPath.CreateDirectory(newFile.FolderPath);
@@ -296,7 +296,7 @@ namespace TinyUpdate.Binary
 
             foreach (var deltaFile in updateEntry.DeltaFile)
             {
-                Logger.Debug("Processing changed file ({0})", deltaFile.FileLocation);
+                _logger.Debug("Processing changed file ({0})", deltaFile.FileLocation);
 
                 //Create folder (if it exists)
                 newPath.CreateDirectory(deltaFile.FolderPath);
@@ -324,7 +324,7 @@ namespace TinyUpdate.Binary
             {
                 if (!filesLocation.Contains(file))
                 {
-                    Logger.Debug("{0} no-longer exists in version {1}, deleting....", file, entry.Version);
+                    _logger.Debug("{0} no-longer exists in version {1}, deleting....", file, entry.Version);
                     File.Delete(file);
                 }
             }
@@ -332,7 +332,7 @@ namespace TinyUpdate.Binary
             //TODO: Remove this when we added Linux support
             if (OSHelper.ActiveOS != OSPlatform.Windows)
             {
-                Logger.Warning("Loader hasn't been added for {0} yet", RuntimeInformation.OSDescription);
+                _logger.Warning("Loader hasn't been added for {0} yet", RuntimeInformation.OSDescription);
                 Cleanup(updateEntry.All, tempFolder, progressReport);
                 return true;
             }
@@ -365,7 +365,7 @@ namespace TinyUpdate.Binary
         {
             if (loaderFile.Stream == null)
             {
-                Logger.Error("We can't find the loader file, can't finish the update...");
+                _logger.Error("We can't find the loader file, can't finish the update...");
                 return false;
             }
             
@@ -404,7 +404,7 @@ namespace TinyUpdate.Binary
         {
             if (!applySuccessful)
             {
-                Logger.Error("Applying {0} wasn't successful", fileEntry.FileLocation);
+                _logger.Error("Applying {0} wasn't successful", fileEntry.FileLocation);
                 return false;
             }
             var fileStream = File.OpenRead(fileLocation);
@@ -426,7 +426,7 @@ namespace TinyUpdate.Binary
              redownload/reinstall then to catch a virus!*/
             if (!isExpectedFile)
             {
-                Logger.Error("Updated file is not what we expect, deleting it!");
+                _logger.Error("Updated file is not what we expect, deleting it!");
                 File.Delete(fileLocation);
             }
 
@@ -443,24 +443,24 @@ namespace TinyUpdate.Binary
         private bool ProcessSameFile(string originalFile, string newFile, FileEntry fileEntry)
         {
             /*If we got here then it means that we are working on a file that we *should* have, check that is the case*/
-            Logger.Debug("File wasn't updated, making sure file exists and then making hard link");
+            _logger.Debug("File wasn't updated, making sure file exists and then making hard link");
             if (!File.Exists(originalFile))
             {
-                Logger.Error("File that we need to copy doesn't exist!");
+                _logger.Error("File that we need to copy doesn't exist!");
                 return false;
             }
 
             //We already put the file in place from another update
             if (newFile == originalFile)
             {
-                Logger.Debug("Files given are the same, we should be fine");
+                _logger.Debug("Files given are the same, we should be fine");
                 return true;
             }
 
             //The file shouldn't yet exist, delete it just to be safe
             if (File.Exists(newFile))
             {
-                Logger.Warning("There was a file at {0} when it shouldn't exist at this stage, deleting...", newFile);
+                _logger.Warning("There was a file at {0} when it shouldn't exist at this stage, deleting...", newFile);
                 File.Delete(newFile);
             }
 
@@ -471,7 +471,7 @@ namespace TinyUpdate.Binary
             }
 
             //We wasn't able to hard link, just try to copy the file
-            Logger.Warning("Wasn't able to create hard link, just going to copy the file");
+            _logger.Warning("Wasn't able to create hard link, just going to copy the file");
             try
             {
                 File.Copy(originalFile, newFile);
@@ -479,8 +479,8 @@ namespace TinyUpdate.Binary
             }
             catch (Exception e)
             {
-                Logger.Error("Couldn't copy {0} to {1}", originalFile, newFile);
-                Logger.Error(e);
+                _logger.Error("Couldn't copy {0} to {1}", originalFile, newFile);
+                _logger.Error(e);
                 return false;
             }
         }
@@ -495,7 +495,7 @@ namespace TinyUpdate.Binary
         {
             if (fileEntry.Stream == null)
             {
-                Logger.Error("fileEntry's doesn't have a stream, can't copy file that would be at {0}", fileLocation);
+                _logger.Error("fileEntry's doesn't have a stream, can't copy file that would be at {0}", fileLocation);
                 return false;
             }
 

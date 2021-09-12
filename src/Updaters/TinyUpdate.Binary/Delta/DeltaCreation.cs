@@ -1,7 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using TinyUpdate.Binary.Extensions;
+using TinyUpdate.Core.Helper;
+using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Temporary;
+using TinyUpdate.Core.Update;
 
 namespace TinyUpdate.Binary.Delta
 {
@@ -10,8 +17,11 @@ namespace TinyUpdate.Binary.Delta
     /// </summary>
     public static class DeltaCreation
     {
+        private static readonly ILogging Logging = LoggingCreator.CreateLogger(nameof(DeltaCreation));
+        private static readonly Dictionary<OSPlatform, IReadOnlyList<IDeltaUpdate>> CachedUpdaters = new Dictionary<OSPlatform, IReadOnlyList<IDeltaUpdate>>();
+
         /// <summary>
-        /// Creates a delta file by going through the different ways of creating delta files
+        /// Creates a delta file by going through the different ways of creating delta files and grabbing the one that made the smallest file
         /// </summary>
         /// <param name="tempFolder">Where the temp folder is located</param>
         /// <param name="baseFileLocation">Where the older version of the file exists</param>
@@ -31,33 +41,112 @@ namespace TinyUpdate.Binary.Delta
             out Stream? deltaFileStream,
             Action<double>? progress = null)
         {
-            extension = string.Empty;
-            deltaFileStream = null;
-            foreach (var deltaUpdater in DeltaUpdaters.Updaters)
+            var os = intendedOs ?? OSHelper.ActiveOS;
+            IReadOnlyList<IDeltaUpdate>? deltaUpdaters = null;
+            if (CachedUpdaters.ContainsKey(os))
             {
-                /*Skip if we know that this creator is not going
-                 to work on the intended OS*/
-                if (intendedOs != null
-                    && deltaUpdater.IntendedOs != null
-                    && intendedOs != deltaUpdater.IntendedOs)
-                {
-                    continue;
-                }
-
-                if (deltaUpdater.CreateDeltaFile(
-                    tempFolder, 
-                    baseFileLocation, 
-                    newFileLocation, 
-                    deltaFileLocation,
-                    out deltaFileStream, 
-                    progress))
-                {
-                    extension = deltaUpdater.Extension;
-                    return true;
-                }
+                deltaUpdaters = CachedUpdaters[os];
             }
+            else
+            {
+                deltaUpdaters ??= DeltaUpdaters.GetUpdatersBasedOnOS(intendedOs ?? OSHelper.ActiveOS);
+                CachedUpdaters.Add(os, deltaUpdaters);
+            }
+            var updaterCount = deltaUpdaters.Count;
 
-            return false;
+            var progresses = new double[updaterCount];
+            var deltaResults = new List<DeltaCreationResult>(updaterCount);
+
+            Parallel.For(0, updaterCount, i =>
+            {
+                var deltaUpdater = deltaUpdaters[i];
+                var deltaFile = tempFolder.CreateTemporaryFile();
+                
+                var successful = deltaUpdater.CreateDeltaFile(
+                    tempFolder,
+                    baseFileLocation,
+                    newFileLocation,
+                    deltaFile.Location,
+                    out var stream,
+                    pro =>
+                    {
+                        progresses[i] = pro;
+                        progress?.Invoke(progresses.Sum() / updaterCount);
+                    });
+
+                if (successful)
+                {
+                    deltaResults.Add(
+                        new DeltaCreationResult(deltaUpdater.Extension, deltaFile, stream));
+                }
+                else
+                {
+                    Logging.Warning("{0} was unable to make a delta file for {1}", 
+                        nameof(deltaUpdater), baseFileLocation.GetRelativePath(newFileLocation));
+                    deltaFile.Dispose();
+                }
+                
+                if (progresses[i] < 1d)
+                {
+                    progresses[i] = 1d;
+                    progress?.Invoke(progresses.Sum() / updaterCount);
+                }
+            });
+
+            //Fail if we was unable to make any
+            if (!deltaResults.Any())
+            {
+                extension = string.Empty;
+                deltaFileStream = null;
+                return false;
+            }
+            
+            //Get the smallest delta file
+            var deltaResult = deltaResults.OrderBy(x =>
+            {
+                long? l = null;
+                if (File.Exists(x.DeltaFileLocation?.Location))
+                {
+                    l = new FileInfo(x.DeltaFileLocation?.Location).Length;
+                }
+
+                return l ?? x.Stream?.Length;
+            }).First();
+            
+            //Dispose of the other delta files
+            deltaResults.Remove(deltaResult);
+            deltaResults.ForEach(x =>
+            {
+                x.Stream?.Dispose();
+                x.DeltaFileLocation?.Dispose();
+            });
+
+            Logging.Information("{0} was the best option for a delta update, returning the data from it", deltaResult.Extension);
+            extension = deltaResult.Extension;
+            deltaFileStream = deltaResult.Stream;
+
+            //If the delta made a file then make sure to move it
+            if (File.Exists(deltaResult.DeltaFileLocation?.Location))
+            {
+                File.Move(deltaResult.DeltaFileLocation?.Location!, deltaFileLocation);
+            }
+            return true;
         }
+    }
+
+    internal class DeltaCreationResult
+    {
+        internal DeltaCreationResult(string extension, TemporaryFile? deltaFileLocation, Stream? stream)
+        {
+            Extension = extension;
+            DeltaFileLocation = deltaFileLocation;
+            Stream = stream;
+        }
+        
+        public Stream? Stream { get; }
+
+        public string Extension { get; }
+
+        public TemporaryFile? DeltaFileLocation { get; }
     }
 }

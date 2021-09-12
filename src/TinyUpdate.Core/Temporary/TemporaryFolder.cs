@@ -32,9 +32,9 @@ namespace TinyUpdate.Core.Temporary
 
         public override string ToString() => Location;
 
-        public TemporaryFile CreateTemporaryFile(string filename)
+        public TemporaryFile CreateTemporaryFile(string? filename = null)
         {
-            var fileLocation = Path.Combine(Location, filename);
+            var fileLocation = Path.Combine(Location, filename ?? Path.GetRandomFileName());
             var tempFile = new TemporaryFile(fileLocation);
             _files.Add(tempFile);
             return tempFile;

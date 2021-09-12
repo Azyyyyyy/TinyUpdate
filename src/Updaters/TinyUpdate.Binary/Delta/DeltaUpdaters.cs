@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using TinyUpdate.Binary.Delta.MsDelta;
 using TinyUpdate.Core.Helper;
 using TinyUpdate.Core.Logging;
@@ -39,6 +40,20 @@ namespace TinyUpdate.Binary.Delta
             }
         }
 
+        public static IReadOnlyList<IDeltaUpdate> GetUpdatersBasedOnOS(OSPlatform platform)
+        {
+            var l = new List<IDeltaUpdate>(_updaters.Count);
+            foreach (var updater in _updaters)
+            {
+                if (updater.IntendedOs == null || (platform == updater.IntendedOs))
+                {
+                    l.Add(updater);
+                }
+            }
+
+            return l.AsReadOnly();
+        }
+        
         public static IReadOnlyList<IDeltaUpdate> Updaters => _updaters.AsReadOnly();
         
         public static IDeltaUpdate? GetUpdater(string deltaExtension) =>
