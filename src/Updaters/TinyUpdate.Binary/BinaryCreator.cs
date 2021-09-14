@@ -413,7 +413,7 @@ namespace TinyUpdate.Binary
             string? extensionEnd = null)
         {
             //Create where the delta file can be stored to grab once made
-            using var tmpDeltaFile = tempFolder.CreateTemporaryFile(Path.GetRandomFileName());
+            using var tmpDeltaFile = tempFolder.CreateTemporaryFile();
 
             //Try to create diff file, outputting extension (and maybe a stream) based on what was used to make it
             if (!DeltaCreation.CreateDeltaFile(

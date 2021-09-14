@@ -17,15 +17,15 @@ namespace TinyUpdate.Core.Temporary
         /// </summary>
         /// <param name="folderLocation">Where the folder is</param>
         /// <param name="deleteFolder">If we want to delete the folder before and after</param>
-        public TemporaryFolder(string folderLocation, bool deleteFolder = true)
+        public TemporaryFolder(string? folderLocation = null, bool deleteFolder = true)
         {
-            Location = folderLocation;
+            Location = folderLocation ?? Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             _deleteFolder = deleteFolder;
             if (deleteFolder && Directory.Exists(folderLocation))
             {
-                Directory.Delete(folderLocation, true);
+                Directory.Delete(Location, true);
             }
-            Directory.CreateDirectory(folderLocation);
+            Directory.CreateDirectory(Location);
         }
         
         public string Location { get; }
@@ -40,10 +40,10 @@ namespace TinyUpdate.Core.Temporary
             return tempFile;
         }
         
-        public TemporaryFolder CreateTemporaryFolder(string foldername)
+        public TemporaryFolder CreateTemporaryFolder(string? folderName = null)
         {
-            var fileLocation = Path.Combine(Location, foldername);
-            var tempFile = new TemporaryFolder(fileLocation);
+            var fileLocation = Path.Combine(Location, folderName ?? Path.GetRandomFileName());
+            var tempFile = new TemporaryFolder(fileLocation, _deleteFolder);
             _folders.Add(tempFile);
             return tempFile;
         }
@@ -67,8 +67,9 @@ namespace TinyUpdate.Core.Temporary
                 folder.Dispose();
             }
 
-            //Don't clear the folder if we won't want to
-            if (!_deleteFolder)
+            /*Don't clear the folder if we won't want to
+             or if the folder doesn't exist by the time we get here*/
+            if (!_deleteFolder || !Directory.Exists(Location))
             {
                 return;
             }

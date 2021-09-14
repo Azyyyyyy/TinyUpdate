@@ -12,10 +12,15 @@ namespace TinyUpdate.Core.Extensions
         public static async Task<UpdateStatus> UpdateApp(this UpdateClient updateClient, Action<double>? progress)
         {
             //Check
-            var updateInfo = await updateClient.CheckForUpdate();
+            var updateInfo = await updateClient.CheckForUpdate(true);
             if (updateInfo is not { HasUpdate: true })
             {
-                return UpdateStatus.NoUpdate;
+                //Check for full updates if we can't get a delta update
+                updateInfo = await updateClient.CheckForUpdate(false);
+                if (updateInfo is not { HasUpdate: true })
+                {
+                    return UpdateStatus.NoUpdate;
+                }
             }
             Logger.Information("We got an update from {0} to {1}", updateClient.AppMetadata.ApplicationVersion, updateInfo.NewVersion);
 

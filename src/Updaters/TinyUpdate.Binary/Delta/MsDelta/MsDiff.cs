@@ -62,7 +62,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
 
             //Put the delta file onto disk
             using var tmpDeltaFile = tempFolder.CreateTemporaryFile(deltaFileName);
-            var tmpFileStream = tmpDeltaFile.GetStream(preallocationSize: deltaFileStream.Length);
+            var tmpFileStream = tmpDeltaFile.GetStream();
             await deltaFileStream.CopyToAsync(tmpFileStream);
             tmpFileStream.Dispose();
             deltaFileStream.Dispose();
@@ -72,7 +72,7 @@ namespace TinyUpdate.Binary.Delta.MsDelta
             TemporaryFile? tmpBaseFile = null;
             if (originalFileLocation == newFileLocation)
             {
-                tmpBaseFile = tempFolder.CreateTemporaryFile(Path.GetRandomFileName());
+                tmpBaseFile = tempFolder.CreateTemporaryFile();
                 File.Copy(originalFileLocation, tmpBaseFile.Location);
                 originalFileLocation = tmpBaseFile.Location;
             }

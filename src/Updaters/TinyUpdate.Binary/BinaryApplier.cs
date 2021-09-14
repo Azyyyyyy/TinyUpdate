@@ -42,8 +42,8 @@ namespace TinyUpdate.Binary
             foreach (var folder in 
                 Directory.EnumerateDirectories(applicationMetadata.ApplicationFolder))
             {
-                /*We don't want to process if its null, could be folder that we or
-                 the application made outside of the build that is actively running*/
+                /*We don't want to process it if we get null, could be a folder that we/active application
+                 made outside of the application files*/
                 var folderVersion = folder[3..].ToVersion();
                 if (folderVersion is null
                 || folderVersion >= applicationMetadata.ApplicationVersion)
@@ -337,8 +337,8 @@ namespace TinyUpdate.Binary
                 return true;
             }
             //Drop the loader onto disk now we know that everything was done correctly
-            if (ShouldContainLoader && updateEntry.LoaderFile == null
-                || !await ProcessLoaderFile(tempFolder, applicationMetadata.ApplicationFolder, updateEntry.LoaderFile!))
+            if (ShouldContainLoader
+                && !await ProcessLoaderFile(tempFolder, applicationMetadata.ApplicationFolder, updateEntry.LoaderFile!))
             {
                 Cleanup(updateEntry.All, tempFolder, progressReport);
                 return false;
