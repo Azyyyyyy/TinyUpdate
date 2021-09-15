@@ -177,7 +177,7 @@ namespace TinyUpdate.Create.Helper
             }
         }
 
-        public static string RequestFile(string message, string? folder = null)
+        public static string RequestFile(string message, string? folder = null, bool keepFolder = true)
         {
             while (true)
             {
@@ -189,11 +189,11 @@ namespace TinyUpdate.Create.Helper
                     continue;
                 }
 
-                line = string.IsNullOrWhiteSpace(folder) ? line : Path.Combine(folder, line);
+                var fileLocation = string.IsNullOrWhiteSpace(folder) ? line : Path.Combine(folder, line);
 
-                if (File.Exists(line))
+                if (File.Exists(fileLocation))
                 {
-                    return line;
+                    return keepFolder ? fileLocation : line;
                 }
 
                 Logger.Error("File doesn't exist");

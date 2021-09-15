@@ -19,7 +19,8 @@ namespace TinyUpdate.Binary.Delta
     {
         private static readonly ILogging Logging = LoggingCreator.CreateLogger(nameof(DeltaCreation));
         private static readonly Dictionary<OSPlatform, IReadOnlyList<IDeltaUpdate>> CachedUpdaters = new Dictionary<OSPlatform, IReadOnlyList<IDeltaUpdate>>();
-
+        private static object _updaterLock = new object();
+        
         /// <summary>
         /// Creates a delta file by going through the different ways of creating delta files and grabbing the one that made the smallest file
         /// </summary>
@@ -43,14 +44,17 @@ namespace TinyUpdate.Binary.Delta
         {
             var os = intendedOs ?? OSHelper.ActiveOS;
             IReadOnlyList<IDeltaUpdate>? deltaUpdaters = null;
-            if (CachedUpdaters.ContainsKey(os))
+            lock (_updaterLock)
             {
-                deltaUpdaters = CachedUpdaters[os];
-            }
-            else
-            {
-                deltaUpdaters ??= DeltaUpdaters.GetUpdatersBasedOnOS(intendedOs ?? OSHelper.ActiveOS);
-                CachedUpdaters.Add(os, deltaUpdaters);
+                if (CachedUpdaters.ContainsKey(os))
+                {
+                    deltaUpdaters = CachedUpdaters[os];
+                }
+                else
+                {
+                    deltaUpdaters ??= DeltaUpdaters.GetUpdatersBasedOnOS(intendedOs ?? OSHelper.ActiveOS);
+                    CachedUpdaters.Add(os, deltaUpdaters);
+                }
             }
             var updaterCount = deltaUpdaters.Count;
 

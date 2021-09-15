@@ -9,6 +9,7 @@ using TinyUpdate.Core.Utils;
 using TinyUpdate.Create.AssemblyHelper;
 using TinyUpdate.Create.Helper;
 using SemVersion;
+using TinyUpdate.Create.Extensions;
 
 namespace TinyUpdate.Create
 {
@@ -43,8 +44,7 @@ namespace TinyUpdate.Create
 
             //Setup
             var version = Global.ApplicationOldVersion ?? Global.ApplicationNewVersion;
-            Global.ApplicationMetadata.ApplicationVersion = 
-                new SemanticVersion(version.Major.GetValueOrDefault(1) - 1, version.Minor.GetValueOrDefault(1) - 1, version.Patch.GetValueOrDefault(1) - 1, version.Prerelease, version.Build);
+            Global.ApplicationMetadata.ApplicationVersion = version.GetLowerVersion();
             SetupForVerifying(applier);
 
             //Now verify the updates

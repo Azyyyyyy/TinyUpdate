@@ -109,7 +109,7 @@ namespace TinyUpdate.Create
             Global.OutputLocation ??= ConsoleHelper.RequestFolder(
                 $"Where do you want to store the update file{ConsoleHelper.ShowS(Global.CreateDeltaUpdate && Global.CreateFullUpdate)}?");
             Global.MainApplicationFile ??=
-                ConsoleHelper.RequestFile("What is the main application file?", Global.NewVersionLocation);
+                ConsoleHelper.RequestFile("What is the main application file?", Global.NewVersionLocation, false);
 
             if (ConsoleHelper.RequestYesOrNo("Is this update intended for a certain OS?", false))
             {
@@ -212,20 +212,27 @@ namespace TinyUpdate.Create
             using var mainLoader = GetAssembly.MakeAssemblyResolver(Global.NewVersionLocation, out _);
             
             //Grab the assemblyName
-            var mainApplicationName = Path.GetFileName(Global.MainApplicationFile);
-            var fileLocation = Path.Combine(Global.NewVersionLocation, mainApplicationName);
+            var fileLocation = Path.Combine(Global.NewVersionLocation, Global.MainApplicationFile);
             var assembly = GetAssembly.IsDotNetAssembly(fileLocation)
                 ? mainLoader.LoadFromAssemblyPath(fileLocation)
                 : null;
 
-            Global.ApplicationNewVersion = assembly?.GetSemanticVersion()!;
-            Global.ApplicationMetadata.ApplicationName = assembly?.GetName().Name!;
+            if (assembly != null)
+            {
+                Global.ApplicationNewVersion = assembly.GetSemanticVersion()!;
+                Global.ApplicationMetadata.ApplicationName = assembly.GetName().Name 
+                       ?? ConsoleHelper.RequestString("Couldn't get application name, what is the application name");
+            }
+            else
+            {
+                Global.ApplicationMetadata.ApplicationName = ConsoleHelper.RequestString("Couldn't get application name, what is the application name?");
+            }
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-            if (Global.CreateDeltaUpdate && Global.OldVersionLocation != null && Global.ApplicationMetadata.ApplicationName != null)
+            if (Global.CreateDeltaUpdate && Global.OldVersionLocation != null)
             {
                 using var oldVersionLoader = GetAssembly.MakeAssemblyResolver(Global.OldVersionLocation, out _);
 
-                fileLocation = Path.Combine(Global.OldVersionLocation, mainApplicationName);
+                fileLocation = Path.Combine(Global.OldVersionLocation, Global.MainApplicationFile);
                 Global.ApplicationOldVersion =
                     (GetAssembly.IsDotNetAssembly(fileLocation)
                         ? oldVersionLoader.LoadFromAssemblyPath(fileLocation)
@@ -236,8 +243,6 @@ namespace TinyUpdate.Create
             Global.ApplicationNewVersion ??=
                 ConsoleHelper.RequestVersion(
                     "Couldn't get application version, what is the new version of the application");
-            Global.ApplicationMetadata.ApplicationName ??=
-                ConsoleHelper.RequestString("Couldn't get application name, what is the application name");
             if (Global.CreateDeltaUpdate && Global.ApplicationOldVersion == null)
             {
                 Global.ApplicationOldVersion =
@@ -271,7 +276,7 @@ namespace TinyUpdate.Create
             var rnd = new Random();
             foreach (var line in TinyUpdateText.Split('\n'))
             {
-                Console.ForegroundColor = (ConsoleColor) rnd.Next(16);
+                Console.ForegroundColor = (ConsoleColor) rnd.Next(1, 16);
                 Logger.WriteLine(line);
             }
 
@@ -281,7 +286,7 @@ namespace TinyUpdate.Create
 
         private static void GetUpdateType()
         {
-            //See if we already got it (From Cli)
+            //See if we already got it (From CLI)
             if (Global.CreateDeltaUpdate || Global.CreateFullUpdate)
             {
                 return;

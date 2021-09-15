@@ -101,7 +101,7 @@ namespace TinyUpdate.Binary.Extensions
 
             try
             {
-                Directory.Delete(folder);
+                Directory.Delete(folder, true);
                 Directory.CreateDirectory(folder);
                 return true;
             }
