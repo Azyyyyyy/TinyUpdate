@@ -33,7 +33,6 @@ namespace TinyUpdate.Core
             folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
             folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
             ApplicationFolder = folder;
-            _tempFolder = Path.Combine(_tempFolder, Path.GetFileName(ApplicationName));
         }
 
         /// <summary>
@@ -41,13 +40,13 @@ namespace TinyUpdate.Core
         /// </summary>
         public SemanticVersion ApplicationVersion { get; set; } = SemanticVersion.BaseVersion();
 
-        private string _tempFolder = Path.Combine(Path.GetTempPath(), "TinyUpdate");
+        private string? _tempFolder = null;
         /// <summary>
         /// The folder to be used when downloading/creating any files that are only needed for a short period of time
         /// </summary>
         public string TempFolder
         {
-            get => _tempFolder;
+            get => _tempFolder ?? Path.Combine(Path.GetTempPath(), "TinyUpdate", ApplicationName);
             set
             {
                 if (!value.IsValidForFilePath(out var invalidChar))

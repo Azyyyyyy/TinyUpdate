@@ -79,8 +79,16 @@ namespace TinyUpdate.Core.Temporary
             {
                 Logger.Warning("{0} still contains some files, these will be deleted!", Location);
             }
-            
-            Directory.Delete(Location, true);
+
+            try
+            {
+                Directory.Delete(Location, true);
+            }
+            catch (Exception e)
+            {
+                Logger.Error("Something happened while trying to cleanup {0}, this folder might still exist and need manual cleanup!", Location);
+                Logger.Error(e);
+            }
         }
     }
 }

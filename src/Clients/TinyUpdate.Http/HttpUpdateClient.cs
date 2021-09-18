@@ -125,6 +125,7 @@ namespace TinyUpdate.Http
             long? fileLength = null;
 
             //See if it was recently downloaded, if not delete it
+            //TODO: Add a way so we can skip this
             if (releaseFileInfo.Exists && DateTime.Now.Subtract(releaseFileInfo.LastWriteTime).TotalDays >= 1)
             {
                 releaseFileInfo.Delete();

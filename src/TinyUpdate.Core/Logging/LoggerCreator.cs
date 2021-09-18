@@ -12,8 +12,28 @@ namespace TinyUpdate.Core.Logging
         internal static LoggingBuilder[] _logBuilders = Array.Empty<LoggingBuilder>();
         static LoggingCreator()
         {
-            AppDomain.CurrentDomain.ProcessExit += (sender, args) => Dispose();
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                if (!args.IsTerminating)
+                {
+                    return;
+                }
+
+                Logger.Value.Error("Something happened which will crash the application!");
+                if (args.ExceptionObject is Exception e)
+                {
+                    Logger.Value.Error(e);
+                }
+                else
+                {
+                    Logger.Value.Error("{0}", args.ExceptionObject);
+                }
+                
+                Dispose();
+            };
         }
+
+        private static readonly Lazy<ILogging> Logger = new Lazy<ILogging>(() => CreateLogger("LoggerCreator"));
 
         /// <summary>
         /// How much logging we should process when not set in the <see cref="ILogging"/>

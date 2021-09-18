@@ -346,7 +346,8 @@ namespace TinyUpdate.Binary
                 // decompress each part (to read it)
                 using var controlStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress, false);
                 using var diffStream = new BZip2Stream(compressedDiffStream, CompressionMode.Decompress, false);
-                using var extraStream = new BZip2Stream(compressedExtraStream, CompressionMode.Decompress, false);
+                using var extraStream = compressedExtraStream.Position != compressedExtraStream.Length ? 
+                    new BZip2Stream(compressedExtraStream, CompressionMode.Decompress, false) : Stream.Null;
                 var control = new long[3];
                 var buffer = new byte[8];
 

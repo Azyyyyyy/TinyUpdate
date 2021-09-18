@@ -140,16 +140,12 @@ namespace TinyUpdate.Core.Logging.Loggers
 
         private static bool IsNumber(object o)
         {
-#if NET6_0_OR_GREATER
-            return o.GetType().GetInterfaces().Any(x => (x.Namespace + "." + x.Name) == "System.INumber`1");
-#else
             if (o is not ValueType)
             {
                 return false;
             }
             return o is int or uint or long or ulong or decimal or byte 
                 or sbyte or short or ushort or double or float;
-#endif
         }
     }
 
