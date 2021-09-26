@@ -9,7 +9,7 @@
     <ItemGroup>
       <PackageReference Include="System.Management" Version="5.0.0" />
       <ProjectReference Include="..\..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
-      <PackageReference Include="SharpCompress" Version="0.28.3" />
+      <PackageReference Include="SharpCompress" Version="0.29.0" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
