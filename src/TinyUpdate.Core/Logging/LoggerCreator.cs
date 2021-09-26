@@ -12,6 +12,11 @@ namespace TinyUpdate.Core.Logging
         internal static LoggingBuilder[] _logBuilders = Array.Empty<LoggingBuilder>();
         static LoggingCreator()
         {
+            AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
+            {
+                Dispose();
+            };
+            
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             {
                 if (!args.IsTerminating)
