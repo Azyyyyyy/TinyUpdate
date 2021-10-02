@@ -18,7 +18,7 @@ namespace TinyUpdate.Test
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Trace))
             {
-                TestContext.WriteLine($"[DEBUG - {Name}]: {message}", propertyValues);
+                TestContext.Out.WriteLine($"[DEBUG - {Name}]: {message}", propertyValues);
             }
         }
 
@@ -26,7 +26,7 @@ namespace TinyUpdate.Test
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Info))
             {
-                TestContext.WriteLine($"[INFO - {Name}]: {message}", propertyValues);
+                TestContext.Out.WriteLine($"[INFO - {Name}]: {message}", propertyValues);
             }
         }
 
@@ -34,7 +34,7 @@ namespace TinyUpdate.Test
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Warn))
             {
-                TestContext.WriteLine($"[WARNING - {Name}]: {message}", propertyValues);
+                TestContext.Out.WriteLine($"[WARNING - {Name}]: {message}", propertyValues);
             }
         }
 
@@ -42,7 +42,7 @@ namespace TinyUpdate.Test
         {
             if (LoggingCreator.ShouldProcess(LogLevel, Core.Logging.LogLevel.Error))
             {
-                TestContext.WriteLine($"[ERROR - {Name}]: {message}", propertyValues);
+                TestContext.Error.WriteLine($"[ERROR - {Name}]: {message}", propertyValues);
             }
         }
 

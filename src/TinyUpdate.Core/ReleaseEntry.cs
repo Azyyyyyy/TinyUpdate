@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using SemVersion;
 using TinyUpdate.Core.Exceptions;
@@ -21,7 +22,7 @@ namespace TinyUpdate.Core
             SemanticVersion version,
             string folderPath,
             SemanticVersion? oldVersion = null,
-            string? tag = null,
+            object? tag = null,
             int? stagingPercentage = null)
         {
             //If it's a delta file then we should also be given an oldVersion
@@ -72,7 +73,7 @@ namespace TinyUpdate.Core
         /// <summary>
         /// Tag that a <see cref="UpdateClient"/> can use to store some extra data that is needed
         /// </summary>
-        public string? Tag { get; }
+        public object? Tag { get; }
 
         /// <summary>
         /// The SHA256 of the file that contains this release
@@ -139,6 +140,62 @@ namespace TinyUpdate.Core
 
             //Check that this Version is higher then what we are running now
             return applicationVersion < Version;
+        }
+
+        public override bool Equals(object? obj) => 
+            obj is ReleaseEntry releaseEntry && Equals(releaseEntry);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = _logger.GetHashCode();
+                hashCode = (hashCode * 397) ^ StagingPercentage.GetHashCode();
+                hashCode = (hashCode * 397) ^ (Tag != null ? Tag.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ SHA256.GetHashCode();
+                hashCode = (hashCode * 397) ^ Filename.GetHashCode();
+                hashCode = (hashCode * 397) ^ Filesize.GetHashCode();
+                hashCode = (hashCode * 397) ^ IsDelta.GetHashCode();
+                hashCode = (hashCode * 397) ^ Version.GetHashCode();
+                hashCode = (hashCode * 397) ^ (OldVersion != null ? OldVersion.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ FileLocation.GetHashCode();
+                return hashCode;
+            }
+        }
+
+        public virtual bool Equals(ReleaseEntry releaseEntry)
+        {
+            return this.IsDelta == releaseEntry.IsDelta
+                && this.Filename == releaseEntry.Filename
+                && this.Filesize == releaseEntry.Filesize
+                && GetTagEquals(releaseEntry.Tag)
+                && this.SHA256 == releaseEntry.SHA256
+                && this.StagingPercentage == releaseEntry.StagingPercentage
+                && this.OldVersion == releaseEntry.OldVersion
+                && this.Version == releaseEntry.Version;
+        }
+
+        private bool GetTagEquals(object? otherTag)
+        {
+            if (Tag is not Array array || otherTag is not Array otherArray)
+            {
+                return (this.Tag?.Equals(otherTag) ?? this.Tag == otherTag);
+            }
+
+            if (array.Length != otherArray.Length)
+            {
+                return false;
+            }
+                
+            for (int i = 0; i < array.Length; i++)
+            {
+                if (!array.GetValue(i).Equals(otherArray.GetValue(i)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

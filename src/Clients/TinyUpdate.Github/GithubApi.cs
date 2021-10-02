@@ -12,7 +12,7 @@ using TinyUpdate.Http.Extensions;
 namespace TinyUpdate.Github
 {
     /// <summary>
-    /// Base class for talking to github and understanding what is used
+    /// Base class for talking to Github and understanding what is given back by Github
     /// </summary>
     public abstract class GithubApi
     {
@@ -25,6 +25,7 @@ namespace TinyUpdate.Github
         /// Api constructor
         /// </summary>
         /// <param name="githubClient">Client that owns this Api</param>
+        /// <param name="httpClient"><see cref="System.Net.Http.HttpClient"/> to use for requests</param>
         /// <param name="apiEndpoint">Base endpoint to use</param>
         protected GithubApi(GithubUpdateClient githubClient, HttpClient httpClient, string apiEndpoint)
         {
@@ -108,7 +109,7 @@ namespace TinyUpdate.Github
                 return null;
             }
             
-            //Report based on the status code as it might show what the user/Api has done
+            //Report based on the status code as it might show what the user/api has done
             Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
             switch (response.StatusCode)
             {

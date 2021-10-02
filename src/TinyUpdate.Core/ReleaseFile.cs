@@ -133,7 +133,7 @@ namespace TinyUpdate.Core
             //3. Same as 1/2 but with ' {staging percentage}'
             foreach (var line in lines)
             {
-                var re = MakeReleaseFile(line, out var successful);
+                var re = ReadReleaseFile(line, out var successful);
                 if (successful)
                 {
                     yield return re!;
@@ -141,7 +141,7 @@ namespace TinyUpdate.Core
             }
         }
 
-        private static ReleaseFile? MakeReleaseFile(string line, out bool successful)
+        public static ReleaseFile? ReadReleaseFile(string line, out bool successful)
         {
             successful = false;
             var lineS = line.Split(' ');

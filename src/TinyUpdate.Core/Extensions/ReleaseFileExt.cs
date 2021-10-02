@@ -26,7 +26,7 @@ namespace TinyUpdate.Core.Extensions
         public static IEnumerable<ReleaseEntry> ToReleaseEntries(
             this IEnumerable<ReleaseFile> releaseFiles,
             string folderLocation,
-            string? tag = null)
+            object? tag = null)
         {
             foreach (var releaseFile in releaseFiles)
             {
@@ -52,12 +52,12 @@ namespace TinyUpdate.Core.Extensions
             }
         }
 
-        public static UpdateInfo? GetUpdateInfo(this FileInfo fileInfo, ApplicationMetadata metadata, bool grabDeltaUpdates, string? tagName = null, string? folderLocation = null)
+        public static UpdateInfo? GetUpdateInfo(this FileInfo fileInfo, ApplicationMetadata metadata, bool grabDeltaUpdates, object? tag = null, string? folderLocation = null)
         {
-            return GetUpdateInfo(fileInfo.FullName, metadata, grabDeltaUpdates, tagName, folderLocation);
+            return GetUpdateInfo(fileInfo.FullName, metadata, grabDeltaUpdates, tag, folderLocation);
         }
         
-        public static UpdateInfo? GetUpdateInfo(string fileLocation, ApplicationMetadata metadata, bool grabDeltaUpdates, string? tagName = null, string? folderLocation = null)
+        public static UpdateInfo? GetUpdateInfo(string fileLocation, ApplicationMetadata metadata, bool grabDeltaUpdates, object? tag = null, string? folderLocation = null)
         {
             if (!File.Exists(fileLocation))
             {
@@ -67,16 +67,13 @@ namespace TinyUpdate.Core.Extensions
             
             return new UpdateInfo(metadata.ApplicationVersion,
                 ReleaseFile.ReadReleaseFile(File.ReadLines(fileLocation))
-                    .ToReleaseEntries(folderLocation ?? metadata.TempFolder, tagName)
+                    .ToReleaseEntries(folderLocation ?? metadata.TempFolder, tag)
                     .FilterReleases(metadata.ApplicationFolder, grabDeltaUpdates, metadata.ApplicationVersion).ToArray());
         }
         
         /// <summary>
         /// Checks that the <see cref="ReleaseEntry"/> can be used
         /// </summary>
-        /// <param name="releaseEntry"></param>
-        /// <param name="successfullyDownloaded"></param>
-        /// <returns></returns>
         public static bool CheckReleaseEntry(this ReleaseEntry releaseEntry, SemanticVersion applicationVersion, bool successfullyDownloaded)
         {
             Logger.Information("Checking {0}", releaseEntry.Filename);

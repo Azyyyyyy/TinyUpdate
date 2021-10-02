@@ -26,7 +26,7 @@ namespace TinyUpdate.Binary.LoadCreator
             //Check that we should create a loader (As we currently only have one for Windows) 
             if (intendedOs.HasValue && intendedOs.Value != OSPlatform.Windows)
             {
-                Logger.Warning("Tried to make loader for {0} but we can only make a loader for Windows right now!", Enum.GetName(typeof(OSPlatform), intendedOs));
+                Logger.Warning("Tried to make loader for {0} but we can only make a loader for Windows right now!", intendedOs.Value);
                 return LoadCreateStatus.UnableToCreate;
             }
             if (!intendedOs.HasValue && OSHelper.ActiveOS != OSPlatform.Windows)

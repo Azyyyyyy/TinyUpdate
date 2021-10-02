@@ -88,7 +88,7 @@ namespace TinyUpdate.Github.Rest
             Logger.Error("Github returned an unsuccessful status code ({0})", response.StatusCode);
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                Logger.Error("We detected that the status code was 401, have you given an valid personal token? (You need the token to have public_repo)");
+                Logger.Error("We detected that the status code was 401, have you given an valid token (if it's a private repo) or misnamed the repo?");
             }
             return null;
         }

@@ -299,12 +299,13 @@ namespace TinyUpdate.Binary
             SemanticVersion? oldVersion = null,
             string? outputLocation = null)
         {
+            //TODO: See why this is making another .shasum file (but working)
             using var loaderLocation = temporaryFolder.CreateTemporaryFile(applicationMetadata.ApplicationName + ".exe");
             // ReSharper disable once LocalFunctionHidesMethod
             bool AddFile() => BinaryCreator.AddFile(
                 zipArchive,
                 loaderLocation.GetStream(FileMode.Open),
-                applicationMetadata.ApplicationName + ".exe.load", 
+                applicationMetadata.ApplicationName + ".exe.load",
                 false);
 
             //TODO: Grab metadata from .exe and drop it into Loader
