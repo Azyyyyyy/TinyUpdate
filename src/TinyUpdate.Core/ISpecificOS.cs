@@ -1,15 +1,14 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace TinyUpdate.Core
+namespace TinyUpdate.Core;
+
+/// <summary>
+/// Interface which lets other services know what OS it should run on
+/// </summary>
+public interface ISpecificOs
 {
     /// <summary>
-    /// Interface which lets other services know what OS it should run on
+    /// The OS that this service is intended for (Null for any OS)
     /// </summary>
-    public interface ISpecificOs
-    {
-        /// <summary>
-        /// The OS that this service is intended for (Null for any OS)
-        /// </summary>
-        public OSPlatform? IntendedOs { get; }
-    }
+    public OSPlatform? IntendedOs { get; }
 }

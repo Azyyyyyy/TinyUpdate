@@ -2,38 +2,37 @@
 using System.IO;
 using TinyUpdate.Core.Logging;
 
-namespace TinyUpdate.Core.Utils
+namespace TinyUpdate.Core.Utils;
+
+/// <summary>
+/// Lets us safely grab streams 
+/// </summary>
+public static class StreamUtil
 {
+    private static readonly ILogger Logger = LogManager.CreateLogger(nameof(StreamUtil));
+
     /// <summary>
-    /// Lets us safely grab streams 
+    /// Provides a <see cref="FileStream"/> after doing some checking
     /// </summary>
-    public static class StreamUtil
+    /// <param name="fileLocation">File to grab</param>
+    public static FileStream? SafeOpenRead(string fileLocation)
     {
-        private static readonly ILogging Logger = LoggingCreator.CreateLogger(nameof(StreamUtil));
-
-        /// <summary>
-        /// Provides a <see cref="FileStream"/> after doing some checking
-        /// </summary>
-        /// <param name="fileLocation">File to grab</param>
-        public static FileStream? SafeOpenRead(string fileLocation)
+        if (!File.Exists(fileLocation))
         {
-            if (!File.Exists(fileLocation))
-            {
-                Logger.Warning("{0} doesn't exist, can't open", fileLocation);
-                return null;
-            }
-
-            try
-            {
-                return File.OpenRead(fileLocation);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e);
-            }
-
-            Logger.Warning("Couldn't open {0}", fileLocation);
+            Logger.Log(Level.Warn, $"{fileLocation} doesn't exist, can't open");
             return null;
         }
+
+        try
+        {
+            return File.OpenRead(fileLocation);
+        }
+        catch (Exception e)
+        {
+            Logger.Log(e);
+        }
+
+        Logger.Log(Level.Warn, $"Couldn't open {fileLocation}");
+        return null;
     }
 }

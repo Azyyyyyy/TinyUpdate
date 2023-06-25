@@ -1,169 +1,114 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using TinyUpdate.Core.Extensions;
+using TinyUpdate.Core.Logging.StringHandlers;
 
-namespace TinyUpdate.Core.Logging.Loggers
+namespace TinyUpdate.Core.Logging.Loggers;
+/// <summary>
+/// Logs to a file on disk
+/// </summary>
+public sealed class FileLogger : ILogger, IDisposable
 {
-    /// <summary>
-    /// Logs to a file on disk
-    /// </summary>
-    public class FileLogger : ILogging, IDisposable
+    private bool _disposed;
+    private readonly Lazy<TextWriter> _fileWriter;
+
+    public FileLogger(string name, string dir, string file)
     {
-        internal Lazy<TextWriter> _fileWriter;
-        private readonly object _writeLock = new object();
-        public FileLogger(string name, string dir, string file)
+        Name = name;
+        _fileWriter = new Lazy<TextWriter>(() =>
         {
-            Name = name;
-            _fileWriter = new Lazy<TextWriter>(() =>
-            {
-                Directory.CreateDirectory(dir);
-                return TextWriter.Synchronized(new StreamWriter(Path.Combine(dir, file)));
-            });
-        }
-
-        /// <inheritdoc cref="ILogging.Name"/>
-        public string Name { get; }
-
-        public LogLevel? LogLevel { get; set; }
-
-        /// <inheritdoc cref="ILogging.Debug"/>
-        public void Debug(string message, params object?[] propertyValues)
-        {
-            lock (_writeLock)
-            {
-                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Trace))
-                {
-                    _fileWriter.Value.WriteLine("[DEBUG] " + message, propertyValues);
-                }
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Error(string, object[])"/>
-        public void Error(string message, params object?[] propertyValues)
-        {
-            lock (_writeLock)
-            {
-                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Error))
-                {
-                    _fileWriter.Value.WriteLine("[ERROR] " + message, propertyValues);
-                }
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
-        public void Error(Exception e, params object?[] propertyValues)
-        {
-            Error(e.Message + ILoggingHelper.GetPropertyDetails(propertyValues), propertyValues);
-        }
-
-        /// <inheritdoc cref="ILogging.Information"/>
-        public void Information(string message, params object?[] propertyValues)
-        {
-            lock (_writeLock)
-            {
-                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Info))
-                {
-                    _fileWriter.Value.WriteLine("[INFO] " + message, propertyValues);
-                }
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Warning"/>
-        public void Warning(string message, params object?[] propertyValues)
-        {
-            lock (_writeLock)
-            {
-                if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Warn))
-                {
-                    _fileWriter.Value.WriteLine("[WARN] " + message, propertyValues);
-                }
-            }
-        }
-        
-        //For how many places currently have this stored
-        private readonly object _counterLock = new object();
-        private int _counter;
-        internal int Counter
-        {
-            get
-            {
-                lock (_counterLock)
-                {
-                    return _counter;
-                }
-            }
-            set
-            {
-                lock (_counterLock)
-                {
-                    _counter = value;
-                }
-            }
-        }
-
-        ~FileLogger()
-        {
-            Dispose();
-        }
-
-        private bool _disposed;
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-            _disposed = true;
-
-            if (_fileWriter.IsValueCreated)
-            {
-                _fileWriter.Value.Flush();
-            }
-
-            //If no-one else is using this then dispose of it
-            Counter--;
-            if (Counter <= 0)
-            {
-                if (_fileWriter.IsValueCreated)
-                {
-                    _fileWriter.Value.Dispose();
-                }
-                GC.SuppressFinalize(this);
-            }
-        }
+            Directory.CreateDirectory(dir);
+            return TextWriter.Synchronized(new StreamWriter(Path.Combine(dir, file)));
+        });
     }
 
-    /// <summary>
-    /// Builder to create <see cref="FileLogger"/>
-    /// </summary>
-    public class FileLoggerBuilder : LoggingBuilder, IDisposable
+    public string Name { get; }
+    public Level? LogLevel { get; set; }
+    public bool HasStringHandler => true;
+
+    public ILogInterpolatedStringHandler MakeStringHandler(Level level, int literalLength, int formattedCount)
     {
-        private readonly DateTime _time = DateTime.Now;
-        private readonly string _dir;
-        public FileLoggerBuilder(string dir)
+        var strHandler = new StringStringHandler(literalLength, formattedCount);
+        strHandler.AppendLiteral($"[{level.GetShortCode()} - {Name}]: ");
+        return strHandler;
+    }
+
+    public void Log(Exception e) => Log(Level.Error, e.MakeExceptionMessage(), null);
+
+    public void Log(Level level, string message) => Log(level, message, null);
+    public void Log(Level level, string message, object?[]? prams)
+    {
+        if (_disposed || !LogManager.ShouldProcess(LogLevel, level))
         {
-            _dir = dir;
+            return;
         }
 
-        private readonly List<FileLogger> _loggers = new List<FileLogger>();
-        /// <inheritdoc cref="LoggingBuilder.CreateLogger"/>
-        public override ILogging CreateLogger(string name)
+        message = $"[{level.GetShortCode()} - {Name}]: {message.TrimEnd()}";
+        if (prams.CanUsePrams())
         {
-            var logger = _loggers.FirstOrDefault(x => x.Name == name);
-            if (logger == null)
+            /*We can't pass in NullFormatProvider so we have to recreate the array, not the best way
+             but it's better then missing part of the log*/
+            if (prams.Any(x => x == null))
             {
-                logger = new FileLogger(name, Path.Combine(_dir, name), _time.ToFileName() + ".log");
-                _loggers.Add(logger);
+                var editedPrams = prams.Select(x => x ?? "null").ToArray();
+                _fileWriter.Value.WriteLine(message, editedPrams);
             }
-            logger.Counter++;
-            return logger;
+            else
+            {
+                _fileWriter.Value.WriteLine(message, prams);
+            }
+            return;
         }
+                
+        _fileWriter.Value.WriteLine(message);
+    }
 
-        public void Dispose()
+#if NET6_0_OR_GREATER
+    public void Log(Level level, [InterpolatedStringHandlerArgument("", "level")] LogInterpolatedStringHandler builder)
+    {
+        if (!_disposed && builder.IsValid)
         {
-            _loggers.ForEach(x => x.Dispose());
+            var message = builder.GetHandler<StringStringHandler>()?.GetStringAndClear();
+            _fileWriter.Value.WriteLine(message);
         }
     }
+#endif
+    
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+
+        if (_fileWriter.IsValueCreated)
+        {
+            _fileWriter.Value.Flush();
+            _fileWriter.Value.Dispose();
+        }
+        GC.SuppressFinalize(this);
+    }
+    
+    ~FileLogger() => Dispose();
+}
+
+/// <summary>
+/// Builder to create <see cref="FileLogger"/>
+/// </summary>
+public sealed class FileLoggerBuilder : LogBuilder
+{
+    private readonly DateTime _time = DateTime.Now;
+    private readonly string _dir;
+    public FileLoggerBuilder(string dir)
+    {
+        _dir = dir;
+        Directory.CreateDirectory(dir);
+    }
+
+    /// <inheritdoc cref="LogBuilder.CreateLogger"/>
+    public override ILogger CreateLogger(string name) =>
+        new FileLogger(name, Path.Combine(_dir, name), _time.ToFileName() + ".log");
 }

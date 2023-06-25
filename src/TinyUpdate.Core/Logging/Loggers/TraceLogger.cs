@@ -1,79 +1,53 @@
-﻿#if !TRACE
-#define TRACE
-#endif
-/*^^ If we don't have TRACE then we want to define it,
- after all the whole point of this class is to use Trace!*/
-
-using System;
+﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using TinyUpdate.Core.Extensions;
+using TinyUpdate.Core.Logging.StringHandlers;
 
-namespace TinyUpdate.Core.Logging.Loggers
+namespace TinyUpdate.Core.Logging.Loggers;
+/// <summary>
+/// Logs to <see cref="Trace"/>
+/// </summary>
+public sealed class TraceLogger : ILogger
 {
-    /// <summary>
-    /// Logs to <see cref="Trace"/>
-    /// </summary>
-    public class TraceLogger : ILogging
+    public TraceLogger(string name)
     {
-        public TraceLogger(string name)
+        Name = name;
+    }
+    
+    public string Name { get; }
+    public Level? LogLevel { get; set; }
+    public bool HasStringHandler => true;
+
+    public ILogInterpolatedStringHandler MakeStringHandler
+        (Level level, int literalLength, int formattedCount) => new StringStringHandler(literalLength, formattedCount);
+
+    public void Log(Exception e) => Log(Level.Error, e.MakeExceptionMessage(), null);
+
+    public void Log(Level level, string message) => Log(level, message, null);
+    public void Log(Level level, string message, object?[]? prams)
+    {
+        if (LogManager.ShouldProcess(LogLevel, level))
         {
-            Name = name;
-        }
-
-        /// <inheritdoc cref="ILogging.Name"/>
-        public string Name { get; }
-
-        public LogLevel? LogLevel { get; set; }
-
-        /// <inheritdoc cref="ILogging.Debug"/>
-        public void Debug(string message, params object?[] propertyValues)
-        {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Trace))
-            {
-                Trace.WriteLine(string.Format(message, propertyValues), $"DEBUG - {Name}");
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Error(string, object[])"/>
-        public void Error(string message, params object?[] propertyValues)
-        {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Error))
-            {
-                Trace.TraceError(message + $" ({Name})", propertyValues);
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
-        public void Error(Exception e, params object?[] propertyValues)
-        {
-            Error(e.Message + ILoggingHelper.GetPropertyDetails(propertyValues), propertyValues);
-        }
-
-        /// <inheritdoc cref="ILogging.Information"/>
-        public void Information(string message, params object?[] propertyValues)
-        {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Info))
-            {
-                Trace.TraceInformation(message + $" ({Name})", propertyValues);
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Warning"/>
-        public void Warning(string message, params object?[] propertyValues)
-        {
-            if (LoggingCreator.ShouldProcess(LogLevel, Logging.LogLevel.Warn))
-            {
-                Trace.TraceWarning(message + $" ({Name})", propertyValues);
-            }
+            message = (prams.CanUsePrams() ? string.Format(NullFormatProvider.FormatProvider, message, prams) : message).TrimEnd();
+            Trace.WriteLine(message, $"{Name} ({level.GetShortCode()})");
         }
     }
 
-    /// <summary>
-    /// Builder to create <see cref="TraceLogger"/>
-    /// </summary>
-    public class TraceLoggerBuilder : LoggingBuilder
+#if NET6_0_OR_GREATER
+    public void Log(Level level, [InterpolatedStringHandlerArgument("", "level")] LogInterpolatedStringHandler builder)
     {
-        /// <inheritdoc cref="LoggingBuilder.CreateLogger"/>
-        public override ILogging CreateLogger(string name) => new TraceLogger(name);
+        var message = builder.GetHandler<StringStringHandler>()?.GetStringAndClear() ?? "";
+        Log(level, message, null);
     }
+#endif
+}
+
+/// <summary>
+/// Builder to create <see cref="TraceLogger"/>
+/// </summary>
+public sealed class TraceLoggerBuilder : LogBuilder
+{
+    /// <inheritdoc cref="LogBuilder.CreateLogger"/>
+    public override ILogger CreateLogger(string name) => new TraceLogger(name);
 }

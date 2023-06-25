@@ -21,5 +21,6 @@
     
     <ItemGroup>
       <PackageReference Include="SemanticVersion" Version="2.1.0" />
+      <PackageReference Include="Spectre.Console" Version="0.47.0" />
     </ItemGroup>
 </Project>

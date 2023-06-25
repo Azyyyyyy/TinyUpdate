@@ -1,28 +1,23 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
-namespace TinyUpdate.Core.Logging.Loggers
+namespace TinyUpdate.Core.Logging.Loggers;
+public sealed class EmptyLogger : ILogger
 {
-    public class EmptyLogger : ILogging
-    {
-        private static EmptyLogger? _staticLogger;
-        public static EmptyLogger StaticLogger => _staticLogger ??= new EmptyLogger();
+    private EmptyLogger() { }
+    
+    public static EmptyLogger StaticLogger { get; } = new EmptyLogger();
+    public string Name => "";
+    public Level? LogLevel { get; set; }
+    public bool HasStringHandler => false;
 
-        public string Name => string.Empty;
-        public LogLevel? LogLevel { get; set; }
+    public ILogInterpolatedStringHandler? MakeStringHandler(Level level, int literalLength, int formattedCount) => null;
 
-        public void Debug(string message, params object?[] propertyValues)
-        { }
-
-        public void Information(string message, params object?[] propertyValues)
-        { }
-
-        public void Warning(string message, params object?[] propertyValues)
-        { }
-
-        public void Error(string message, params object?[] propertyValues)
-        { }
-
-        public void Error(Exception e, params object?[] propertyValues)
-        { }
-    }
+    public void Log(Exception e) { }
+    public void Log(Level level, string message) { }
+    public void Log(Level level, string message, object?[]? prams) { }
+    
+#if NET6_0_OR_GREATER
+    public void Log(Level level, [InterpolatedStringHandlerArgument("", "level")] LogInterpolatedStringHandler builder) { }
+#endif
 }

@@ -7,88 +7,87 @@ using TinyUpdate.Core.Extensions;
 using TinyUpdate.Core.Logging;
 using TinyUpdate.Core.Utils;
 
-namespace TinyUpdate.Core
+namespace TinyUpdate.Core;
+
+/// <summary>
+/// Anything that needs to be accessed from anywhere in the library
+/// </summary>
+public class ApplicationMetadata
 {
-    /// <summary>
-    /// Anything that needs to be accessed from anywhere in the library
-    /// </summary>
-    public class ApplicationMetadata
-    {
-        private readonly ILogging _logging = LoggingCreator.CreateLogger(nameof(ApplicationMetadata));
+    private readonly ILogger _logging = LogManager.CreateLogger(nameof(ApplicationMetadata));
         
-        public ApplicationMetadata()
+    public ApplicationMetadata()
+    {
+        //Get the assembly if possible and get data out of it
+        var runningAssembly = Assembly.GetEntryAssembly();
+        if (runningAssembly == null)
         {
-            //Get the assembly if possible and get data out of it
-            var runningAssembly = Assembly.GetEntryAssembly();
-            if (runningAssembly == null)
-            {
-                _logging.Warning("Can't get running assembly, will not have any metadata to work with!");
-                return;
-            }
-            var applicationName = runningAssembly.GetName();
-            ApplicationVersion = runningAssembly.GetSemanticVersion() ?? SemanticVersion.BaseVersion();
-            ApplicationName = applicationName.Name!;
-
-            var folder = runningAssembly.Location;
-            folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
-            folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
-            ApplicationFolder = folder;
+            _logging.Warn("Can't get running assembly, will not have any metadata to work with!");
+            return;
         }
+        var applicationName = runningAssembly.GetName();
+        ApplicationVersion = runningAssembly.GetSemanticVersion() ?? SemanticVersion.BaseVersion();
+        ApplicationName = applicationName.Name!;
 
-        /// <summary>
-        /// The <see cref="Version"/> that the application is currently running at
-        /// </summary>
-        public SemanticVersion ApplicationVersion { get; set; } = SemanticVersion.BaseVersion();
+        var folder = runningAssembly.Location;
+        folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
+        folder = folder[..folder.LastIndexOf(Path.DirectorySeparatorChar)];
+        ApplicationFolder = folder;
+    }
 
-        private string? _tempFolder = null;
-        /// <summary>
-        /// The folder to be used when downloading/creating any files that are only needed for a short period of time
-        /// </summary>
-        public string TempFolder
+    /// <summary>
+    /// The <see cref="Version"/> that the application is currently running at
+    /// </summary>
+    public SemanticVersion ApplicationVersion { get; set; } = SemanticVersion.BaseVersion();
+
+    private string? _tempFolder = null;
+    /// <summary>
+    /// The folder to be used when downloading/creating any files that are only needed for a short period of time
+    /// </summary>
+    public string TempFolder
+    {
+        get => _tempFolder ?? Path.Combine(Path.GetTempPath(), "TinyUpdate", ApplicationName);
+        set
         {
-            get => _tempFolder ?? Path.Combine(Path.GetTempPath(), "TinyUpdate", ApplicationName);
-            set
+            if (!value.IsValidForFilePath(out var invalidChar))
             {
-                if (!value.IsValidForFilePath(out var invalidChar))
-                {
-                    throw new InvalidFilePathException(invalidChar);
-                }
-
-                _tempFolder = Path.Combine(value, ApplicationName);
+                throw new InvalidFilePathException(invalidChar);
             }
+
+            _tempFolder = Path.Combine(value, ApplicationName);
         }
+    }
 
-        private string _applicationName = string.Empty;
-        public string ApplicationName
+    private string _applicationName = string.Empty;
+    public string ApplicationName
+    {
+        get => _applicationName;
+        set
         {
-            get => _applicationName;
-            set
+            if (!value.IsValidForFileName(out var invalidChar))
             {
-                if (!value.IsValidForFileName(out var invalidChar))
-                {
-                    throw new InvalidFileNameException(invalidChar);
-                }
-
-                _applicationName = value;
+                throw new InvalidFileNameException(invalidChar);
             }
+
+            _applicationName = value;
         }
+    }
 
-        private string _applicationFolder = string.Empty;
-        /// <summary>
-        /// The folder that contains the application files
-        /// </summary>
-        public string ApplicationFolder
+    private string _applicationFolder = string.Empty;
+    /// <summary>
+    /// The folder that contains the application files
+    /// </summary>
+    public string ApplicationFolder
+    {
+        get => _applicationFolder;
+        set
         {
-            get => _applicationFolder;
-            set
+            if (!Directory.Exists(value))
             {
-                if (!Directory.Exists(value))
-                {
-                    throw new DirectoryNotFoundException(value + " was not found");
-                }
-
-                _applicationFolder = value;
+                throw new DirectoryNotFoundException(value + " was not found");
             }
+
+            _applicationFolder = value;
         }
     }
 }

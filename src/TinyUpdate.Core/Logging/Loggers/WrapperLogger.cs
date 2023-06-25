@@ -1,94 +1,106 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using TinyUpdate.Core.Extensions;
+using TinyUpdate.Core.Logging.StringHandlers;
 
-namespace TinyUpdate.Core.Logging.Loggers
+namespace TinyUpdate.Core.Logging.Loggers;
+
+/// <summary>
+/// Logger that wraps around multiple loggers (Building the loggers itself)
+/// </summary>
+internal sealed class WrapperLogger : ILogger, IDisposable
 {
-    /// <summary>
-    /// Logger that wraps around multiple loggers (Building the loggers itself)
-    /// </summary>
-    internal sealed class WrapperLogger : ILogging, IDisposable
+    private readonly ILogger[] _loggers;
+    private bool _disposed;
+    private Level? _logLevel;
+
+    public WrapperLogger(string name, params LogBuilder[] builders)
     {
-        private readonly ILogging[] _loggers;
-
-        public WrapperLogger(string name, params LoggingBuilder[] builders)
+        Name = name;
+        _loggers = new ILogger[builders.LongLength];
+        for (var i = 0; i < builders.LongLength; i++)
         {
-            _loggers = new ILogging[builders.LongLength];
-            for (var i = 0; i < builders.LongLength; i++)
-            {
-                _loggers[i] = builders[i].CreateLogger(name);
-            }
+            _loggers[i] = builders[i].CreateLogger(name);
         }
+        LogLevel = null;
+    }
 
-        /// <inheritdoc cref="ILogging.Name"/>
-        public string Name => nameof(WrapperLogger);
+    public string Name { get; }
 
-        public LogLevel? LogLevel { get; set; }
-
-        /// <inheritdoc cref="ILogging.Debug"/>
-        public void Debug(string message, params object?[] propertyValues)
+    public Level? LogLevel
+    {
+        get => _logLevel;
+        set
         {
-            foreach (var logger in _loggers)
-            {
-                logger.Debug(message, propertyValues);
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Error(string, object[])"/>
-        public void Error(string message, params object?[] propertyValues)
-        {
-            foreach (var logger in _loggers)
-            {
-                logger.Error(message, propertyValues);
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Error(Exception, object[])"/>
-        public void Error(Exception e, params object?[] propertyValues)
-        {
-            foreach (var logger in _loggers)
-            {
-                logger.Error(e, propertyValues);
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Information"/>
-        public void Information(string message, params object?[] propertyValues)
-        {
-            foreach (var logger in _loggers)
-            {
-                logger.Information(message, propertyValues);
-            }
-        }
-
-        /// <inheritdoc cref="ILogging.Warning"/>
-        public void Warning(string message, params object?[] propertyValues)
-        {
-            foreach (var logger in _loggers)
-            {
-                logger.Warning(message, propertyValues);
-            }
-        }
-
-        private bool _disposed;
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-            _disposed = true;
-            
-            foreach (var disposable in _loggers.Select(x => x as IDisposable))
-            {
-                disposable?.Dispose();
-            }
-            Array.Clear(_loggers, 0, _loggers.Length);
-            GC.SuppressFinalize(this);
-        }
-
-        ~WrapperLogger()
-        {
-            Dispose();
+            _logLevel = value;
+            _loggers.ForEach(x => x.LogLevel = _logLevel);
         }
     }
+    public bool HasStringHandler => true;
+
+    public ILogInterpolatedStringHandler MakeStringHandler(Level level, int literalLength, int formattedCount)
+    {
+        var handlers = _loggers
+            .Select(x => new KeyValuePair<ILogger, ILogInterpolatedStringHandler?>(x, x.HasStringHandler ? x.MakeStringHandler(level, literalLength, formattedCount) : EmptyStringHandler.Handler));
+        
+        return new WrapperStringHandler(handlers, _loggers.Any(x => !x.HasStringHandler), literalLength, formattedCount);
+    }
+
+    public void Log(Exception e) => _loggers.TakeWhile(x => !_disposed).ForEach(x => x.Log(e));
+
+    public void Log(Level level, string message) => 
+        _loggers.TakeWhile(x => !_disposed).ForEach(x => x.Log(level, message));
+
+    public void Log(Level level, string message, object?[]? prams) => 
+        _loggers.TakeWhile(x => !_disposed).ForEach(x => x.Log(level, message, prams));
+
+#if NET6_0_OR_GREATER
+    public void Log(Level level, [InterpolatedStringHandlerArgument("", "level")] LogInterpolatedStringHandler builder)
+    {
+        if (!builder.IsValid)
+        {
+            return;
+        }
+
+        var processedHandlers = builder.GetHandler<WrapperStringHandler>();
+        if (processedHandlers == null)
+        {
+            return;
+        }
+
+        var objHandler = processedHandlers.Handlers.Any(x => x.Key == null) ? processedHandlers.Handlers[null!] : null;
+        processedHandlers.Handlers.ForEach(x =>
+        {
+            var handler = x.Value == EmptyStringHandler.Handler ? objHandler : x.Value;
+            switch (handler)
+            {
+                case EmptyStringHandler:
+                    return;
+                case ObjectStringHandler objectStringHandler:
+                    x.Key.Log(level, objectStringHandler.GetStringAndClear(), objectStringHandler.Prams);
+                    return;
+                default:
+                    x.Key.Log(level, new LogInterpolatedStringHandler(handler));
+                    break;
+            }
+        });
+    }
+#endif
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+
+        _loggers.OfType<IDisposable>().ForEach(d => d.Dispose());
+        Array.Clear(_loggers, 0, _loggers.Length);
+        GC.SuppressFinalize(this);
+    }
+
+    ~WrapperLogger() => Dispose();
 }
