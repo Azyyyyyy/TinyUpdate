@@ -432,3 +432,4 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 
 coverage.json
+!**src/[Pp]ackages/*
