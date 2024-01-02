@@ -7,7 +7,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\TinyUpdate.Core\TinyUpdate.Core.csproj" />
+        <ProjectReference Include="..\..\TinyUpdate.Core\TinyUpdate.Core.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
     </ItemGroup>
 
 </Project>

@@ -13,7 +13,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
     private ZipArchive? _zipArchive;
     private static readonly string[] ExpectedData = ["Filename", "Path", "SHA256", "Filesize", "Extension"];
 
-    public string Extension => ".tuup";
+    public string Extension => Consts.Extension;
 
     public async Task Load(Stream updatePackageStream)
     {
