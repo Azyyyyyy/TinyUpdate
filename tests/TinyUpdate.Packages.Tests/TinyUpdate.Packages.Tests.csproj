@@ -19,6 +19,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\src\DeltaAppliers\TinyUpdate.BSDelta\TinyUpdate.BSDelta.csproj" />
+      <ProjectReference Include="..\..\src\DeltaAppliers\TinyUpdate.MSDelta\TinyUpdate.MSDelta.csproj" />
       <ProjectReference Include="..\..\src\Packages\TinyUpdate.TUUP\TinyUpdate.TUUP.csproj" />
     </ItemGroup>
 

@@ -15,18 +15,13 @@ public class Tests
     [SetUp]
     public void Setup()
     {
-        var mockDeltaManager = new Mock<IDeltaManager>();
-        var mockDeltaApplier1 = new Mock<IDeltaApplier>();
-        var mockDeltaApplier2 = new Mock<IDeltaApplier>();
-
-        mockDeltaApplier1.Setup(x => x.Extension).Returns(".diff");
-        mockDeltaApplier2.Setup(x => x.Extension).Returns(".bsdiff");
-        
-        mockDeltaManager.Setup(x => x.Appliers).Returns(new[] { mockDeltaApplier1.Object, mockDeltaApplier2.Object });
+        var mockDeltaApplier1 = new MSDelta.MSDelta();
+        var mockDeltaApplier2 = new BSDelta.BSDelta(NullLogger.Instance);
+        var mockDeltaManager = new TuupDeltaManager(new IDeltaApplier[]{ mockDeltaApplier1, mockDeltaApplier2 }, new IDeltaCreation[]{ mockDeltaApplier1, mockDeltaApplier2 });
 
         var sha = new SHA256(NullLogger.Instance);
-        _updatePackage = new TuupUpdatePackage(mockDeltaManager.Object, sha);
-        _updatePackageCreation = new TuupUpdatePackageCreation(sha);
+        _updatePackage = new TuupUpdatePackage(mockDeltaManager, sha);
+        _updatePackageCreation = new TuupUpdatePackageCreation(sha, mockDeltaManager);
     }
 
     [Test]
@@ -45,6 +40,19 @@ public class Tests
         var version = SemanticVersion.BaseVersion();
         
         await _updatePackageCreation.CreateFullPackage(location, version, packageLocation, "testing");
+        //TODO: Check contents is as expected
+    }
+    
+    [Test]
+    public async Task CanMakeDeltaFile()
+    {
+        var oldLocation = "E:\\Other Games\\osu! versions (Public)\\osu!lazer\\14 2018 Apr";
+        var newLocation = "E:\\Other Games\\osu! versions (Public)\\osu!lazer\\16 2018 Jun";
+        var packageLocation = "E:\\Other Games\\osu! versions (Public)\\osu!lazer";
+        var oldVersion = SemanticVersion.BaseVersion();
+        var newVersion = SemanticVersion.BaseVersion();
+        
+        await _updatePackageCreation.CreateDeltaPackage(oldLocation, oldVersion, newLocation, newVersion, packageLocation, "testing");
         //TODO: Check contents is as expected
     }
 }
