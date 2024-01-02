@@ -16,10 +16,8 @@ public static class StreamExt
     public static async Task<(string? sha256Hash, long filesize)> GetShasumDetails(this Stream fileStream, SHA256 sha256)
     {
         //Grab the text from the file
-        var textStream = new StreamReader(fileStream);
+        using var textStream = new StreamReader(fileStream);
         var text = await textStream.ReadToEndAsync();
-
-        textStream.Dispose();
 
         //Return nothing if we don't have anything
         if (string.IsNullOrWhiteSpace(text))

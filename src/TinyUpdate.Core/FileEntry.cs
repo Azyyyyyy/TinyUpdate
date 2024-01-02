@@ -30,6 +30,11 @@ public class FileEntry
     public string Location { get; }
 
     /// <summary>
+    /// The relative path of the file within the old version
+    /// </summary>
+    public required string? PreviousLocation { get; init; }
+
+    /// <summary>
     /// The SHA256 hash that <see cref="Filename"/> is expected to be once applied to disk
     /// </summary>
     public required string SHA256 { get; init; }

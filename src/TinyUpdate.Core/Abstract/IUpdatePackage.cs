@@ -18,4 +18,9 @@ public interface IUpdatePackage : IExtension
     /// Files that aren't in the last update 
     /// </summary>
     ICollection<FileEntry> NewFiles { get; }
+    
+    /// <summary>
+    /// Files that are unchanged but moved 
+    /// </summary>
+    ICollection<FileEntry> MovedFiles { get; }
 }
