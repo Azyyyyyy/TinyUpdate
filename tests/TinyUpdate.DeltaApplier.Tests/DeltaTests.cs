@@ -10,7 +10,7 @@ public class BSDeltaTests : DeltaCan
     public void OneTimeSetup()
     {
         var delta = new BSDelta.BSDelta(NullLogger.Instance);
-        Creation = delta;
+        Creator = delta;
         Applier = delta;
     }
 }
@@ -22,7 +22,7 @@ public class MSDeltaTests : DeltaCan
     public void OneTimeSetup()
     {
         var delta = new MSDelta.MSDelta();
-        Creation = delta;
+        Creator = delta;
         Applier = delta;
     }
 }

@@ -9,7 +9,7 @@ namespace TinyUpdate.DeltaApplier.Tests.Attributes;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class NonWindowsIgnore : Attribute, IApplyToTest
 {
-    public void ApplyToTest(NUnit.Framework.Internal.Test test)
+    public void ApplyToTest(Test test)
     {
         if (!OperatingSystem.IsWindows() && test.RunState != RunState.NotRunnable)
         {

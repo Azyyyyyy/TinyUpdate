@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.DeltaApplier.Tests.Attributes;
 
 namespace TinyUpdate.DeltaApplier.Tests.Abstract;
 
@@ -10,56 +12,86 @@ namespace TinyUpdate.DeltaApplier.Tests.Abstract;
 [NUnit.Framework.Category("Delta")]
 public abstract class DeltaCan
 {
-    protected IDeltaApplier Applier = null!; //The actual test will take care of creating these TODO: Skip if these are null?
-    protected IDeltaCreation Creation = null!;
+    protected IDeltaApplier? Applier; //The actual test will take care of creating these
+    protected IDeltaCreation? Creator;
 
+    protected string ApplierName => Applier.GetType().Name;
+    protected string CreatorName => Creator.GetType().Name;
+    
     //TODO: TargetStreamSize Test
     
     [Test]
-    [TestCase("expected.diff", true)]
-    [NUnit.Framework.Category("Delta Applier")]
-    public void GetCorrectSupportStatus(string file, bool expectedResult)
+    [DeltaApplier]
+    [TestCase("expected_pass", true)]
+    [TestCase("expected_fail", false)]
+    public void GetCorrectSupportStatus(string targetFilename, bool expectedResult)
     {
-        var deltaFile = File.OpenRead(Path.Combine("Assets", Applier.GetType().Name, file));
-        var status = Applier.SupportedStream(deltaFile);
+        SkipIfNoApplier();
+        
+        var deltaFileStream = File.OpenRead(Path.Combine("Assets", ApplierName, targetFilename + Applier.Extension));
+        var returnedStatus = Applier.SupportedStream(deltaFileStream);
         var error = GetWin32Error();
         
-        Assert.That(status, Is.EqualTo(expectedResult), () => $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})");
+        Assert.That(returnedStatus, Is.EqualTo(expectedResult), () => CreateErrorMessage(error));
     }
     
     [Test]
-    [NUnit.Framework.Category("Delta Creation")]
+    [DeltaApplier]
+    public async Task CorrectlyApplyDeltaFile()
+    {
+        SkipIfNoApplier();
+
+        var sourceFileStream = File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        var deltaFileStream = File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
+        var targetFileStream = File.Create(Path.Combine("Assets", ApplierName, "new (diff).jpg"));
+        
+        var applyResult = await Applier.ApplyDeltaFile(sourceFileStream, deltaFileStream, targetFileStream);
+        var error = GetWin32Error();
+
+        Assert.That(applyResult, Is.True, () => CreateErrorMessage(error));
+        //TODO: Check if "new (diff)" is the same as "new"
+    }
+    
+    [Test]
+    [DeltaCreation]
     public async Task CreateDeltaFile()
     {
+        SkipIfNoCreator();
+
         var sourceFile = File.OpenRead(Path.Combine("Assets", "original.jpg"));
         var targetFile = File.OpenRead(Path.Combine("Assets", "new.jpg"));
-        var deltaFile = File.Create(Path.Combine("Assets", Creation.GetType().Name, "result.diff"));
+        var deltaFile = File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
         
-        var result = await Creation.CreateDeltaFile(sourceFile, targetFile, deltaFile);
+        var result = await Creator.CreateDeltaFile(sourceFile, targetFile, deltaFile);
         var error = GetWin32Error();
         
-        Assert.That(result, Is.True, () => $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})");
+        Assert.That(result, Is.True, () => CreateErrorMessage(error));
         //TODO: Check that the file matches what we would expect to be returned
     }
     
-    [Test]
-    [NUnit.Framework.Category("Delta Applier")]
-    public async Task ApplyDeltaFile()
+    [MemberNotNull(nameof(Applier))]
+    private void SkipIfNoApplier()
     {
-        var sourceFile = File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        var deltaFile = File.OpenRead(Path.Combine("Assets", Applier.GetType().Name, "expected.diff"));
-        var targetFile = File.Create(Path.Combine("Assets", Applier.GetType().Name, "new (diff).jpg"));
-        
-        var result = await Applier.ApplyDeltaFile(sourceFile, deltaFile, targetFile);
-        var error = GetWin32Error();
-
-        Assert.That(result, Is.True, () => $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})");
-        //TODO: Check if "new (diff)" is the same as "new"
+        if (Applier == null)
+        {
+            Assert.Ignore("Applier has not been setup, can't run test");
+        }
     }
-
+    
+    [MemberNotNull(nameof(Creator))]
+    private void SkipIfNoCreator()
+    {
+        if (Creator == null)
+        {
+            Assert.Ignore("Creator has not been setup, can't run test");
+        }
+    }
+    
     private static Win32Exception? GetWin32Error()
     {
         var win32Error = Marshal.GetLastWin32Error();
         return win32Error != 0 ? new Win32Exception(win32Error) : null;
     }
+    
+    private string CreateErrorMessage(Win32Exception? error) => $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})";
 }
