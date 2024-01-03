@@ -1,13 +1,24 @@
 using System.Collections.Immutable;
+using System.IO.Abstractions;
 using SemVersion;
 using TinyUpdate.Core.Abstract;
 
-namespace TinyUpdate.Packages.Tests;
+namespace TinyUpdate.Packages.Tests.Abstract;
 
 public abstract class UpdatePackageCan
 {
     protected IUpdatePackage UpdatePackage;
     protected IUpdatePackageCreator UpdatePackageCreator;
+
+    protected readonly IDirectory Directory;
+    protected readonly IFile File;
+
+    public UpdatePackageCan()
+    {
+        var fileSystem = new FileSystem();
+        Directory = new DirectoryWrapper(fileSystem);
+        File = new FileWrapper(fileSystem);
+    }
 
     [Test]
     public async Task CanProcessFileData()
@@ -114,7 +125,7 @@ public abstract class UpdatePackageCan
         }
     }
 
-    private static async Task MakeRandomFiles(string directory, int maxAmount = 15)
+    private async Task MakeRandomFiles(string directory, int maxAmount = 15)
     {
         var filesCount = Random.Shared.Next(Math.Min(3, maxAmount), maxAmount);
         for (int i = 0; i < filesCount; i++)
@@ -124,7 +135,7 @@ public abstract class UpdatePackageCan
         }
     }
 
-    private static async Task MakeRandomFile(string file)
+    private async Task MakeRandomFile(string file)
     {
         await using var fileStream = File.OpenWrite(file);
 

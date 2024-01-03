@@ -1,11 +1,13 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
+﻿using System.IO.Abstractions;
+using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Packages.Tests.Abstract;
 using TinyUpdate.TUUP;
 
 namespace TinyUpdate.Packages.Tests;
 
-public class TuupDeltaManagerTests : UpdatePackageCan
+public class TuupUpdatePackageTests : UpdatePackageCan
 {
     [SetUp]
     public void Setup()
@@ -14,8 +16,10 @@ public class TuupDeltaManagerTests : UpdatePackageCan
         var bsDelta = new BSDelta.BSDelta(NullLogger.Instance);
         var deltaManager = new TuupDeltaManager(new IDeltaApplier[]{ msDelta, bsDelta }, new IDeltaCreation[]{ msDelta, bsDelta });
 
+        var fileSystem = new FileSystem();
+
         var sha256 = new SHA256(NullLogger.Instance);
         UpdatePackage = new TuupUpdatePackage(deltaManager, sha256);
-        UpdatePackageCreator = new TuupUpdatePackageCreator(sha256, deltaManager, new TuupUpdatePackageCreatorOptions());
+        UpdatePackageCreator = new TuupUpdatePackageCreator(sha256, deltaManager, new DirectoryWrapper(fileSystem), new FileWrapper(fileSystem), new TuupUpdatePackageCreatorOptions());
     }
 }

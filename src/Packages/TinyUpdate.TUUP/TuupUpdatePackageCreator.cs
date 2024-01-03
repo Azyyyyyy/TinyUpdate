@@ -1,5 +1,5 @@
-﻿using System.IO.Compression;
-using System.Runtime.CompilerServices;
+﻿using System.IO.Abstractions;
+using System.IO.Compression;
 using NeoSmart.AsyncLock;
 using SemVersion;
 using TinyUpdate.Core;
@@ -7,9 +7,27 @@ using TinyUpdate.Core.Abstract;
 
 namespace TinyUpdate.TUUP;
 
-public class TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager, TuupUpdatePackageCreatorOptions options) : IUpdatePackageCreator
+public class TuupUpdatePackageCreator : IUpdatePackageCreator
 {
-    private readonly AsyncLock _zipLock = new AsyncLock();
+    private readonly AsyncLock _zipLock;
+    private readonly SHA256 _sha256;
+    private readonly IDeltaManager _deltaManager;
+    private readonly TuupUpdatePackageCreatorOptions _options;
+    
+    // ReSharper disable InconsistentNaming
+    private readonly IDirectory Directory;
+    private readonly IFile File;
+    // ReSharper restore InconsistentNaming
+
+    public TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager, IDirectory directory, IFile file, TuupUpdatePackageCreatorOptions options)
+    {
+        _sha256 = sha256;
+        _deltaManager = deltaManager;
+        _options = options;
+        Directory = directory;
+        File = file;
+        _zipLock = new AsyncLock();
+    }
 
     public string Extension => Consts.Extension;
 
@@ -22,10 +40,10 @@ public class TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager,
 
         for (int i = 0; i < files.Length; i++)
         {
-            var file = files[i];
-            await using var fileContentStream = File.OpenRead(file);
+            var fileLocation = files[i];
+            await using var fileContentStream = File.OpenRead(fileLocation);
 
-            await AddNewFile(zipArchive, fileContentStream, Path.GetRelativePath(applicationLocation, file));
+            await AddNewFile(zipArchive, fileContentStream, Path.GetRelativePath(applicationLocation, fileLocation));
             progress?.Report((double)i / files.Length);
         }
 
@@ -87,7 +105,7 @@ public class TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager,
             await using var oldFileContentStream = File.OpenRead(oldFile);
             newFileContentStream.Seek(0, SeekOrigin.Begin);
             
-            var deltaResult = await deltaManager.CreateDeltaFile(oldFileContentStream, newFileContentStream);
+            var deltaResult = await _deltaManager.CreateDeltaFile(oldFileContentStream, newFileContentStream);
             if (deltaResult.Successful)
             {
                 deltaResult.DeltaStream.Seek(0, SeekOrigin.Begin);
@@ -104,7 +122,7 @@ public class TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager,
         async Task<bool> FindAndAddMovedFile(string newSha256Hash, string relativeNewFile, long filesize)
         {
             //V1 Tuup format didn't have the concept of moved files, if we want to make v1 packages then don't handle this
-            if (!options.V1Compatible && oldFilesHashes.TryGetValue(newSha256Hash, out var oldFilesList) && oldFilesList.Count > 0)
+            if (!_options.V1Compatible && oldFilesHashes.TryGetValue(newSha256Hash, out var oldFilesList) && oldFilesList.Count > 0)
             {
                 var oldFile = oldFilesList[0];
                 var filepath = relativeNewFile + ".moved";
@@ -129,7 +147,7 @@ public class TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager,
             foreach (var oldFile in files)
             {
                 await using var oldFileContentStream = File.OpenRead(oldFile);
-                var sha256Hash = sha256.CreateSHA256Hash(oldFileContentStream);
+                var sha256Hash = _sha256.CreateSHA256Hash(oldFileContentStream);
                 if (!hashes.TryGetValue(sha256Hash, out var filesList))
                 {
                     filesList = new List<string>();
@@ -147,7 +165,7 @@ public class TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager,
         }
     }
     
-    private static ZipArchive CreateZipArchive(string updatePackageLocation)
+    private ZipArchive CreateZipArchive(string updatePackageLocation)
     {
         var updatePackageStream = File.Create(updatePackageLocation);
         return new ZipArchive(updatePackageStream, ZipArchiveMode.Create);
@@ -169,7 +187,7 @@ public class TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager,
             await zipFileEntryStream.DisposeAsync();
         }
         
-        sha256Hash ??= sha256.CreateSHA256Hash(fileContentStream);
+        sha256Hash ??= _sha256.CreateSHA256Hash(fileContentStream);
         await AddHashAndSizeData(zipArchive, filepath, sha256Hash, fileContentStream.Length);
 
         return true;

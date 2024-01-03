@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
+      <PackageReference Include="TestableIO.System.IO.Abstractions" Version="20.0.4" />
     </ItemGroup>
 
 </Project>

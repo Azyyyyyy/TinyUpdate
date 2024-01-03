@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.DeltaApplier.Tests.Attributes;
@@ -14,9 +15,10 @@ public abstract class DeltaCan
 {
     protected IDeltaApplier? Applier; //The actual test will take care of creating these
     protected IDeltaCreation? Creator;
+    protected readonly IFile File = new FileWrapper(new FileSystem());
 
-    protected string ApplierName => Applier.GetType().Name;
-    protected string CreatorName => Creator.GetType().Name;
+    protected string ApplierName => Applier?.GetType().Name ?? "N/A";
+    protected string CreatorName => Creator?.GetType().Name;
     
     //TODO: TargetStreamSize Test
     
@@ -58,14 +60,14 @@ public abstract class DeltaCan
     {
         SkipIfNoCreator();
 
-        var sourceFile = File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        var targetFile = File.OpenRead(Path.Combine("Assets", "new.jpg"));
-        var deltaFile = File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
+        var sourceFileStream = File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        var targetFileStream = File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        var deltaFileStream = File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
         
-        var result = await Creator.CreateDeltaFile(sourceFile, targetFile, deltaFile);
+        var createResult = await Creator.CreateDeltaFile(sourceFileStream, targetFileStream, deltaFileStream);
         var error = GetWin32Error();
         
-        Assert.That(result, Is.True, () => CreateErrorMessage(error));
+        Assert.That(createResult, Is.True, () => CreateErrorMessage(error));
         //TODO: Check that the file matches what we would expect to be returned
     }
     
@@ -93,5 +95,5 @@ public abstract class DeltaCan
         return win32Error != 0 ? new Win32Exception(win32Error) : null;
     }
     
-    private string CreateErrorMessage(Win32Exception? error) => $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})";
+    private static string CreateErrorMessage(Win32Exception? error) => $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})";
 }
