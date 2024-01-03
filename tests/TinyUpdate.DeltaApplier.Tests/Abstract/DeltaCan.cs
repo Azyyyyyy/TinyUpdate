@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using System.Runtime.InteropServices;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.DeltaApplier.Tests.Attributes;
@@ -15,10 +16,27 @@ public abstract class DeltaCan
 {
     protected IDeltaApplier? Applier; //The actual test will take care of creating these
     protected IDeltaCreation? Creator;
-    protected readonly IFile File = new FileWrapper(new FileSystem());
+    protected IFileSystem FileSystem;
 
     protected string ApplierName => Applier?.GetType().Name ?? "N/A";
-    protected string CreatorName => Creator?.GetType().Name;
+    protected string CreatorName => Creator?.GetType().Name ?? "N/A";
+
+    [OneTimeSetUp]
+    public void BaseSetup()
+    {
+        var fileSystem = new MockFileSystem(new MockFileSystemOptions
+        {
+            CurrentDirectory = Environment.CurrentDirectory,
+            CreateDefaultTempDir = false
+        });
+        FileSystem = fileSystem;
+
+        var files = Directory.GetFiles("Assets", "*", SearchOption.AllDirectories);
+        foreach (var file in files)
+        {
+            fileSystem.AddFile(file, new MockFileData(File.ReadAllBytes(file)));
+        }
+    }
     
     //TODO: TargetStreamSize Test
     
@@ -30,7 +48,7 @@ public abstract class DeltaCan
     {
         SkipIfNoApplier();
         
-        var deltaFileStream = File.OpenRead(Path.Combine("Assets", ApplierName, targetFilename + Applier.Extension));
+        var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, targetFilename + Applier.Extension));
         var returnedStatus = Applier.SupportedStream(deltaFileStream);
         var error = GetWin32Error();
         
@@ -43,9 +61,9 @@ public abstract class DeltaCan
     {
         SkipIfNoApplier();
 
-        var sourceFileStream = File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        var deltaFileStream = File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
-        var targetFileStream = File.Create(Path.Combine("Assets", ApplierName, "new (diff).jpg"));
+        var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
+        var targetFileStream = FileSystem.File.Create(Path.Combine("Assets", ApplierName, "new (diff).jpg"));
         
         var applyResult = await Applier.ApplyDeltaFile(sourceFileStream, deltaFileStream, targetFileStream);
         var error = GetWin32Error();
@@ -60,9 +78,9 @@ public abstract class DeltaCan
     {
         SkipIfNoCreator();
 
-        var sourceFileStream = File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        var targetFileStream = File.OpenRead(Path.Combine("Assets", "new.jpg"));
-        var deltaFileStream = File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
+        var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        var targetFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        var deltaFileStream = FileSystem.File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
         
         var createResult = await Creator.CreateDeltaFile(sourceFileStream, targetFileStream, deltaFileStream);
         var error = GetWin32Error();

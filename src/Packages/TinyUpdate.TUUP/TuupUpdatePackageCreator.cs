@@ -19,17 +19,17 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
     private readonly IFile File;
     // ReSharper restore InconsistentNaming
 
-    public TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager, IDirectory directory, IFile file, TuupUpdatePackageCreatorOptions options)
+    public TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager, IFileSystem fileSystem, TuupUpdatePackageCreatorOptions options)
     {
         _sha256 = sha256;
         _deltaManager = deltaManager;
         _options = options;
-        Directory = directory;
-        File = file;
+        Directory = fileSystem.Directory;
+        File = fileSystem.File;
         _zipLock = new AsyncLock();
     }
 
-    public string Extension => Consts.Extension;
+    public string Extension => Consts.TuupExtension;
 
     public async Task<bool> CreateFullPackage(string applicationLocation, SemanticVersion applicationVersion, string updatePackageLocation,
         string applicationName, IProgress<double>? progress = null)
@@ -125,7 +125,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
             if (!_options.V1Compatible && oldFilesHashes.TryGetValue(newSha256Hash, out var oldFilesList) && oldFilesList.Count > 0)
             {
                 var oldFile = oldFilesList[0];
-                var filepath = relativeNewFile + ".moved";
+                var filepath = relativeNewFile + Consts.MovedFileExtension;
                 using (await _zipLock.LockAsync())
                 {
                     await using var zipShasumEntryStream = zipArchive.CreateEntry(filepath, CompressionLevel.SmallestSize).Open();
@@ -172,10 +172,10 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
     }
 
     private Task<bool> AddNewFile(ZipArchive zipArchive, Stream fileContentStream, string filepath) =>
-        AddFile(zipArchive, fileContentStream, filepath + ".new");
+        AddFile(zipArchive, fileContentStream, filepath + Consts.NewFileExtension);
 
     private Task<bool> AddSameFile(ZipArchive zipArchive, string filepath, string hash) =>
-        AddFile(zipArchive, Stream.Null, filepath + ".diff", sha256Hash: hash);
+        AddFile(zipArchive, Stream.Null, filepath + Consts.UnchangedFileExtension, sha256Hash: hash);
     
     private async Task<bool> AddFile(ZipArchive zipArchive, Stream fileContentStream, string filepath, string? sha256Hash = null)
     {
@@ -197,7 +197,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
     {
         using (await _zipLock.LockAsync())
         {
-            await using var zipShasumEntryStream = zipArchive.CreateEntry(Path.ChangeExtension(filepath, ".shasum"), CompressionLevel.SmallestSize).Open();
+            await using var zipShasumEntryStream = zipArchive.CreateEntry(Path.ChangeExtension(filepath, Consts.ShasumFileExtension), CompressionLevel.SmallestSize).Open();
             await using var shasumStreamWriter = new StreamWriter(zipShasumEntryStream);
             await shasumStreamWriter.WriteAsync($"{sha256Hash} {filesize}");
         }

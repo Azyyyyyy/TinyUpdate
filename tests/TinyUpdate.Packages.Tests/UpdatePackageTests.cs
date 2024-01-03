@@ -16,10 +16,8 @@ public class TuupUpdatePackageTests : UpdatePackageCan
         var bsDelta = new BSDelta.BSDelta(NullLogger.Instance);
         var deltaManager = new TuupDeltaManager(new IDeltaApplier[]{ msDelta, bsDelta }, new IDeltaCreation[]{ msDelta, bsDelta });
 
-        var fileSystem = new FileSystem();
-
         var sha256 = new SHA256(NullLogger.Instance);
         UpdatePackage = new TuupUpdatePackage(deltaManager, sha256);
-        UpdatePackageCreator = new TuupUpdatePackageCreator(sha256, deltaManager, new DirectoryWrapper(fileSystem), new FileWrapper(fileSystem), new TuupUpdatePackageCreatorOptions());
+        UpdatePackageCreator = new TuupUpdatePackageCreator(sha256, deltaManager, FileSystem, new TuupUpdatePackageCreatorOptions());
     }
 }

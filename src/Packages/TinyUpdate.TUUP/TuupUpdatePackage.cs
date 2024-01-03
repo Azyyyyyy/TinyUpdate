@@ -13,7 +13,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
     private ZipArchive? _zipArchive;
     private static readonly string[] ExpectedData = ["Filename", "Path", "SHA256", "Filesize", "Extension"];
 
-    public string Extension => Consts.Extension;
+    public string Extension => Consts.TuupExtension;
 
     public async Task Load(Stream updatePackageStream)
     {
@@ -91,7 +91,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
 
             switch (entryEtx)
             {
-                case ".moved":
+                case Consts.MovedFileExtension:
                 {
                     using var textStream = new StreamReader(zipEntry.Open());
                     var text = await textStream.ReadToEndAsync();
@@ -99,7 +99,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
                     fileEntryData["PreviousLocation"] = text;
                     break;
                 }
-                case ".shasum":
+                case Consts.ShasumFileExtension:
                 {
                     var (sha256Hash, filesize) = await zipEntry.Open().GetShasumDetails(sha256);
                     fileEntryData["SHA256"] = sha256Hash;
@@ -117,7 +117,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
             }
             
             //This means that this entry contains data we want to work with 
-            if (entryEtx == ".new" || entryEtx == ".moved"
+            if (entryEtx == Consts.NewFileExtension || entryEtx == Consts.MovedFileExtension
                 || deltaManager.Appliers.Any(x => x.Extension == entryEtx))
             {
                 fileEntryData["Stream"] = zipEntry.Open();

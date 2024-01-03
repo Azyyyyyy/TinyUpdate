@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
+using System.Reflection;
 using SemVersion;
 using TinyUpdate.Core.Abstract;
 
@@ -9,21 +11,29 @@ public abstract class UpdatePackageCan
 {
     protected IUpdatePackage UpdatePackage;
     protected IUpdatePackageCreator UpdatePackageCreator;
+    protected IFileSystem FileSystem;
 
-    protected readonly IDirectory Directory;
-    protected readonly IFile File;
-
-    public UpdatePackageCan()
+    [OneTimeSetUp]
+    public void BaseSetup()
     {
-        var fileSystem = new FileSystem();
-        Directory = new DirectoryWrapper(fileSystem);
-        File = new FileWrapper(fileSystem);
+        var fileSystem = new MockFileSystem(new MockFileSystemOptions
+        {
+            CurrentDirectory = Environment.CurrentDirectory,
+            CreateDefaultTempDir = false
+        });
+        FileSystem = fileSystem;
+
+        var files = Directory.GetFiles("Assets", "*", SearchOption.AllDirectories);
+        foreach (var file in files)
+        {
+            fileSystem.AddFile(file, new MockFileData(File.ReadAllBytes(file)));
+        }
     }
 
     [Test]
     public async Task CanProcessFileData()
     {
-        var fileStream = File.OpenRead(Path.Combine("Assets", UpdatePackage.GetType().Name, "testing-1.0.0.tuup"));
+        var fileStream = FileSystem.File.OpenRead(Path.Combine("Assets", UpdatePackage.GetType().Name, "testing-1.0.0.tuup"));
         await UpdatePackage.Load(fileStream);
         //TODO: Check contents is as expected
     }
@@ -37,7 +47,7 @@ public abstract class UpdatePackageCan
         var location = Path.Combine("Assets", UpdatePackageCreator.GetType().Name, applicationName + "-" + version);
         var packageLocation = Path.Combine("Assets", UpdatePackageCreator.GetType().Name, applicationName + "-" + "update_packages");
         
-        Directory.CreateDirectory(packageLocation);
+        FileSystem.Directory.CreateDirectory(packageLocation);
         await CreateDirectoryData(location);
         
         var successful = await UpdatePackageCreator.CreateFullPackage(location, version, packageLocation, applicationName);
@@ -56,10 +66,10 @@ public abstract class UpdatePackageCan
         var newLocation = Path.Combine("Assets", UpdatePackageCreator.GetType().Name, applicationName + "-" + newVersion);
         var packageLocation = Path.Combine("Assets", UpdatePackageCreator.GetType().Name, applicationName + "-" + "update_packages");
         
-        Directory.CreateDirectory(packageLocation);
-        if (Directory.Exists(newLocation))
+        FileSystem.Directory.CreateDirectory(packageLocation);
+        if (FileSystem.Directory.Exists(newLocation))
         {
-            Directory.Delete(newLocation, true);
+            FileSystem.Directory.Delete(newLocation, true);
         }
 
         await CreateDirectoryData(oldLocation);
@@ -75,44 +85,44 @@ public abstract class UpdatePackageCan
 
     private async Task MessAroundWithDirectory(string directory)
     {
-        var subDirs = Directory.GetDirectories(directory);
-        Directory.Delete(subDirs[0], true);
+        var subDirs = FileSystem.Directory.GetDirectories(directory);
+        FileSystem.Directory.Delete(subDirs[0], true);
         foreach (var subDir in subDirs.Skip(1))
         {
-            var subDirFiles = Directory.GetFiles(subDir);
+            var subDirFiles = FileSystem.Directory.GetFiles(subDir);
             var fileSwap1 = subDirFiles[1];
             var fileSwap2 = subDirFiles[2];
             
             //Swap the files over
-            File.Move(fileSwap1, fileSwap1 + "2");
-            File.Move(fileSwap2, fileSwap1);
-            File.Move(fileSwap1 + "2", fileSwap2);
+            FileSystem.File.Move(fileSwap1, fileSwap1 + "2");
+            FileSystem.File.Move(fileSwap2, fileSwap1);
+            FileSystem.File.Move(fileSwap1 + "2", fileSwap2);
             
             await MakeRandomFiles(subDir, 2);
         }
         
         await MakeRandomFiles(directory, 2);
-        var dirFiles = Directory.GetFiles(directory);
-        File.Move(dirFiles[0], Path.Combine(subDirs[1], Path.GetFileName(dirFiles[0])));
+        var dirFiles = FileSystem.Directory.GetFiles(directory);
+        FileSystem.File.Move(dirFiles[0], Path.Combine(subDirs[1], Path.GetFileName(dirFiles[0])));
     }
     
     private void CopyDirectory(string sourceDirectory, string targetDirectory)
     {
-        var sourceFiles = Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories);
+        var sourceFiles = FileSystem.Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories);
         foreach (var sourceFile in sourceFiles)
         {
             var targetFile = Path.Combine(targetDirectory, Path.GetRelativePath(sourceDirectory, sourceFile));
-            Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+            FileSystem.Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
             
-            File.Copy(sourceFile, targetFile);
+            FileSystem.File.Copy(sourceFile, targetFile);
         }
     }
     
     private async Task CreateDirectoryData(string directory)
     {
-        if (Directory.Exists(directory))
+        if (FileSystem.Directory.Exists(directory))
         {
-            Directory.Delete(directory, true);
+            FileSystem.Directory.Delete(directory, true);
         }
         
         var subdirCount = Random.Shared.Next(2, 5);
@@ -120,7 +130,7 @@ public abstract class UpdatePackageCan
 
         foreach (var subdir in subdirs.Append(directory))
         {
-            Directory.CreateDirectory(subdir);
+            FileSystem.Directory.CreateDirectory(subdir);
             await MakeRandomFiles(subdir);
         }
     }
@@ -137,7 +147,7 @@ public abstract class UpdatePackageCan
 
     private async Task MakeRandomFile(string file)
     {
-        await using var fileStream = File.OpenWrite(file);
+        await using var fileStream = FileSystem.File.OpenWrite(file);
 
         var filesize = Random.Shared.Next(1024 * 1000);
         var buffer = new byte[filesize];
