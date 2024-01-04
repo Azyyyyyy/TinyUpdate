@@ -1,6 +1,4 @@
-﻿using TinyUpdate.Core.Abstract;
-
-namespace TinyUpdate.Core;
+﻿namespace TinyUpdate.Core;
 
 /// <summary>
 /// File entry with all the information to do a update

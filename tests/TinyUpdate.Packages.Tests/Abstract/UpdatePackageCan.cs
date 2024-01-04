@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
-using System.Reflection;
 using SemVersion;
 using TinyUpdate.Core.Abstract;
 
@@ -148,11 +147,15 @@ public abstract class UpdatePackageCan
     private async Task MakeRandomFile(string file)
     {
         await using var fileStream = FileSystem.File.OpenWrite(file);
+        FillStreamWithRandomData(fileStream);
+    }
 
+    protected void FillStreamWithRandomData(Stream stream)
+    {
         var filesize = Random.Shared.Next(1024 * 1000);
         var buffer = new byte[filesize];
         Random.Shared.NextBytes(buffer);
 
-        await fileStream.WriteAsync(buffer);
+        stream.Write(buffer);
     }
 }
