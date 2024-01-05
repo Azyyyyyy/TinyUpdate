@@ -1,6 +1,6 @@
 ﻿using TinyUpdate.Core.Abstract;
 
-namespace TinyUpdate.DeltaApplier.Tests.Attributes;
+namespace TinyUpdate.Tests.Common.Attributes;
 
 /// <summary>
 /// The test(s) are testing an <seealso cref="IDeltaCreation"/>

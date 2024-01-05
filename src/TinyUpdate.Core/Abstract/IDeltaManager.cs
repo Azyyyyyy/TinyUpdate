@@ -13,6 +13,8 @@ public interface IDeltaManager
 
 public class DeltaCreationResult(IDeltaCreation? creator, Stream? deltaStream, bool successful)
 {
+    public static readonly DeltaCreationResult Failed = new DeltaCreationResult(null, null, false);
+
     public IDeltaCreation? Creator { get; } = creator;
 
     public Stream? DeltaStream { get; } = deltaStream;

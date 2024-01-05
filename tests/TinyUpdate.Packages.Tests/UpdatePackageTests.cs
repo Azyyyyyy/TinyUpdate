@@ -11,10 +11,10 @@ public class TuupUpdatePackageTests : UpdatePackageCan
     public void Setup()
     {
         var mockApplier1 = CreateMockDeltaApplier(".bsdiff");
-        var mockApplier2 = CreateMockDeltaApplier(".diff");
+        var mockApplier2 = CreateMockDeltaApplier(".diffing");
 
         var mockCreation1 = CreateMockDeltaCreation(".bsdiff");
-        var mockCreation2 = CreateMockDeltaCreation(".diff");
+        var mockCreation2 = CreateMockDeltaCreation(".diffing");
         
         var deltaManager = new TuupDeltaManager(
             [ mockApplier1.Object, mockApplier2.Object ],

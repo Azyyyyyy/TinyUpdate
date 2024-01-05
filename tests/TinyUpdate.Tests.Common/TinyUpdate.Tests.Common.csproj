@@ -15,18 +15,10 @@
         <PackageReference Include="NUnit3TestAdapter" Version="4.2.1"/>
         <PackageReference Include="NUnit.Analyzers" Version="3.6.1"/>
         <PackageReference Include="coverlet.collector" Version="6.0.0"/>
-        <PackageReference Include="System.IO.Abstractions.TestingHelpers" Version="20.0.4" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Deltas\TinyUpdate.BSDelta\TinyUpdate.BSDelta.csproj" />
-      <ProjectReference Include="..\..\src\Deltas\TinyUpdate.MSDelta\TinyUpdate.MSDelta.csproj" />
-      <ProjectReference Include="..\TinyUpdate.Tests.Common\TinyUpdate.Tests.Common.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Assets\**" />
-      <AdditionalFiles Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+      <ProjectReference Include="..\..\src\TinyUpdate.Core\TinyUpdate.Core.csproj" />
     </ItemGroup>
 
 </Project>

@@ -29,6 +29,7 @@ public abstract class UpdatePackageCan
             fileSystem.AddFile(file, new MockFileData(File.ReadAllBytes(file)));
         }
     }
+    //TODO: Maybe make tests to ensure different file edit scenario's then leave current tests to ensure the mix passes creation?
 
     [Test]
     public async Task CanProcessFileData()
@@ -80,7 +81,6 @@ public abstract class UpdatePackageCan
         var successful = await UpdatePackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, newVersion, packageLocation, applicationName);
         Assert.That(successful, Is.True);
         //TODO: Check contents is as expected
-        //TODO: moved files across directories is currently not working
     }
 
     private async Task MessAroundWithDirectory(string directory)
@@ -97,6 +97,12 @@ public abstract class UpdatePackageCan
             FileSystem.File.Move(fileSwap1, fileSwap1 + "2");
             FileSystem.File.Move(fileSwap2, fileSwap1);
             FileSystem.File.Move(fileSwap1 + "2", fileSwap2);
+
+            foreach (var fileLocation in subDirFiles.Skip(2).Take(2))
+            {
+                await using var fileStream = FileSystem.File.Create(fileLocation);
+                FillStreamWithRandomData(fileStream);
+            }
             
             await MakeRandomFiles(subDir, 2);
         }
@@ -137,7 +143,7 @@ public abstract class UpdatePackageCan
 
     private async Task MakeRandomFiles(string directory, int maxAmount = 15)
     {
-        var filesCount = Random.Shared.Next(Math.Min(3, maxAmount), maxAmount);
+        var filesCount = Random.Shared.Next(Math.Min(5, maxAmount), maxAmount);
         for (int i = 0; i < filesCount; i++)
         {
             var file = Path.Combine(directory, Path.GetRandomFileName());
@@ -151,9 +157,12 @@ public abstract class UpdatePackageCan
         FillStreamWithRandomData(fileStream);
     }
 
-    private void FillStreamWithRandomData(Stream stream)
+    private void FillStreamWithRandomData(Stream stream, long filesize = -1)
     {
-        var filesize = Random.Shared.Next(1024 * 1000);
+        if (filesize < 0)
+        {
+            filesize = Random.Shared.Next(1024 * 1000);
+        }
         var buffer = new byte[filesize];
         Random.Shared.NextBytes(buffer);
 
@@ -183,9 +192,13 @@ public abstract class UpdatePackageCan
         mockCreation.Setup(x => x.Extension).Returns(extension);
         mockCreation.Setup(x => 
                 x.CreateDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceFileStream, Stream deltaFileStream, Stream targetFileStream,
-                IProgress<double>? progress) => FillStreamWithRandomData(deltaFileStream))
-            .ReturnsAsync(true);
+            .Callback((Stream sourceFileStream, Stream targetFileStream, Stream deltaFileStream,
+                IProgress<double>? progress) =>
+            {
+                var targetFilesize = targetFileStream.Length;
+                var filesize = Random.Shared.NextInt64((long)(targetFilesize * 0.4), (long)(targetFilesize * 0.95));
+                FillStreamWithRandomData(deltaFileStream, filesize);
+            }).ReturnsAsync(true);
         
         return mockCreation;
     }

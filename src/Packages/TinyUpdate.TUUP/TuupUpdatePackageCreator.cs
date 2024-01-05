@@ -50,7 +50,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         return true;
     }
 
-    //TODO: Handle "moved" files
+    //TODO: Handle "moved" files subdirectories correctly
     public async Task<bool> CreateDeltaPackage(string oldApplicationLocation, SemanticVersion oldApplicationVersion,
         string newApplicationLocation, SemanticVersion newApplicationVersion, string updatePackageLocation,
         string applicationName, IProgress<double>? progress = null)

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.DeltaApplier.Tests.Abstract;
-using TinyUpdate.DeltaApplier.Tests.Attributes;
+using TinyUpdate.Tests.Common.Attributes;
 
 namespace TinyUpdate.DeltaApplier.Tests;
 
@@ -21,8 +21,12 @@ public class MSDeltaTests : DeltaCan
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
-        var delta = new MSDelta.MSDelta();
-        Creator = delta;
-        Applier = delta;
+        //We don't actually need this but makes warnings go away
+        if (OperatingSystem.IsWindows())
+        {
+            var delta = new MSDelta.MSDelta();
+            Creator = delta;
+            Applier = delta;
+        }
     }
 }

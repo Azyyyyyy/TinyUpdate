@@ -3,8 +3,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging.Abstractions;
+using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
-using TinyUpdate.DeltaApplier.Tests.Attributes;
+using TinyUpdate.Tests.Common.Attributes;
 
 namespace TinyUpdate.DeltaApplier.Tests.Abstract;
 
@@ -17,6 +19,7 @@ public abstract class DeltaCan
     protected IDeltaApplier? Applier; //The actual test will take care of creating these
     protected IDeltaCreation? Creator;
     protected IFileSystem FileSystem;
+    protected readonly SHA256 Sha256 = new SHA256(NullLogger.Instance);
 
     protected string ApplierName => Applier?.GetType().Name ?? "N/A";
     protected string CreatorName => Creator?.GetType().Name ?? "N/A";
@@ -48,7 +51,7 @@ public abstract class DeltaCan
     {
         SkipIfNoApplier();
         
-        var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, targetFilename + Applier.Extension));
+        using var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, targetFilename + Applier.Extension));
         var returnedStatus = Applier.SupportedStream(deltaFileStream);
         var error = GetWin32Error();
         
@@ -61,26 +64,33 @@ public abstract class DeltaCan
     {
         SkipIfNoApplier();
 
-        var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
-        var targetFileStream = FileSystem.File.Create(Path.Combine("Assets", ApplierName, "new (diff).jpg"));
+        await using var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
+        await using var targetFileStream = FileSystem.File.Create(Path.Combine("Assets", ApplierName, "new (diff).jpg"));
+        await using var expectedTargetFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
         
         var applyResult = await Applier.ApplyDeltaFile(sourceFileStream, deltaFileStream, targetFileStream);
         var error = GetWin32Error();
+        targetFileStream.Seek(0, SeekOrigin.Begin);
 
-        Assert.That(applyResult, Is.True, () => CreateErrorMessage(error));
-        //TODO: Check if "new (diff)" is the same as "new"
+        var expectedTargetFileStreamHash = Sha256.CreateSHA256Hash(expectedTargetFileStream);
+        var targetFileStreamHash = Sha256.CreateSHA256Hash(targetFileStream);
+        Assert.Multiple(() =>
+        {
+            Assert.That(applyResult, Is.True, () => CreateErrorMessage(error));
+            Assert.That(expectedTargetFileStreamHash, Is.EqualTo(targetFileStreamHash), () => $"{ApplierName} didn't create an exact replica of the target stream. Expected Hash: {expectedTargetFileStreamHash}, Target Hash: {targetFileStreamHash}");
+        });
     }
-    
+
     [Test]
     [DeltaCreation]
     public async Task CreateDeltaFile()
     {
         SkipIfNoCreator();
 
-        var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        var targetFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
-        var deltaFileStream = FileSystem.File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
+        await using var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var targetFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        await using var deltaFileStream = FileSystem.File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
         
         var createResult = await Creator.CreateDeltaFile(sourceFileStream, targetFileStream, deltaFileStream);
         var error = GetWin32Error();
@@ -113,5 +123,8 @@ public abstract class DeltaCan
         return win32Error != 0 ? new Win32Exception(win32Error) : null;
     }
     
-    private static string CreateErrorMessage(Win32Exception? error) => $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})";
+    private static string CreateErrorMessage(Win32Exception? error) =>
+        error != null 
+            ? $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})"
+            : "Unknown Error";
 }

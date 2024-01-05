@@ -5,21 +5,17 @@ using TinyUpdate.Core.Abstract;
 
 namespace TinyUpdate.TUUP;
 
-public class TuupDeltaManager : IDeltaManager
+public class TuupDeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators)
+    : IDeltaManager
 {
-    protected AsyncLock _copyLock = new AsyncLock();
-    public TuupDeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators)
-    {
-        Appliers = appliers.ToImmutableArray();
-        Creators = creators.ToImmutableArray();
-    }
-    
-    public IReadOnlyCollection<IDeltaApplier> Appliers { get; }
-    public IReadOnlyCollection<IDeltaCreation> Creators { get; }
+    private readonly AsyncLock _copyLock = new AsyncLock();
+
+    public IReadOnlyCollection<IDeltaApplier> Appliers { get; } = appliers.ToImmutableArray();
+    public IReadOnlyCollection<IDeltaCreation> Creators { get; } = creators.ToImmutableArray();
+
     public async Task<DeltaCreationResult> CreateDeltaFile(Stream sourceStream, Stream targetStream)
     {
         var resultBag = new ConcurrentBag<DeltaCreationResult>();
-
         var sourceStreamMasterCopy = new MemoryStream();
         var targetStreamMasterCopy = new MemoryStream();
 
@@ -51,22 +47,23 @@ public class TuupDeltaManager : IDeltaManager
         DeltaCreationResult? bestCreator = null;
         foreach (var deltaCreationResult in resultBag)
         {
+            var deltaStreamLength = deltaCreationResult.DeltaStream!.Length;
             if (bestCreator == null)
             {
-                //Only want to add it if it was at least successful at this point
-                if (deltaCreationResult.Successful)
+                //Only want to add it if it was at least successful and smaller then the target source at this point
+                if (deltaCreationResult.Successful && targetStream.Length > deltaStreamLength)
                 {
                     bestCreator = deltaCreationResult;
                 }
                 continue;
             }
             
-            if (deltaCreationResult.Successful && bestCreator.DeltaStream!.Length < deltaCreationResult.DeltaStream.Length)
+            if (deltaCreationResult.Successful && bestCreator.DeltaStream!.Length > deltaStreamLength)
             {
                 bestCreator = deltaCreationResult;
             }
         }
 
-        return bestCreator ?? new DeltaCreationResult(null, null, false);
+        return bestCreator ?? DeltaCreationResult.Failed;
     }
 }
