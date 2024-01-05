@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Moq;
 using SemVersion;
 using TinyUpdate.Core.Abstract;
 
@@ -10,7 +11,7 @@ public abstract class UpdatePackageCan
 {
     protected IUpdatePackage UpdatePackage;
     protected IUpdatePackageCreator UpdatePackageCreator;
-    protected IFileSystem FileSystem;
+    protected IFileSystem FileSystem = null!;
 
     [OneTimeSetUp]
     public void BaseSetup()
@@ -124,13 +125,13 @@ public abstract class UpdatePackageCan
             FileSystem.Directory.Delete(directory, true);
         }
         
-        var subdirCount = Random.Shared.Next(2, 5);
-        var subdirs = Enumerable.Range(0, subdirCount).Select(x => Path.Combine(directory, Path.GetRandomFileName())).ToImmutableArray();
+        var subDirCount = Random.Shared.Next(2, 5);
+        var subDirs = Enumerable.Range(0, subDirCount).Select(x => Path.Combine(directory, Path.GetRandomFileName())).ToImmutableArray();
 
-        foreach (var subdir in subdirs.Append(directory))
+        foreach (var subDir in subDirs.Append(directory))
         {
-            FileSystem.Directory.CreateDirectory(subdir);
-            await MakeRandomFiles(subdir);
+            FileSystem.Directory.CreateDirectory(subDir);
+            await MakeRandomFiles(subDir);
         }
     }
 
@@ -150,12 +151,42 @@ public abstract class UpdatePackageCan
         FillStreamWithRandomData(fileStream);
     }
 
-    protected void FillStreamWithRandomData(Stream stream)
+    private void FillStreamWithRandomData(Stream stream)
     {
         var filesize = Random.Shared.Next(1024 * 1000);
         var buffer = new byte[filesize];
         Random.Shared.NextBytes(buffer);
 
         stream.Write(buffer);
+    }
+    
+    protected Mock<IDeltaApplier> CreateMockDeltaApplier(string extension)
+    {
+        var mockApplier = new Mock<IDeltaApplier>();
+        
+        mockApplier.Setup(x => x.Extension).Returns(extension);
+        mockApplier.Setup(x => x.SupportedStream(It.IsAny<Stream>())).Returns(true);
+        mockApplier.Setup(x => 
+                x.ApplyDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
+            .Callback((Stream sourceFileStream, Stream deltaFileStream, Stream targetFileStream,
+                IProgress<double>? progress) => FillStreamWithRandomData(deltaFileStream))
+            .ReturnsAsync(true);
+
+        return mockApplier;
+    }
+
+
+    protected Mock<IDeltaCreation> CreateMockDeltaCreation(string extension)
+    {
+        var mockCreation = new Mock<IDeltaCreation>();
+
+        mockCreation.Setup(x => x.Extension).Returns(extension);
+        mockCreation.Setup(x => 
+                x.CreateDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
+            .Callback((Stream sourceFileStream, Stream deltaFileStream, Stream targetFileStream,
+                IProgress<double>? progress) => FillStreamWithRandomData(deltaFileStream))
+            .ReturnsAsync(true);
+        
+        return mockCreation;
     }
 }
