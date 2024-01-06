@@ -1,6 +1,6 @@
 ﻿namespace TinyUpdate.TUUP;
 
-public class Consts
+public static class Consts
 {
     public const string TuupExtension = ".tuup";
     public const string NewFileExtension = ".new";

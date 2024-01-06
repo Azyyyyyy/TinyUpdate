@@ -11,7 +11,7 @@ public interface IDeltaManager
     public Task<DeltaCreationResult> CreateDeltaFile(Stream sourceStream, Stream targetStream);
 }
 
-public class DeltaCreationResult(IDeltaCreation? creator, Stream? deltaStream, bool successful)
+public record DeltaCreationResult(IDeltaCreation? creator, Stream? deltaStream, bool successful)
 {
     public static readonly DeltaCreationResult Failed = new DeltaCreationResult(null, null, false);
 

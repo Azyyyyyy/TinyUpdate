@@ -3,9 +3,9 @@ using System.Collections.Immutable;
 using NeoSmart.AsyncLock;
 using TinyUpdate.Core.Abstract;
 
-namespace TinyUpdate.TUUP;
+namespace TinyUpdate.Core;
 
-public class TuupDeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators)
+public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators)
     : IDeltaManager
 {
     private readonly AsyncLock _copyLock = new AsyncLock();

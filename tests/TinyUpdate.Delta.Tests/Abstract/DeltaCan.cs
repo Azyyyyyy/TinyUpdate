@@ -1,14 +1,14 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Tests.Common;
 using TinyUpdate.Tests.Common.Attributes;
 
-namespace TinyUpdate.DeltaApplier.Tests.Abstract;
+namespace TinyUpdate.Delta.Tests.Abstract;
 
 /// <summary>
 /// Provides base tests for any <see cref="IDeltaApplier"/> and <see cref="IDeltaCreation"/>
@@ -27,18 +27,7 @@ public abstract class DeltaCan
     [OneTimeSetUp]
     public void BaseSetup()
     {
-        var fileSystem = new MockFileSystem(new MockFileSystemOptions
-        {
-            CurrentDirectory = Environment.CurrentDirectory,
-            CreateDefaultTempDir = false
-        });
-        FileSystem = fileSystem;
-
-        var files = Directory.GetFiles("Assets", "*", SearchOption.AllDirectories);
-        foreach (var file in files)
-        {
-            fileSystem.AddFile(file, new MockFileData(File.ReadAllBytes(file)));
-        }
+        FileSystem = Functions.SetupMockFileSystem();
     }
     
     //TODO: TargetStreamSize Test
@@ -125,6 +114,6 @@ public abstract class DeltaCan
     
     private static string CreateErrorMessage(Win32Exception? error) =>
         error != null 
-            ? $"Error thrown: {error?.Message} (ErrorCode: {error?.NativeErrorCode})"
+            ? $"Error thrown: {error.Message} (ErrorCode: {error.NativeErrorCode})"
             : "Unknown Error";
 }

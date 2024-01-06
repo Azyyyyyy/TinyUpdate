@@ -1,4 +1,4 @@
-﻿using System.IO.Abstractions;
+using System.IO.Abstractions;
 using System.IO.Compression;
 using NeoSmart.AsyncLock;
 using SemVersion;
@@ -19,6 +19,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
     private readonly IFile File;
     // ReSharper restore InconsistentNaming
 
+    // ReSharper disable once ConvertToPrimaryConstructor
     public TuupUpdatePackageCreator(SHA256 sha256, IDeltaManager deltaManager, IFileSystem fileSystem, TuupUpdatePackageCreatorOptions options)
     {
         _sha256 = sha256;
@@ -30,13 +31,15 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
     }
 
     public string Extension => Consts.TuupExtension;
+    public string FullPackageFilenameTemplate => "{0}-{1}-full" + Extension;
+    public string DeltaPackageFilenameTemplate => "{0}-{1}-delta" + Extension;
 
     public async Task<bool> CreateFullPackage(string applicationLocation, SemanticVersion applicationVersion, string updatePackageLocation,
         string applicationName, IProgress<double>? progress = null)
     {
         var files = Directory.GetFiles(applicationLocation, "*", SearchOption.AllDirectories);
         using var zipArchive =
-            CreateZipArchive(Path.Combine(updatePackageLocation, applicationName + "-" + applicationVersion + Extension));
+            CreateZipArchive(Path.Combine(updatePackageLocation, string.Format(FullPackageFilenameTemplate, applicationName, applicationVersion)));
 
         for (int i = 0; i < files.Length; i++)
         {
@@ -65,7 +68,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         await GetHashes(newFilesHashes, newFiles);
         
         using var zipArchive =
-            CreateZipArchive(Path.Combine(updatePackageLocation, applicationName + "-" + newApplicationVersion + Extension));
+            CreateZipArchive(Path.Combine(updatePackageLocation, string.Format(DeltaPackageFilenameTemplate, applicationName, newApplicationVersion)));
 
         for (int i = 0; i < newFiles.Length; ReportAndBump(ref i))
         {
@@ -131,6 +134,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
                     await using var zipShasumEntryStream = zipArchive.CreateEntry(filepath, CompressionLevel.SmallestSize).Open();
                     await using var shasumStreamWriter = new StreamWriter(zipShasumEntryStream);
                     await shasumStreamWriter.WriteAsync(Path.GetRelativePath(oldApplicationLocation, oldFile));
+                    //TODO: Ensure we set this consistently across OS's ^
                 }
 
                 await AddHashAndSizeData(zipArchive, filepath, newSha256Hash, filesize);

@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using TinyUpdate.DeltaApplier.Tests.Abstract;
+using TinyUpdate.Delta.Tests.Abstract;
 using TinyUpdate.Tests.Common.Attributes;
 
-namespace TinyUpdate.DeltaApplier.Tests;
+namespace TinyUpdate.Delta.Tests;
 
 public class BSDeltaTests : DeltaCan
 {
