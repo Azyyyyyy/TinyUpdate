@@ -53,7 +53,6 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         return true;
     }
 
-    //TODO: Handle "moved" files subdirectories correctly
     public async Task<bool> CreateDeltaPackage(string oldApplicationLocation, SemanticVersion oldApplicationVersion,
         string newApplicationLocation, SemanticVersion newApplicationVersion, string updatePackageLocation,
         string applicationName, IProgress<double>? progress = null)
@@ -76,32 +75,23 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
             var newSha256Hash = newFilesHashes.First(x => x.Value.Any(y => y == newFile)).Key;
             var relativeNewFile = Path.GetRelativePath(newApplicationLocation, newFile);
 
-            var oldFile = oldFiles.FirstOrDefault(x => x.EndsWith(relativeNewFile));
-
+            var oldFile = oldFiles.FirstOrDefault(x => Path.GetRelativePath(oldApplicationLocation, x) == relativeNewFile);
             await using var newFileContentStream = File.OpenRead(newFile);
 
-            //See if we had the file in the older version
             if (string.IsNullOrWhiteSpace(oldFile))
             {
-                //Try to find the file if it's moved 
                 if (!await FindAndAddMovedFile(newSha256Hash, relativeNewFile, newFileContentStream.Length))
                 {
                     await AddNewFile(zipArchive, newFileContentStream, relativeNewFile);
                 }
                 continue;
             }
-
+            
             //See if the file is the same by the outputted hash
             var oldSha256Hash = oldFilesHashes.First(x => x.Value.Any(y => y == oldFile)).Key;
             if (newSha256Hash == oldSha256Hash)
             {
                 await AddSameFile(zipArchive, relativeNewFile, newSha256Hash);
-                continue;
-            }
-            
-            //Again, see if the file has moved. Could have been renamed and another file has taken it's old filename
-            if (await FindAndAddMovedFile(newSha256Hash, relativeNewFile, newFileContentStream.Length))
-            {
                 continue;
             }
 

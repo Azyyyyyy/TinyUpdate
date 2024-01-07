@@ -104,23 +104,20 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
                     var (sha256Hash, filesize) = await zipEntry.Open().GetShasumDetails(sha256);
                     fileEntryData["SHA256"] = sha256Hash;
                     fileEntryData["Filesize"] = filesize;
-                
-                    //Clear out stream if it'll be nothing, no need to keep it
-                    if (filesize == 0 && fileEntryData.TryGetValue("Stream", out var streamObj))
-                    {
-                        await ((Stream)streamObj!).DisposeAsync();
-                        fileEntryData["Stream"] = null!;
-                    }
-
                     break;
                 }
             }
             
             //This means that this entry contains data we want to work with 
-            if (entryEtx == Consts.NewFileExtension || entryEtx == Consts.MovedFileExtension
+            if (entryEtx == Consts.NewFileExtension
                 || deltaManager.Appliers.Any(x => x.Extension == entryEtx))
             {
                 fileEntryData["Stream"] = zipEntry.Open();
+                fileEntryData["Extension"] = entryEtx;
+            }
+
+            if (entryEtx is Consts.UnchangedFileExtension or Consts.MovedFileExtension)
+            {
                 fileEntryData["Extension"] = entryEtx;
             }
         }
@@ -150,11 +147,22 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
             return false;
         }
 
-        if ((long?)fileEntryData["Filesize"] != 0 && !fileEntryData.ContainsKey("Stream"))
+        var filesize = (long?)fileEntryData["Filesize"];
+        if (filesize != 0 
+            && fileEntryData["Extension"] is not Consts.UnchangedFileExtension and not Consts.MovedFileExtension 
+            && !fileEntryData.ContainsKey("Stream"))
         {
             return false;
         }
+        
+        //Clear out stream if it'll be nothing, no need to keep it
+        if (filesize == 0 && fileEntryData.TryGetValue("Stream", out var streamObj))
+        {
+            ((Stream?)streamObj)?.Dispose();
+            fileEntryData["Stream"] = null;
+        }
 
+        fileEntryData.TryAdd("Stream", null);
         fileEntryData.TryAdd("PreviousLocation", null);
         return true;
     }

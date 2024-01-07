@@ -49,8 +49,47 @@ public class UpdatePackageTestSource
 
     public static IEnumerable<DeltaUpdatePackageTestData> GetDeltaTests()
     {
-        //TODO: Add UnchangedTests
-        //TODO: Add NewFileTests
+        //NewFileTests
+        yield return new DeltaUpdatePackageTestData
+        {
+            Name = "CreateUpdatePackageWithNewFileInRoot",
+            NewVersion = new SemanticVersion(1, 0, 1),
+            ApplicationName = "new-application",
+            SourceFolder = "EmptyFolder",
+            TargetFolder = "NewRootFiles",
+            ExpectedFilename = "newFileRoot"
+        };
+        yield return new DeltaUpdatePackageTestData
+        {
+            Name = "CreateUpdatePackageWithNewFileInSubdir",
+            NewVersion = new SemanticVersion(1, 0, 1),
+            ApplicationName = "new-application",
+            SourceFolder = "EmptyFolder",
+            TargetFolder = "NewSubdirFiles",
+            ExpectedFilename = "newFileSubdir"
+        };
+        
+        //UnchangedFileTests
+        yield return new DeltaUpdatePackageTestData
+        {
+            Name = "CreateUpdatePackageWithUnchangedFileInRoot",
+            NewVersion = new SemanticVersion(1, 0, 1),
+            ApplicationName = "new-application",
+            SourceFolder = "NewRootFiles",
+            TargetFolder = "NewRootFiles",
+            ExpectedFilename = "unchangedFileRoot"
+        };
+        yield return new DeltaUpdatePackageTestData
+        {
+            Name = "CreateUpdatePackageWithUnchangedFileInSubDir",
+            NewVersion = new SemanticVersion(1, 0, 1),
+            ApplicationName = "new-application",
+            SourceFolder = "NewSubdirFiles",
+            TargetFolder = "NewSubdirFiles",
+            ExpectedFilename = "unchangedFileSubdir",
+        };
+
+        //DeltaFileTests
         yield return new DeltaUpdatePackageTestData
         {
             Name = "CreateUpdatePackageWithDeltaFileInRoot",
@@ -61,7 +100,6 @@ public class UpdatePackageTestSource
             ExpectedFilename = "deltaFileRoot",
             NeedsFixedCreatorSize = true
         };
-        
         yield return new DeltaUpdatePackageTestData
         {
             Name = "CreateUpdatePackageWithDeltaFileInSubDir",
@@ -73,6 +111,7 @@ public class UpdatePackageTestSource
             NeedsFixedCreatorSize = true
         };
         
+        //MovedFileTests
         yield return new DeltaUpdatePackageTestData
         {
             Name = "CreateUpdatePackageWithMovedFileInRoot",
@@ -82,7 +121,6 @@ public class UpdatePackageTestSource
             TargetFolder = "MovedRootFiles",
             ExpectedFilename = "movedFileRoot"
         };
-        
         yield return new DeltaUpdatePackageTestData
         {
             Name = "CreateUpdatePackageWithMovedFileRootToSubDir",
@@ -92,7 +130,6 @@ public class UpdatePackageTestSource
             TargetFolder = "MovedRootToSubdirFiles",
             ExpectedFilename = "movedFileRootToSubdir"
         };
-        
         yield return new DeltaUpdatePackageTestData
         {
             Name = "CreateUpdatePackageWithMovedFileSubDirToRoot",
@@ -102,7 +139,6 @@ public class UpdatePackageTestSource
             TargetFolder = "MovedSubdirToRootFiles",
             ExpectedFilename = "movedFileSubdirToRoot"
         };
-        
         yield return new DeltaUpdatePackageTestData
         {
             Name = "CreateUpdatePackageWithMovedFileSubDirToSubDir",

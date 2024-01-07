@@ -27,6 +27,13 @@ public static class Functions
             CreateDefaultTempDir = false
         });
 
+        //We could have empty directories, want to add them just to be safe
+        var directories = Directory.GetDirectories("Assets", "*", SearchOption.AllDirectories);
+        foreach (var directory in directories)
+        {
+            fileSystem.AddDirectory(directory);
+        }
+        
         var files = Directory.GetFiles("Assets", "*", SearchOption.AllDirectories);
         foreach (var file in files)
         {

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace TinyUpdate.Core;
 
+//TODO: Move over to make this more generic (allowing different imps of SHA to be used)
 /// <summary>
 /// Easy access to processing Streams to get a SHA256 hash and to do any kind of comparing
 /// </summary>

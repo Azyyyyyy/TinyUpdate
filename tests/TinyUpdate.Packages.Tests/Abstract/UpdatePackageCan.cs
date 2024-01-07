@@ -21,6 +21,7 @@ public abstract class UpdatePackageCan
         FileSystem = Functions.SetupMockFileSystem();
     }
     
+    //TODO: Add New empty file
     [Test]
     public async Task ProcessFileData()
     {
@@ -28,25 +29,44 @@ public abstract class UpdatePackageCan
         await using var fileStream = FileSystem.File.OpenRead(Path.Combine(baseFilePath, "exampleUpdatePackage" + UpdatePackage.Extension));
         await UpdatePackage.Load(fileStream);
 
-        //TODO: Add Unchanged files into example file
-        var expectedDeltaFiles = JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(Path.Combine(baseFilePath, "exampleUpdatePackage_expectedDeltas.json")));
-        var expectedMovedFiles = JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(Path.Combine(baseFilePath, "exampleUpdatePackage_expectedMoved.json")));
-        var expectedNewFiles = JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(Path.Combine(baseFilePath, "exampleUpdatePackage_expectedNew.json")));
-        if (expectedMovedFiles == null || expectedDeltaFiles == null || expectedNewFiles == null)
+        IReadOnlyCollection<FileEntry>? expectedDeltaFiles = null, expectedMovedFiles = null, expectedNewFiles = null, expectedUnchangedFiles = null;
+        await Assert.MultipleAsync(async () =>
         {
-            Assert.Inconclusive("Unable to test as expected JSON files contain nothing");
+            expectedDeltaFiles = await GetJsonFile("exampleUpdatePackage_expectedDeltas.json");
+            expectedMovedFiles = await GetJsonFile("exampleUpdatePackage_expectedMoved.json");
+            expectedNewFiles = await GetJsonFile("exampleUpdatePackage_expectedNew.json");
+            expectedUnchangedFiles  = await GetJsonFile("exampleUpdatePackage_expectedUnchanged.json");
+        });
+        if (expectedMovedFiles == null || expectedDeltaFiles == null || expectedNewFiles == null || expectedUnchangedFiles == null)
+        {
+            Assert.Fail("Unable to test as expected JSON files contain nothing");
+            return;
         }
         
         Assert.Multiple(() =>
         {
-            CheckEntries(expectedDeltaFiles, UpdatePackage.DeltaFiles);
-            CheckEntries(expectedMovedFiles, UpdatePackage.MovedFiles);
-            CheckEntries(expectedNewFiles, UpdatePackage.NewFiles);
+            CheckEntries(expectedDeltaFiles, UpdatePackage.DeltaFiles, true);
+            CheckEntries(expectedNewFiles, UpdatePackage.NewFiles, true);
+            CheckEntries(expectedMovedFiles, UpdatePackage.MovedFiles, false);
+            CheckEntries(expectedUnchangedFiles, UpdatePackage.UnchangedFiles, false);
         });
-        
+        return;
 
-        void CheckEntries(IReadOnlyCollection<FileEntry> expectedCollection, ICollection<FileEntry> actualCollection)
+
+        async Task<IReadOnlyCollection<FileEntry>?> GetJsonFile(string filename)
         {
+            var fileLocation = Path.Combine(baseFilePath, filename);
+            if (!FileSystem.File.Exists(fileLocation))
+            {
+                Assert.Warn($"We don't have '{filename}' for testing {UpdatePackage.GetType().Name} FileData loading");
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(fileLocation));
+        }
+        void CheckEntries(IReadOnlyCollection<FileEntry> expectedCollection, ICollection<FileEntry> actualCollection, bool shouldHaveStream)
+        {
+            Assert.That(expectedCollection, Has.Count.EqualTo(actualCollection.Count));
             foreach (var expectedFileEntry in expectedCollection)
             {
                 var actualFileEntry = actualCollection.FirstOrDefault(x => x.Location == expectedFileEntry.Location);
@@ -64,6 +84,7 @@ public abstract class UpdatePackageCan
                     Assert.That(actualFileEntry.SHA256, Is.EqualTo(expectedFileEntry.SHA256));
                     Assert.That(actualFileEntry.Filesize, Is.EqualTo(expectedFileEntry.Filesize));
                     Assert.That(actualFileEntry.Extension, Is.EqualTo(expectedFileEntry.Extension));
+                    Assert.That(actualFileEntry.Stream, shouldHaveStream && expectedFileEntry.Filesize > 0 ? Is.Not.Null : Is.Null);
                 });
             }
         }
@@ -105,6 +126,8 @@ public abstract class UpdatePackageCan
     [TestCaseSource(typeof(UpdatePackageTestSource), nameof(UpdatePackageTestSource.GetDeltaTests))]
     public async Task TestDeltaPackageCreation(DeltaUpdatePackageTestData testData)
     {
+        FileSystem.Directory.CreateDirectory(Path.Combine("Assets", "Test Files", "EmptyFolder"));
+
         var packageLocation = Path.Combine("Assets", UpdatePackageCreatorName, testData.ApplicationName + "-" + "update_packages");
         var oldVersion = new SemanticVersion(1, 0, 0);
 

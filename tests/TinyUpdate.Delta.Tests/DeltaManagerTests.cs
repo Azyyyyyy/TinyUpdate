@@ -2,7 +2,7 @@
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Delta.Tests.Abstract;
 
-namespace TinyUpdate.Packages.Tests;
+namespace TinyUpdate.Delta.Tests;
 
 public class DeltaManagerTests : DeltaManagerCan
 {
