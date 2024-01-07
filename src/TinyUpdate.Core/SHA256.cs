@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // ReSharper disable MemberCanBePrivate.Global
 
@@ -11,6 +12,8 @@ namespace TinyUpdate.Core;
 /// </summary>
 public partial class SHA256(ILogger logger)
 {
+    public static SHA256 Instance = new SHA256(NullLogger.Instance);
+    
     private static readonly Regex Sha256Regex = MyRegex();
 
     /// <summary>

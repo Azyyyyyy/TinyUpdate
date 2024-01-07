@@ -162,7 +162,7 @@ public partial class MSDelta
 
     [return: MarshalAs(UnmanagedType.Bool)]
     [LibraryImport("msdelta.dll", SetLastError = true)]
-    private static partial bool GetDeltaInfoB(
+    internal static partial bool GetDeltaInfoB(
         DeltaInput delta,
         out DeltaHeaderInfo target);
     

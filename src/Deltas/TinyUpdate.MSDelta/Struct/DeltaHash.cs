@@ -1,13 +1,20 @@
 ﻿using System.Runtime.InteropServices;
+using TinyUpdate.Core;
 
 namespace TinyUpdate.MSDelta.Struct;
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct DeltaHash
+internal unsafe struct DeltaHash
 {
-    public uint HashSize;
+    public int HashSize; // do not exceed 32 (DELTA_MAX_HASH_SIZE)
+    public fixed byte HashValue[32];
 
-    //TODO: See why it's not liking this in source gen, ok to skip for now
-    //[MarshalAs(UnmanagedType.LPWStr)]
-    //public string HashValue;
+    public string GetHash()
+    {
+        fixed (byte* hashPtr = HashValue)
+        {
+            using var unmanagedStream = new UnmanagedMemoryStream(hashPtr, HashSize);
+            return SHA256.Instance.CreateSHA256Hash(unmanagedStream);
+        }
+    }
 }

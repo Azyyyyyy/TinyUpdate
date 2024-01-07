@@ -88,13 +88,12 @@ public abstract class DeltaCan
 
         deltaFileStream.Seek(0, SeekOrigin.Begin);
         await using var expectedDeltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", CreatorName, "expectedDelta" + Creator.Extension));
-
-        var deltaFileStreamHash = Sha256.CreateSHA256Hash(deltaFileStream);
-        var expectedDeltaFileStreamHash = Sha256.CreateSHA256Hash(expectedDeltaFileStream);
         
-        Assert.That(deltaFileStreamHash, Is.EqualTo(expectedDeltaFileStreamHash));
+        CheckDeltaFile(deltaFileStream, expectedDeltaFileStream);
     }
     
+    protected abstract void CheckDeltaFile(Stream targetFileStreamHash, Stream expectedTargetFileStreamHash);
+
     [MemberNotNull(nameof(Applier))]
     private void SkipIfNoApplier()
     {
