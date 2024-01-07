@@ -1,4 +1,4 @@
-namespace TinyUpdate.BSDelta;
+namespace TinyUpdate.Delta.BSDiff;
 
 /// <summary>
 ///     Provides helper methods for working with <see cref="Stream" />.

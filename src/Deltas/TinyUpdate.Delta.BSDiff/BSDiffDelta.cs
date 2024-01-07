@@ -5,7 +5,7 @@ using TinyUpdate.Core.Abstract;
 
 // Squirrel.Bsdiff: Adapted from https://github.com/LogosBible/bsdiff.net/blob/master/src/bsdiff/BinaryPatchUtility.cs
 // TinyUpdate: Adapted from https://github.com/Squirrel/Squirrel.Windows/blob/develop/src/Squirrel/BinaryPatchUtility.cs
-namespace TinyUpdate.BSDelta;
+namespace TinyUpdate.Delta.BSDiff;
 
 /*
 Permission is hereby granted,  free of charge,  to any person obtaining a
@@ -53,7 +53,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
-public partial class BSDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
+public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
 {
     private const long CFileSignature = 0x3034464649445342L;
     private const int CHeaderSize = 32;
@@ -477,7 +477,7 @@ public partial class BSDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
     }
 }
 
-public partial class BSDelta
+public partial class BSDiffDelta
 {
     private static int CompareBytes(byte[] left, int leftOffset, byte[] right, int rightOffset)
     {

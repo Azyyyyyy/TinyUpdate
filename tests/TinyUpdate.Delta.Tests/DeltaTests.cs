@@ -1,16 +1,17 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Delta.Tests.Abstract;
-using TinyUpdate.MSDelta.Struct;
-using TinyUpdate.Tests.Common.Attributes;
+using TinyUpdate.Delta.MSDelta.Struct;
+using TinyUpdate.Core.Tests.Attributes;
+using TinyUpdate.Delta.BSDiff;
 
 namespace TinyUpdate.Delta.Tests;
 
-public class BSDeltaTests : DeltaCan
+public class BSDiffDeltaTests : DeltaCan
 {
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
-        var delta = new BSDelta.BSDelta(NullLogger.Instance);
+        var delta = new BSDiffDelta(NullLogger.Instance);
         Creator = delta;
         Applier = delta;
     }

@@ -22,7 +22,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\Packages\TinyUpdate.TUUP\TinyUpdate.TUUP.csproj" />
-      <ProjectReference Include="..\TinyUpdate.Tests.Common\TinyUpdate.Tests.Common.csproj" />
+      <ProjectReference Include="..\TinyUpdate.Core.Tests\TinyUpdate.Core.Tests.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace TinyUpdate.MSDelta.Struct;
+namespace TinyUpdate.Delta.MSDelta.Struct;
 
 /// <summary>
 ///     Type for input memory blocks

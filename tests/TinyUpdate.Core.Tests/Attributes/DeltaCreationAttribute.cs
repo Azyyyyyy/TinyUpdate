@@ -1,6 +1,6 @@
 ﻿using TinyUpdate.Core.Abstract;
 
-namespace TinyUpdate.Tests.Common.Attributes;
+namespace TinyUpdate.Core.Tests.Attributes;
 
 /// <summary>
 /// The test(s) are testing an <seealso cref="IDeltaCreation"/>

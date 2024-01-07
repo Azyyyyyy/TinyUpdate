@@ -1,8 +1,8 @@
 ﻿using System.IO.Abstractions;
 using Moq;
 using TinyUpdate.Core.Abstract;
-using TinyUpdate.Tests.Common;
-using TinyUpdate.Tests.Common.Attributes;
+using TinyUpdate.Core.Tests;
+using TinyUpdate.Core.Tests.Attributes;
 
 namespace TinyUpdate.Delta.Tests.Abstract;
 

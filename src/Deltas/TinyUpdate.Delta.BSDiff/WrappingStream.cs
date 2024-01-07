@@ -1,4 +1,4 @@
-namespace TinyUpdate.BSDelta;
+namespace TinyUpdate.Delta.BSDiff;
 
 //TODO: Add more modern overrides to this
 /// <summary>

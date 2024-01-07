@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework.Interfaces;
 using NUnit.Framework.Internal;
 
-namespace TinyUpdate.Tests.Common.Attributes;
+namespace TinyUpdate.Core.Tests.Attributes;
 
 /// <summary>
 /// This allows us to skip tests if the current operating system is *not* Windows

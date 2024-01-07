@@ -1,4 +1,4 @@
-﻿namespace TinyUpdate.MSDelta.Enum;
+﻿namespace TinyUpdate.Delta.MSDelta.Enum;
 
 internal enum HashAlgId
 {

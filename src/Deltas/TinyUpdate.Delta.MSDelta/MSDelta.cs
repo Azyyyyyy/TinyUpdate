@@ -1,9 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 using TinyUpdate.Core.Abstract;
-using TinyUpdate.MSDelta.Enum;
-using TinyUpdate.MSDelta.Struct;
+using TinyUpdate.Delta.MSDelta.Enum;
+using TinyUpdate.Delta.MSDelta.Struct;
 
-namespace TinyUpdate.MSDelta;
+namespace TinyUpdate.Delta.MSDelta;
 
 public partial class MSDelta : IDeltaApplier, IDeltaCreation
 {

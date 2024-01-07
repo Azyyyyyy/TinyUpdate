@@ -1,4 +1,4 @@
-﻿namespace TinyUpdate.MSDelta.Enum;
+﻿namespace TinyUpdate.Delta.MSDelta.Enum;
 
 /// <summary>
 ///     Flags for when we are applying a <see cref="MSDelta" /> file

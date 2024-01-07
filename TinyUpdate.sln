@@ -12,15 +12,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Binary", "src\Up
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Cli", "src\TinyUpdate.Cli\TinyUpdate.Cli.csproj", "{F2251107-156F-4D46-8EAE-19CA20DA1C62}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Delta", "Delta", "{3AC8B933-07FF-43CC-AAFD-46C759AD4496}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deltas", "Deltas", "{3AC8B933-07FF-43CC-AAFD-46C759AD4496}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.MSDelta", "src\Deltas\TinyUpdate.MSDelta\TinyUpdate.MSDelta.csproj", "{DDA0CCA8-5886-4616-A21A-6D22825F1F56}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Delta.MSDelta", "src\Deltas\TinyUpdate.Delta.MSDelta\TinyUpdate.Delta.MSDelta.csproj", "{DDA0CCA8-5886-4616-A21A-6D22825F1F56}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A486F679-9E40-4FE4-ABF9-1F27AADAE40A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Delta.Tests", "tests\TinyUpdate.Delta.Tests\TinyUpdate.Delta.Tests.csproj", "{564B5AA0-34AA-4035-89AC-372F0FADC985}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.BSDelta", "src\Deltas\TinyUpdate.BSDelta\TinyUpdate.BSDelta.csproj", "{29EE089A-4D11-4FDB-937D-7D5884399416}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Delta.BSDiff", "src\Deltas\TinyUpdate.Delta.BSDiff\TinyUpdate.Delta.BSDiff.csproj", "{29EE089A-4D11-4FDB-937D-7D5884399416}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Packages", "Packages", "{FFCB9AB6-92FE-48B0-9B93-A5BBF0DB153B}"
 EndProject
@@ -28,7 +28,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.TUUP", "src\Pack
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Packages.Tests", "tests\TinyUpdate.Packages.Tests\TinyUpdate.Packages.Tests.csproj", "{B5BC1A21-5A4C-403E-918B-CE48675E6F89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Tests.Common", "tests\TinyUpdate.Tests.Common\TinyUpdate.Tests.Common.csproj", "{81B0A72E-04FA-4A4F-856F-68C22FF2D945}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyUpdate.Core.Tests", "tests\TinyUpdate.Core.Tests\TinyUpdate.Core.Tests.csproj", "{81B0A72E-04FA-4A4F-856F-68C22FF2D945}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

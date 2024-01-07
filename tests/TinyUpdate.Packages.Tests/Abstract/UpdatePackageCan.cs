@@ -5,7 +5,7 @@ using Moq;
 using SemVersion;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
-using TinyUpdate.Tests.Common;
+using TinyUpdate.Core.Tests;
 
 namespace TinyUpdate.Packages.Tests.Abstract;
 

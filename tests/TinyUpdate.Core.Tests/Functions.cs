@@ -1,7 +1,7 @@
 ﻿using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 
-namespace TinyUpdate.Tests.Common;
+namespace TinyUpdate.Core.Tests;
 
 //TODO: Add Tests for SHA256
 public static class Functions

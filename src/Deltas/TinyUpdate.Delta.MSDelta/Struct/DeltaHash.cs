@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using TinyUpdate.Core;
 
-namespace TinyUpdate.MSDelta.Struct;
+namespace TinyUpdate.Delta.MSDelta.Struct;
 
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct DeltaHash

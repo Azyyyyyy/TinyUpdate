@@ -1,6 +1,6 @@
 ﻿// ReSharper disable InconsistentNaming
 
-namespace TinyUpdate.MSDelta.Enum;
+namespace TinyUpdate.Delta.MSDelta.Enum;
 
 [Flags]
 internal enum FlagType : long

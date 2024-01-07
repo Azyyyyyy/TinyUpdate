@@ -1,8 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using TinyUpdate.MSDelta.Enum;
+using TinyUpdate.Delta.MSDelta.Enum;
 
-namespace TinyUpdate.MSDelta.Struct;
+namespace TinyUpdate.Delta.MSDelta.Struct;
 
 [StructLayout(LayoutKind.Sequential)]
 internal struct DeltaHeaderInfo
