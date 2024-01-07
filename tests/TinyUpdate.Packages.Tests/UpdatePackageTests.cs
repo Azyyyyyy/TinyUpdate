@@ -50,8 +50,8 @@ public class TuupUpdatePackageTests : UpdatePackageCan
                 Has.Count.EqualTo(targetFileStreamZip.Entries.Count), 
                 () => "They isn't the correct amount of files");
 
-            Assert.That(expectedTargetFileStreamZip.Entries.Select(x => x.Name).OrderDescending(), 
-                Is.EquivalentTo(targetFileStreamZip.Entries.Select(x => x.Name).OrderDescending()), 
+            Assert.That(expectedTargetFileStreamZip.Entries.Select(x => x.FullName).OrderDescending(), 
+                Is.EquivalentTo(targetFileStreamZip.Entries.Select(x => x.FullName).OrderDescending()), 
                 () => "File structure is not the same in both files");
 
             foreach (var expectedEntry in expectedTargetFileStreamZip.Entries)
@@ -59,7 +59,7 @@ public class TuupUpdatePackageTests : UpdatePackageCan
                 var targetEntry = targetFileStreamZip.GetEntry(expectedEntry.FullName);
                 if (targetEntry == null)
                 {
-                    Assert.Fail($"{expectedEntry.Name} doesn't exist within the target file");
+                    Assert.Fail($"{expectedEntry.FullName} doesn't exist within the target file");
                     continue;
                 }
 

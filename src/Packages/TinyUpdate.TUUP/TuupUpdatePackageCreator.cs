@@ -122,8 +122,13 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
                 {
                     await using var zipShasumEntryStream = zipArchive.CreateEntry(filepath, CompressionLevel.SmallestSize).Open();
                     await using var shasumStreamWriter = new StreamWriter(zipShasumEntryStream);
-                    await shasumStreamWriter.WriteAsync(Path.GetRelativePath(oldApplicationLocation, oldFile));
-                    //TODO: Ensure we set this consistently across OS's ^
+                    var path = Path.GetRelativePath(oldApplicationLocation, oldFile);
+
+                    if (Path.DirectorySeparatorChar != '\\')
+                    {
+                        path = path.Replace(Path.DirectorySeparatorChar, '\\');
+                    }
+                    await shasumStreamWriter.WriteAsync(path);
                 }
 
                 await AddHashAndSizeData(zipArchive, filepath, newSha256Hash, filesize);
