@@ -120,14 +120,13 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
                 var filepath = relativeNewFile + Consts.MovedFileExtension;
                 using (await _zipLock.LockAsync())
                 {
+                    CheckFilePath(ref filepath);
+                    
                     await using var zipShasumEntryStream = zipArchive.CreateEntry(filepath, CompressionLevel.SmallestSize).Open();
                     await using var shasumStreamWriter = new StreamWriter(zipShasumEntryStream);
                     var path = Path.GetRelativePath(oldApplicationLocation, oldFile);
 
-                    if (Path.DirectorySeparatorChar != '\\')
-                    {
-                        path = path.Replace(Path.DirectorySeparatorChar, '\\');
-                    }
+                    CheckFilePath(ref path);
                     await shasumStreamWriter.WriteAsync(path);
                 }
 
@@ -177,11 +176,8 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
     
     private async Task<bool> AddFile(ZipArchive zipArchive, Stream fileContentStream, string filepath, string? sha256Hash = null)
     {
-        if (Path.DirectorySeparatorChar != '\\')
-        {
-            filepath = filepath.Replace(Path.DirectorySeparatorChar, '\\');
-        }
-
+        CheckFilePath(ref filepath);
+        
         //Add the file
         using (await _zipLock.LockAsync())
         {
@@ -196,8 +192,18 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         return true;
     }
 
+    private void CheckFilePath(ref string filepath)
+    {
+        if (Path.DirectorySeparatorChar != '\\')
+        {
+            filepath = filepath.Replace(Path.DirectorySeparatorChar, '\\');
+        }
+    }
+
     private async Task AddHashAndSizeData(ZipArchive zipArchive, string filepath, string sha256Hash, long filesize)
     {
+        CheckFilePath(ref filepath);
+
         using (await _zipLock.LockAsync())
         {
             await using var zipShasumEntryStream = zipArchive.CreateEntry(Path.ChangeExtension(filepath, Consts.ShasumFileExtension), CompressionLevel.SmallestSize).Open();
