@@ -85,7 +85,14 @@ public abstract class DeltaCan
         var error = GetWin32Error();
         
         Assert.That(createResult, Is.True, () => CreateErrorMessage(error));
-        //TODO: Check that the file matches what we would expect to be returned
+
+        deltaFileStream.Seek(0, SeekOrigin.Begin);
+        await using var expectedDeltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", CreatorName, "expectedDelta" + Creator.Extension));
+
+        var deltaFileStreamHash = Sha256.CreateSHA256Hash(deltaFileStream);
+        var expectedDeltaFileStreamHash = Sha256.CreateSHA256Hash(expectedDeltaFileStream);
+        
+        Assert.That(deltaFileStreamHash, Is.EqualTo(expectedDeltaFileStreamHash));
     }
     
     [MemberNotNull(nameof(Applier))]
