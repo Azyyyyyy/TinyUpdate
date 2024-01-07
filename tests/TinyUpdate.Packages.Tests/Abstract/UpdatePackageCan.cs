@@ -80,7 +80,7 @@ public abstract class UpdatePackageCan
                 Assert.Multiple(() =>
                 {
                     Assert.That(actualFileEntry.PreviousLocation, Is.EqualTo(expectedFileEntry.PreviousLocation));
-                    Assert.That(actualFileEntry.SHA256, Is.EqualTo(expectedFileEntry.SHA256));
+                    Assert.That(actualFileEntry.Hash, Is.EqualTo(expectedFileEntry.Hash));
                     Assert.That(actualFileEntry.Filesize, Is.EqualTo(expectedFileEntry.Filesize));
                     Assert.That(actualFileEntry.Extension, Is.EqualTo(expectedFileEntry.Extension));
                     Assert.That(actualFileEntry.Stream, shouldHaveStream && expectedFileEntry.Filesize > 0 ? Is.Not.Null : Is.Null);

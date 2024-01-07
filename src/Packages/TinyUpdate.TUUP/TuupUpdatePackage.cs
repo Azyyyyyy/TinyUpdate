@@ -7,11 +7,11 @@ namespace TinyUpdate.TUUP;
 /// <summary>
 ///     Update Package based on TinyUpdate V1, Makes use of zip format
 /// </summary>
-public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpdatePackage
+public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUpdatePackage
 {
     private bool _loaded;
     private ZipArchive? _zipArchive;
-    private static readonly string[] ExpectedData = ["Filename", "Path", "SHA256", "Filesize", "Extension"];
+    private static readonly string[] ExpectedData = ["Filename", "Path", "Hash", "Filesize", "Extension"];
 
     public string Extension => Consts.TuupExtension;
 
@@ -101,8 +101,8 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
                 }
                 case Consts.ShasumFileExtension:
                 {
-                    var (sha256Hash, filesize) = await zipEntry.Open().GetShasumDetails(sha256);
-                    fileEntryData["SHA256"] = sha256Hash;
+                    var (hash, filesize) = await zipEntry.Open().GetShasumDetails(hasher);
+                    fileEntryData["Hash"] = hash;
                     fileEntryData["Filesize"] = filesize;
                     break;
                 }
@@ -129,7 +129,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
             {
                 yield return new FileEntry((string)fileEntryData["Filename"]!, (string)fileEntryData["Path"]!)
                 {
-                    SHA256 = (string)fileEntryData["SHA256"]!,
+                    Hash = (string)fileEntryData["Hash"]!,
                     Filesize = (long)fileEntryData["Filesize"]!,
                     Stream = (Stream?)fileEntryData["Stream"],
                     Extension = (string)fileEntryData["Extension"]!,

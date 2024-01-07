@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
-using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Abstract;
 using TinyUpdate.Packages.Tests.Abstract;
 using TinyUpdate.TUUP;
 
@@ -8,7 +8,7 @@ namespace TinyUpdate.Packages.Tests;
 
 public class TuupUpdatePackageTests : UpdatePackageCan
 {
-    private readonly SHA256 _sha256 = SHA256.Instance;
+    private readonly SHA256 _sha256Hasher = SHA256.Instance;
     
     [SetUp]
     public void Setup()
@@ -23,8 +23,8 @@ public class TuupUpdatePackageTests : UpdatePackageCan
             [ mockApplier1.Object, mockApplier2.Object ],
             [ mockCreation1.Object, mockCreation2.Object ]);
 
-        UpdatePackage = new TuupUpdatePackage(deltaManager, _sha256);
-        UpdatePackageCreator = new TuupUpdatePackageCreator(_sha256, deltaManager, FileSystem, new TuupUpdatePackageCreatorOptions());
+        UpdatePackage = new TuupUpdatePackage(deltaManager, _sha256Hasher);
+        UpdatePackageCreator = new TuupUpdatePackageCreator(_sha256Hasher, deltaManager, FileSystem, new TuupUpdatePackageCreatorOptions());
     }
 
     private static bool NeedsFixedCreatorSize
@@ -74,8 +74,8 @@ public class TuupUpdatePackageTests : UpdatePackageCan
                 
                 Assert.That(expectedTargetEntryMemoryStream.Length, Is.EqualTo(targetEntryMemoryStream.Length), () => "They is a filesize difference");
 
-                var expectedTargetEntryHash = _sha256.CreateSHA256Hash(expectedTargetEntryMemoryStream);
-                var targetEntryHash = _sha256.CreateSHA256Hash(targetEntryMemoryStream);
+                var expectedTargetEntryHash = _sha256Hasher.CreateHash(expectedTargetEntryMemoryStream);
+                var targetEntryHash = _sha256Hasher.CreateHash(targetEntryMemoryStream);
                 
                 Assert.That(expectedTargetEntryHash, Is.EqualTo(targetEntryHash), () => "File contents are different");
             }

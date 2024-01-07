@@ -3,7 +3,7 @@
 		"Filename": "file_moved.emp",
 		"Path": "",
 		"PreviousLocation": "y5og2jhh.bum\\icnzqfua.n2x",
-		"SHA256": "C8151C4248992E5B5ABDD889E929DE92F87864EDE2B5397E3A6BF9976D284FCB",
+		"Hash": "C8151C4248992E5B5ABDD889E929DE92F87864EDE2B5397E3A6BF9976D284FCB",
 		"Filesize": 593529,
 		"Extension": ".moved"
 	},
@@ -11,7 +11,7 @@
 		"Filename": "file_moved2.emp",
 		"Path": "",
 		"PreviousLocation": "pwt0erkr.dx4",
-		"SHA256": "480702B960DC6015216CFC6DB7A866E2CF184992A41224BFF78753B955567744",
+		"Hash": "480702B960DC6015216CFC6DB7A866E2CF184992A41224BFF78753B955567744",
 		"Filesize": 977565,
 		"Extension": ".moved"
 	},
@@ -19,7 +19,7 @@
 		"Filename": "file_moved.emp",
 		"Path": "subdir",
 		"PreviousLocation": "pwt0erkr.dx4",
-		"SHA256": "480702B960DC6015216CFC6DB7A866E2CF184992A41224BFF78753B955567744",
+		"Hash": "480702B960DC6015216CFC6DB7A866E2CF184992A41224BFF78753B955567744",
 		"Filesize": 977565,
 		"Extension": ".moved"
 	},
@@ -27,7 +27,7 @@
 		"Filename": "file_moved.emp",
 		"Path": "subdir2",
 		"PreviousLocation": "y5og2jhh.bum\\icnzqfua.n2x",
-		"SHA256": "C8151C4248992E5B5ABDD889E929DE92F87864EDE2B5397E3A6BF9976D284FCB",
+		"Hash": "C8151C4248992E5B5ABDD889E929DE92F87864EDE2B5397E3A6BF9976D284FCB",
 		"Filesize": 593529,
 		"Extension": ".moved"
 	}

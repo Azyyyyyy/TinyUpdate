@@ -1,4 +1,4 @@
-﻿using TinyUpdate.Core;
+﻿using TinyUpdate.Core.Abstract;
 
 namespace TinyUpdate.TUUP;
 
@@ -11,9 +11,9 @@ public static class StreamExt
     /// Gets the hash and filesize from a file that contains data about a file we need to use for updating
     /// </summary>
     /// <param name="fileStream">Stream of that file</param>
-    /// <param name="sha256">SHA256 to use for grabbing checksums</param>
-    /// <returns>SHA256 hash and filesize that is expected</returns>
-    public static async Task<(string? sha256Hash, long filesize)> GetShasumDetails(this Stream fileStream, SHA256 sha256)
+    /// <param name="hasher">Hasher to use for grabbing checksums</param>
+    /// <returns>Hash and filesize that is expected</returns>
+    public static async Task<(string? hash, long filesize)> GetShasumDetails(this Stream fileStream, IHasher hasher)
     {
         //Grab the text from the file
         using var textStream = new StreamReader(fileStream);
@@ -30,7 +30,7 @@ public static class StreamExt
         var hash = textS[0];
         if (textS.Length != 2 ||
             string.IsNullOrWhiteSpace(hash) ||
-            !sha256.IsValidSHA256(hash) ||
+            !hasher.IsValidHash(hash) ||
             !long.TryParse(textS[1], out var filesize))
         {
             return (null, -1);

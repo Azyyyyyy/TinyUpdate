@@ -8,11 +8,11 @@ namespace TinyUpdate.Core;
 public class FileEntry
 {
     [JsonConstructor]
-    protected FileEntry(string filename, string path, string? previousLocation, string sha256, long filesize, string extension)
+    protected FileEntry(string filename, string path, string? previousLocation, string hash, long filesize, string extension)
         : this(filename, path)
     {
         PreviousLocation = previousLocation;
-        SHA256 = sha256;
+        Hash = hash;
         Filesize = filesize;
         Extension = extension;
     }
@@ -46,9 +46,9 @@ public class FileEntry
     public string? PreviousLocation { get; init; }
 
     /// <summary>
-    /// The SHA256 hash that <see cref="Filename"/> is expected to be once applied to disk
+    /// The hash that <see cref="Filename"/> is expected to be once applied to disk
     /// </summary>
-    public required string SHA256 { get; init; }
+    public required string Hash { get; init; }
 
     /// <summary>
     /// The size that <see cref="Filename"/> is expected to be once applied to disk

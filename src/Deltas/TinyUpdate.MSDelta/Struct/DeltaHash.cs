@@ -14,7 +14,7 @@ internal unsafe struct DeltaHash
         fixed (byte* hashPtr = HashValue)
         {
             using var unmanagedStream = new UnmanagedMemoryStream(hashPtr, HashSize);
-            return SHA256.Instance.CreateSHA256Hash(unmanagedStream);
+            return SHA256.Instance.CreateHash(unmanagedStream);
         }
     }
 }

@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Abstractions;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Tests.Common;
@@ -19,7 +18,7 @@ public abstract class DeltaCan
     protected IDeltaApplier? Applier; //The actual test will take care of creating these
     protected IDeltaCreation? Creator;
     protected IFileSystem FileSystem;
-    protected readonly SHA256 Sha256 = SHA256.Instance;
+    protected readonly IHasher Hasher = SHA256.Instance;
 
     protected string ApplierName => Applier?.GetType().Name ?? "N/A";
     protected string CreatorName => Creator?.GetType().Name ?? "N/A";
@@ -71,8 +70,8 @@ public abstract class DeltaCan
         var error = GetWin32Error();
         targetFileStream.Seek(0, SeekOrigin.Begin);
 
-        var expectedTargetFileStreamHash = Sha256.CreateSHA256Hash(expectedTargetFileStream);
-        var targetFileStreamHash = Sha256.CreateSHA256Hash(targetFileStream);
+        var expectedTargetFileStreamHash = Hasher.CreateHash(expectedTargetFileStream);
+        var targetFileStreamHash = Hasher.CreateHash(targetFileStream);
         Assert.Multiple(() =>
         {
             Assert.That(applyResult, Is.True, () => CreateErrorMessage(error));

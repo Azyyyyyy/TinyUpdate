@@ -17,8 +17,8 @@ public class BSDeltaTests : DeltaCan
 
     protected override void CheckDeltaFile(Stream targetFileStream, Stream expectedTargetFileStream)
     {
-        var expectedTargetFileStreamHash = Sha256.CreateSHA256Hash(expectedTargetFileStream);
-        var targetFileStreamHash = Sha256.CreateSHA256Hash(targetFileStream);
+        var expectedTargetFileStreamHash = Hasher.CreateHash(expectedTargetFileStream);
+        var targetFileStreamHash = Hasher.CreateHash(targetFileStream);
         Assert.That(expectedTargetFileStreamHash, Is.EqualTo(targetFileStreamHash), () => $"{ApplierName} delta file is not as expected");
     }
 }
