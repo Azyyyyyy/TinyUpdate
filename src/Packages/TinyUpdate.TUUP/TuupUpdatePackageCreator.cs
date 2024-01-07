@@ -177,6 +177,11 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
     
     private async Task<bool> AddFile(ZipArchive zipArchive, Stream fileContentStream, string filepath, string? sha256Hash = null)
     {
+        if (Path.DirectorySeparatorChar != '\\')
+        {
+            filepath = filepath.Replace(Path.DirectorySeparatorChar, '\\');
+        }
+
         //Add the file
         using (await _zipLock.LockAsync())
         {
