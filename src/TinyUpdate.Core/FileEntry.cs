@@ -1,15 +1,27 @@
-﻿namespace TinyUpdate.Core;
+﻿using System.Text.Json.Serialization;
+
+namespace TinyUpdate.Core;
 
 /// <summary>
 /// File entry with all the information to do a update
 /// </summary>
 public class FileEntry
 {
-    public FileEntry(string filename, string? folderPath)
+    [JsonConstructor]
+    protected FileEntry(string filename, string path, string? previousLocation, string sha256, long filesize, string extension)
+        : this(filename, path)
+    {
+        PreviousLocation = previousLocation;
+        SHA256 = sha256;
+        Filesize = filesize;
+        Extension = extension;
+    }
+    
+    public FileEntry(string filename, string path)
     {
         Filename = filename;
-        Path = folderPath;
-        Location = string.IsNullOrWhiteSpace(folderPath) ? Filename : System.IO.Path.Combine(folderPath, Filename);
+        Path = path;
+        Location = string.IsNullOrWhiteSpace(path) ? Filename : System.IO.Path.Combine(path, Filename);
     }
 
     /// <summary>
@@ -25,12 +37,13 @@ public class FileEntry
     /// <summary>
     /// The relative path of <see cref="Filename"/>
     /// </summary>
+    [JsonIgnore]
     public string Location { get; }
 
     /// <summary>
     /// The relative path of the file within the old version
     /// </summary>
-    public required string? PreviousLocation { get; init; }
+    public string? PreviousLocation { get; init; }
 
     /// <summary>
     /// The SHA256 hash that <see cref="Filename"/> is expected to be once applied to disk
@@ -45,7 +58,8 @@ public class FileEntry
     /// <summary>
     /// <see cref="Filename"/> <see cref="System.IO.Stream"/>
     /// </summary>
-    public required Stream? Stream { get; init; }
+    [JsonIgnore]
+    public Stream? Stream { get; init; }
 
     /// <summary>
     /// The extension that exposes how to process this file

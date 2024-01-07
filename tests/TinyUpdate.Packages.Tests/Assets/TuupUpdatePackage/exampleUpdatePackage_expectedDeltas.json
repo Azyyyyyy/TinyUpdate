@@ -1,0 +1,18 @@
+[
+	{
+		"Filename": "file_delta.emp",
+		"Path": "",
+		"PreviousLocation": null,
+		"SHA256": "69ED2D4E1974D22799829C5594115FF8970DC87A8E7E0AF5380C637EEA25A0D5",
+		"Filesize": 82285,
+		"Extension": ".diffing"
+	},
+	{
+		"Filename": "file_delta.emp",
+		"Path": "subdir",
+		"PreviousLocation": null,
+		"SHA256": "77194273112D266F2B71BB48B21C6E99FBACF256E3B55FABC3C8A04919CC0588",
+		"Filesize": 82285,
+		"Extension": ".diffing"
+	}
+]

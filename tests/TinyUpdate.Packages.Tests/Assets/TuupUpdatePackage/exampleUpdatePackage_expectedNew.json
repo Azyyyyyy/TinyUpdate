@@ -1,0 +1,18 @@
+[
+	{
+		"Filename": "file.emp",
+		"Path": "",
+		"PreviousLocation": null,
+		"SHA256": "480702B960DC6015216CFC6DB7A866E2CF184992A41224BFF78753B955567744",
+		"Filesize": 977565,
+		"Extension": ".new"
+	},
+	{
+		"Filename": "file.emp",
+		"Path": "subdir",
+		"PreviousLocation": null,
+		"SHA256": "C8151C4248992E5B5ABDD889E929DE92F87864EDE2B5397E3A6BF9976D284FCB",
+		"Filesize": 593529,
+		"Extension": ".new"
+	}
+]

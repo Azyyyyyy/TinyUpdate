@@ -8,7 +8,7 @@ namespace TinyUpdate.Packages.Tests;
 
 public class TuupUpdatePackageTests : UpdatePackageCan
 {
-    private SHA256 SHA256 = new SHA256(NullLogger.Instance);
+    private readonly SHA256 _sha256 = new SHA256(NullLogger.Instance);
     
     [SetUp]
     public void Setup()
@@ -23,14 +23,21 @@ public class TuupUpdatePackageTests : UpdatePackageCan
             [ mockApplier1.Object, mockApplier2.Object ],
             [ mockCreation1.Object, mockCreation2.Object ]);
 
-        UpdatePackage = new TuupUpdatePackage(deltaManager, SHA256);
-        UpdatePackageCreator = new TuupUpdatePackageCreator(SHA256, deltaManager, FileSystem, new TuupUpdatePackageCreatorOptions());
+        UpdatePackage = new TuupUpdatePackage(deltaManager, _sha256);
+        UpdatePackageCreator = new TuupUpdatePackageCreator(_sha256, deltaManager, FileSystem, new TuupUpdatePackageCreatorOptions());
     }
 
-    protected static bool NeedsFixedCreatorSize => TestContext.CurrentContext.Test.Arguments[0] is DeltaUpdatePackageTestData
+    private static bool NeedsFixedCreatorSize
     {
-        NeedsFixedCreatorSize: true
-    };
+        get
+        {
+            var args = TestContext.CurrentContext.Test.Arguments;
+            return args.Length != 0 && args[0] is DeltaUpdatePackageTestData
+            {
+                NeedsFixedCreatorSize: true
+            };
+        }
+    }
 
     protected override void CheckUpdatePackageWithExpected(Stream targetFileStream, Stream expectedTargetFileStream)
     {
@@ -67,8 +74,8 @@ public class TuupUpdatePackageTests : UpdatePackageCan
                 
                 Assert.That(expectedTargetEntryMemoryStream.Length, Is.EqualTo(targetEntryMemoryStream.Length), () => "They is a filesize difference");
 
-                var expectedTargetEntryHash = SHA256.CreateSHA256Hash(expectedTargetEntryMemoryStream);
-                var targetEntryHash = SHA256.CreateSHA256Hash(targetEntryMemoryStream);
+                var expectedTargetEntryHash = _sha256.CreateSHA256Hash(expectedTargetEntryMemoryStream);
+                var targetEntryHash = _sha256.CreateSHA256Hash(targetEntryMemoryStream);
                 
                 Assert.That(expectedTargetEntryHash, Is.EqualTo(targetEntryHash), () => "File contents are different");
             }

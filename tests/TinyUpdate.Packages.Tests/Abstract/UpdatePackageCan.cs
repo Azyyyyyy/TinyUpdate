@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
+using System.Text.Json;
 using Moq;
 using SemVersion;
+using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Tests.Common;
 
@@ -20,11 +22,51 @@ public abstract class UpdatePackageCan
     }
     
     [Test]
-    public Task ProcessFileData()
+    public async Task ProcessFileData()
     {
-        var fileStream = FileSystem.File.OpenRead(Path.Combine("Assets", UpdatePackage.GetType().Name, "testing-1.0.0" + UpdatePackage.Extension));
-        return UpdatePackage.Load(fileStream);
-        //TODO: Check contents is as expected
+        var baseFilePath = Path.Combine("Assets", UpdatePackage.GetType().Name);
+        await using var fileStream = FileSystem.File.OpenRead(Path.Combine(baseFilePath, "exampleUpdatePackage" + UpdatePackage.Extension));
+        await UpdatePackage.Load(fileStream);
+
+        //TODO: Add Unchanged files into example file
+        var expectedDeltaFiles = JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(Path.Combine(baseFilePath, "exampleUpdatePackage_expectedDeltas.json")));
+        var expectedMovedFiles = JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(Path.Combine(baseFilePath, "exampleUpdatePackage_expectedMoved.json")));
+        var expectedNewFiles = JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(Path.Combine(baseFilePath, "exampleUpdatePackage_expectedNew.json")));
+        if (expectedMovedFiles == null || expectedDeltaFiles == null || expectedNewFiles == null)
+        {
+            Assert.Inconclusive("Unable to test as expected JSON files contain nothing");
+        }
+        
+        Assert.Multiple(() =>
+        {
+            CheckEntries(expectedDeltaFiles, UpdatePackage.DeltaFiles);
+            CheckEntries(expectedMovedFiles, UpdatePackage.MovedFiles);
+            CheckEntries(expectedNewFiles, UpdatePackage.NewFiles);
+        });
+        
+
+        void CheckEntries(IReadOnlyCollection<FileEntry> expectedCollection, ICollection<FileEntry> actualCollection)
+        {
+            foreach (var expectedFileEntry in expectedCollection)
+            {
+                var actualFileEntry = actualCollection.FirstOrDefault(x => x.Location == expectedFileEntry.Location);
+
+                Assert.That(actualFileEntry, Is.Not.Null);
+                if (actualFileEntry == null)
+                {
+                    continue;
+                }
+
+                //Filename + Path indirectly get tested by above
+                Assert.Multiple(() =>
+                {
+                    Assert.That(actualFileEntry.PreviousLocation, Is.EqualTo(expectedFileEntry.PreviousLocation));
+                    Assert.That(actualFileEntry.SHA256, Is.EqualTo(expectedFileEntry.SHA256));
+                    Assert.That(actualFileEntry.Filesize, Is.EqualTo(expectedFileEntry.Filesize));
+                    Assert.That(actualFileEntry.Extension, Is.EqualTo(expectedFileEntry.Extension));
+                });
+            }
+        }
     }
     
     [Test]
@@ -108,7 +150,7 @@ public abstract class UpdatePackageCan
         
         var successful = await UpdatePackageCreator.CreateFullPackage(location, version, packageLocation, applicationName);
         Assert.That(successful, Is.True);
-        //TODO: Check contents is as expected
+        //Content checking is done by other tests, we just want to check if we can create a more complex update package
     }
     
     [Test]
@@ -134,7 +176,44 @@ public abstract class UpdatePackageCan
         
         var successful = await UpdatePackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, newVersion, packageLocation, applicationName);
         Assert.That(successful, Is.True);
-        //TODO: Check contents is as expected
+        //Content checking is done by other tests, we just want to check if we can create a more complex update package
+    }
+    
+    protected abstract void CheckUpdatePackageWithExpected(Stream targetFileStream, Stream expectedTargetFileStream);
+    
+    protected Mock<IDeltaApplier> CreateMockDeltaApplier(string extension)
+    {
+        var mockApplier = new Mock<IDeltaApplier>();
+        
+        mockApplier.Setup(x => x.Extension).Returns(extension);
+        mockApplier.Setup(x => x.SupportedStream(It.IsAny<Stream>())).Returns(true);
+        mockApplier.Setup(x => 
+                x.ApplyDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
+            .Callback((Stream sourceFileStream, Stream deltaFileStream, Stream targetFileStream,
+                IProgress<double>? progress) => Functions.FillStreamWithRandomData(deltaFileStream))
+            .ReturnsAsync(true);
+
+        return mockApplier;
+    }
+
+
+    protected Mock<IDeltaCreation> CreateMockDeltaCreation(string extension, double? filesizePercent = null)
+    {
+        var mockCreation = new Mock<IDeltaCreation>();
+
+        mockCreation.Setup(x => x.Extension).Returns(extension);
+        mockCreation.Setup(x => 
+                x.CreateDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
+            .Callback((Stream sourceFileStream, Stream targetFileStream, Stream deltaFileStream,
+                IProgress<double>? progress) =>
+            {
+                filesizePercent ??= Random.Shared.NextDouble();
+                var filesize = (long)(targetFileStream.Length * filesizePercent);
+
+                Functions.FillStreamWithRandomData(deltaFileStream, filesize);
+            }).ReturnsAsync(true);
+        
+        return mockCreation;
     }
 
     private async Task MessAroundWithDirectory(string directory)
@@ -215,58 +294,21 @@ public abstract class UpdatePackageCan
     }
     
     private string UpdatePackageCreatorName => UpdatePackageCreator.GetType().Name;
-
-    protected abstract void CheckUpdatePackageWithExpected(Stream targetFileStream, Stream expectedTargetFileStream);
     
-    protected Mock<IDeltaApplier> CreateMockDeltaApplier(string extension)
-    {
-        var mockApplier = new Mock<IDeltaApplier>();
-        
-        mockApplier.Setup(x => x.Extension).Returns(extension);
-        mockApplier.Setup(x => x.SupportedStream(It.IsAny<Stream>())).Returns(true);
-        mockApplier.Setup(x => 
-                x.ApplyDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceFileStream, Stream deltaFileStream, Stream targetFileStream,
-                IProgress<double>? progress) => Functions.FillStreamWithRandomData(deltaFileStream))
-            .ReturnsAsync(true);
-
-        return mockApplier;
-    }
-
-
-    protected Mock<IDeltaCreation> CreateMockDeltaCreation(string extension, double? filesizePercent = null)
-    {
-        var mockCreation = new Mock<IDeltaCreation>();
-
-        mockCreation.Setup(x => x.Extension).Returns(extension);
-        mockCreation.Setup(x => 
-                x.CreateDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceFileStream, Stream targetFileStream, Stream deltaFileStream,
-                IProgress<double>? progress) =>
-            {
-                filesizePercent ??= Random.Shared.NextDouble();
-                var filesize = (long)(targetFileStream.Length * filesizePercent);
-
-                Functions.FillStreamWithRandomData(deltaFileStream, filesize);
-            }).ReturnsAsync(true);
-        
-        return mockCreation;
-    }
-    
-    protected Stream GetDeltaTargetFileStream(string packageLocation, string applicationName, SemanticVersion newVersion)
+    private Stream GetDeltaTargetFileStream(string packageLocation, string applicationName, SemanticVersion newVersion)
     {
         return FileSystem.File.OpenRead(Path.Combine(packageLocation,
             string.Format(UpdatePackageCreator.DeltaPackageFilenameTemplate, applicationName, newVersion)));
     }
 
-    protected Stream GetFullTargetFileStream(string packageLocation, string applicationName, SemanticVersion newVersion)
+    private Stream GetFullTargetFileStream(string packageLocation, string applicationName, SemanticVersion newVersion)
     {
         return FileSystem.File.OpenRead(Path.Combine(packageLocation,
             string.Format(UpdatePackageCreator.FullPackageFilenameTemplate, applicationName, newVersion)));
     }
 
-    protected Stream GetExpectedTargetFileStream(string fileLocation) => FileSystem.File.OpenRead(fileLocation);
+    private Stream GetExpectedTargetFileStream(string fileLocation) => FileSystem.File.OpenRead(fileLocation);
 
-    protected string ExpectedTargetFileLocation(string filename) => Path.Combine("Assets", UpdatePackageCreatorName,
+    private string ExpectedTargetFileLocation(string filename) => Path.Combine("Assets", UpdatePackageCreatorName,
         filename + UpdatePackageCreator.Extension);
 }
