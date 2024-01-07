@@ -21,7 +21,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, SHA256 sha256) : IUpd
         {
             _zipArchive = new ZipArchive(updatePackageStream, ZipArchiveMode.Read);
         }
-        catch (Exception e)
+        catch (InvalidDataException e)
         {
             throw new InvalidDataException("TuupUpdatePackage expects a zip formatted package", e);
         }

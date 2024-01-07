@@ -8,7 +8,7 @@ namespace TinyUpdate.Packages.Tests;
 
 public class TuupUpdatePackageTests : UpdatePackageCan
 {
-    private readonly SHA256 _sha256 = new SHA256(NullLogger.Instance);
+    private readonly SHA256 _sha256 = SHA256.Instance;
     
     [SetUp]
     public void Setup()

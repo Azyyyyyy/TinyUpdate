@@ -58,9 +58,8 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         string applicationName, IProgress<double>? progress = null)
     {
         var oldFiles = Directory.GetFiles(oldApplicationLocation, "*", SearchOption.AllDirectories);
-        Dictionary<string, List<string>> oldFilesHashes = new();
-
         var newFiles = Directory.GetFiles(newApplicationLocation, "*", SearchOption.AllDirectories);
+        Dictionary<string, List<string>> oldFilesHashes = new();
         Dictionary<string, List<string>> newFilesHashes = new();
 
         await GetHashes(oldFilesHashes, oldFiles);

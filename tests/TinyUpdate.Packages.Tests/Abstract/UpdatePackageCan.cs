@@ -21,7 +21,6 @@ public abstract class UpdatePackageCan
         FileSystem = Functions.SetupMockFileSystem();
     }
     
-    //TODO: Add New empty file
     [Test]
     public async Task ProcessFileData()
     {

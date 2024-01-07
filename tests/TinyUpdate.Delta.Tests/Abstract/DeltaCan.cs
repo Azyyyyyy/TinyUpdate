@@ -19,7 +19,7 @@ public abstract class DeltaCan
     protected IDeltaApplier? Applier; //The actual test will take care of creating these
     protected IDeltaCreation? Creator;
     protected IFileSystem FileSystem;
-    protected readonly SHA256 Sha256 = new SHA256(NullLogger.Instance);
+    protected readonly SHA256 Sha256 = SHA256.Instance;
 
     protected string ApplierName => Applier?.GetType().Name ?? "N/A";
     protected string CreatorName => Creator?.GetType().Name ?? "N/A";
@@ -29,8 +29,17 @@ public abstract class DeltaCan
     {
         FileSystem = Functions.SetupMockFileSystem();
     }
-    
-    //TODO: TargetStreamSize Test
+
+    [Test]
+    public void CanGetCorrectTargetStreamSize()
+    {
+        SkipIfNoApplier();
+
+        using var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
+        var targetSize = Applier.TargetStreamSize(deltaFileStream);
+        
+        Assert.That(targetSize, Is.EqualTo(233237));
+    }
     
     [Test]
     [DeltaApplier]

@@ -12,7 +12,7 @@ namespace TinyUpdate.Core;
 /// </summary>
 public partial class SHA256(ILogger logger)
 {
-    public static SHA256 Instance = new SHA256(NullLogger.Instance);
+    public static readonly SHA256 Instance = new SHA256(NullLogger.Instance);
     
     private static readonly Regex Sha256Regex = MyRegex();
 
