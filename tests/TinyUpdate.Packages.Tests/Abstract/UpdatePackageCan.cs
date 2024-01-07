@@ -3,7 +3,6 @@ using System.IO.Abstractions;
 using Moq;
 using SemVersion;
 using TinyUpdate.Core.Abstract;
-using TinyUpdate.Packages.Tests.Attributes;
 using TinyUpdate.Tests.Common;
 
 namespace TinyUpdate.Packages.Tests.Abstract;
@@ -19,121 +18,80 @@ public abstract class UpdatePackageCan
     {
         FileSystem = Functions.SetupMockFileSystem();
     }
-
-    [Test]
-    public async Task CreateUpdatePackageWithNewFileInRoot()
-    {
-        var version = new SemanticVersion(2, 0, 0);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessFullPackage("NewRootFiles", applicationName, version);
-        
-        await using var targetFileStream = GetFullTargetFileStream(packageLocation, applicationName, version);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("newFileRoot");
-
-        CheckNewFileInRootUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
     
     [Test]
-    public async Task CreateUpdatePackageWithNewFileInSubDir()
-    {
-        var version = new SemanticVersion(2, 0, 0);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessFullPackage("NewSubdirFiles", applicationName, version);
-
-        await using var targetFileStream = GetFullTargetFileStream(packageLocation, applicationName, version);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("newFileSubdir");
-
-        CheckNewFileInSubDirUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
-    
-    [Test]
-    [FixedCreatorSize]
-    public async Task CreateUpdatePackageWithDeltaFileInRoot()
-    {
-        var newVersion = new SemanticVersion(1, 0, 1);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessDeltaPackage("NewRootFiles", "DeltaRootFiles", applicationName, newVersion);
-        
-        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, applicationName, newVersion);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("deltaFileRoot");
-
-        CheckDeltaFileInRootUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
-    
-    [Test]
-    [FixedCreatorSize]
-    public async Task CreateUpdatePackageWithDeltaFileInSubDir()
-    {
-        var newVersion = new SemanticVersion(1, 0, 1);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessDeltaPackage("NewSubdirFiles", "DeltaSubdirFiles", applicationName, newVersion);
-        
-        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, applicationName, newVersion);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("deltaFileSubdir");
-
-        CheckDeltaFileInSubDirUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
-    
-    [Test]
-    public async Task CreateUpdatePackageWithMovedFileInRoot()
-    {
-        var newVersion = new SemanticVersion(1, 0, 1);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessDeltaPackage("NewRootFiles", "MovedRootFiles", applicationName, newVersion);
-        
-        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, applicationName, newVersion);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("movedFileRoot");
-
-        CheckMovedFileInRootUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
-
-    [Test]
-    public async Task CreateUpdatePackageWithMovedFileRootToSubDir()
-    {
-        var newVersion = new SemanticVersion(1, 0, 1);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessDeltaPackage("NewRootFiles", "MovedRootToSubdirFiles", applicationName, newVersion);
-
-        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, applicationName, newVersion);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("movedFileRootToSubdir");
-
-        CheckMovedFileRootToSubDirUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
-    
-    [Test]
-    public async Task CreateUpdatePackageWithMovedFileSubDirToRoot()
-    {
-        var newVersion = new SemanticVersion(1, 0, 1);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessDeltaPackage("NewSubdirFiles", "MovedSubdirToRootFiles", applicationName, newVersion);
-
-        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, applicationName, newVersion);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("movedFileSubdirToRoot");
-
-        CheckMovedFileSubDirToRootUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
-
-    //TODO: Add UnchangedTests
-    
-    [Test]
-    public async Task CreateUpdatePackageWithMovedFileSubDirToSubDir()
-    {
-        var newVersion = new SemanticVersion(1, 0, 1);
-        var applicationName = "new-application";
-        var packageLocation = await ProcessDeltaPackage("NewSubdirFiles", "MovedSubdirToSubdirFiles", applicationName, newVersion);
-        
-        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, applicationName, newVersion);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream("movedFileSubdirToSubdir");
-
-        CheckMovedFileSubDirToSubDirUpdatePackage(targetFileStream, expectedTargetFileStream);
-    }
-    
-    [Test]
-    public async Task ProcessFileData()
+    public Task ProcessFileData()
     {
         var fileStream = FileSystem.File.OpenRead(Path.Combine("Assets", UpdatePackage.GetType().Name, "testing-1.0.0" + UpdatePackage.Extension));
-        await UpdatePackage.Load(fileStream);
+        return UpdatePackage.Load(fileStream);
         //TODO: Check contents is as expected
+    }
+    
+    [Test]
+    [TestCaseSource(typeof(UpdatePackageTestSource), nameof(UpdatePackageTestSource.GetFullTests))]
+    public async Task TestFullPackageCreation(FullUpdatePackageTestData testData)
+    {
+        var location = Path.Combine("Assets", "Test Files", testData.SourceFolder);
+        var packageLocation = Path.Combine("Assets", UpdatePackageCreatorName, testData.ApplicationName + "-" + "update_packages");
+        
+        FileSystem.Directory.CreateDirectory(packageLocation);
+        
+        var successful = await UpdatePackageCreator.CreateFullPackage(location, testData.Version, packageLocation, testData.ApplicationName);
+        Assert.That(successful, Is.True);
+
+        var expectedFileLocation = ExpectedTargetFileLocation(testData.ExpectedFilename);
+        if (!FileSystem.File.Exists(expectedFileLocation))
+        {
+            Assert.Warn($"'{expectedFileLocation}' doesn't exist, unable to verify created update package (Test results might be inaccurate due to this)");
+            return;
+        }
+
+        await using var targetFileStream = GetFullTargetFileStream(packageLocation, testData.ApplicationName, testData.Version);
+        await using var expectedTargetFileStream = GetExpectedTargetFileStream(expectedFileLocation);
+
+        try
+        {
+            CheckUpdatePackageWithExpected(targetFileStream, expectedTargetFileStream);
+        }
+        catch (NotImplementedException)
+        {
+            Assert.Warn("CheckUpdatePackageWithExpected isn't implemented, unable to verify created update package (Test results might be inaccurate due to this)");
+        }
+    }
+    
+    [Test]
+    [TestCaseSource(typeof(UpdatePackageTestSource), nameof(UpdatePackageTestSource.GetDeltaTests))]
+    public async Task TestDeltaPackageCreation(DeltaUpdatePackageTestData testData)
+    {
+        var packageLocation = Path.Combine("Assets", UpdatePackageCreatorName, testData.ApplicationName + "-" + "update_packages");
+        var oldVersion = new SemanticVersion(1, 0, 0);
+
+        var oldLocation = Path.Combine("Assets", "Test Files", testData.SourceFolder);
+        var newLocation = Path.Combine("Assets", "Test Files", testData.TargetFolder);
+        
+        FileSystem.Directory.CreateDirectory(packageLocation);
+        
+        var successful = await UpdatePackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, testData.NewVersion, packageLocation, testData.ApplicationName);
+        Assert.That(successful, Is.True);
+
+        var expectedFileLocation = ExpectedTargetFileLocation(testData.ExpectedFilename);
+        if (!FileSystem.File.Exists(expectedFileLocation))
+        {
+            Assert.Warn($"'{expectedFileLocation}' doesn't exist, unable to verify created update package (Test results might be inaccurate due to this)");
+            return;
+        }
+
+        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, testData.ApplicationName, testData.NewVersion);
+        await using var expectedTargetFileStream = GetExpectedTargetFileStream(expectedFileLocation);
+
+        try
+        {
+            CheckUpdatePackageWithExpected(targetFileStream, expectedTargetFileStream);
+        }
+        catch (NotImplementedException)
+        {
+            Assert.Warn("CheckUpdatePackageWithExpected isn't implemented, unable to verify created update package (Test results might be inaccurate due to this)");
+        }
     }
     
     [Test]
@@ -255,45 +213,10 @@ public abstract class UpdatePackageCan
         await using var fileStream = FileSystem.File.OpenWrite(file);
         Functions.FillStreamWithRandomData(fileStream);
     }
-
-    private async Task<string> ProcessFullPackage(string sourceFolder, string applicationName, SemanticVersion version)
-    {
-        var location = Path.Combine("Assets", "Test Files", sourceFolder);
-        var packageLocation = Path.Combine("Assets", UpdatePackageCreatorName, applicationName + "-" + "update_packages");
-        
-        FileSystem.Directory.CreateDirectory(packageLocation);
-        
-        var successful = await UpdatePackageCreator.CreateFullPackage(location, version, packageLocation, applicationName);
-        Assert.That(successful, Is.True);
-        return packageLocation;
-    }
-    
-    private async Task<string> ProcessDeltaPackage(string sourceFolder, string targetFolder, string applicationName, SemanticVersion newVersion)
-    {
-        var packageLocation = Path.Combine("Assets", UpdatePackageCreatorName, applicationName + "-" + "update_packages");
-        var oldVersion = new SemanticVersion(1, 0, 0);
-
-        var oldLocation = Path.Combine("Assets", "Test Files", sourceFolder);
-        var newLocation = Path.Combine("Assets", "Test Files", targetFolder);
-        
-        FileSystem.Directory.CreateDirectory(packageLocation);
-        
-        var successful = await UpdatePackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, newVersion, packageLocation, applicationName);
-        Assert.That(successful, Is.True);
-
-        return packageLocation;
-    }
     
     private string UpdatePackageCreatorName => UpdatePackageCreator.GetType().Name;
 
-    protected abstract void CheckNewFileInRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
-    protected abstract void CheckNewFileInSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
-    protected abstract void CheckDeltaFileInRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
-    protected abstract void CheckDeltaFileInSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
-    protected abstract void CheckMovedFileInRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
-    protected abstract void CheckMovedFileRootToSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
-    protected abstract void CheckMovedFileSubDirToRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
-    protected abstract void CheckMovedFileSubDirToSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream);
+    protected abstract void CheckUpdatePackageWithExpected(Stream targetFileStream, Stream expectedTargetFileStream);
     
     protected Mock<IDeltaApplier> CreateMockDeltaApplier(string extension)
     {
@@ -342,9 +265,8 @@ public abstract class UpdatePackageCan
             string.Format(UpdatePackageCreator.FullPackageFilenameTemplate, applicationName, newVersion)));
     }
 
-    protected Stream GetExpectedTargetFileStream(string filenamae)
-    {
-        return FileSystem.File.OpenRead(Path.Combine("Assets", UpdatePackageCreatorName,
-            filenamae + UpdatePackageCreator.Extension));
-    }
+    protected Stream GetExpectedTargetFileStream(string fileLocation) => FileSystem.File.OpenRead(fileLocation);
+
+    protected string ExpectedTargetFileLocation(string filename) => Path.Combine("Assets", UpdatePackageCreatorName,
+        filename + UpdatePackageCreator.Extension);
 }

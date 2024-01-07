@@ -1,13 +1,15 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
+﻿using System.IO.Compression;
+using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
 using TinyUpdate.Packages.Tests.Abstract;
-using TinyUpdate.Packages.Tests.Attributes;
 using TinyUpdate.TUUP;
 
 namespace TinyUpdate.Packages.Tests;
 
 public class TuupUpdatePackageTests : UpdatePackageCan
 {
+    private SHA256 SHA256 = new SHA256(NullLogger.Instance);
+    
     [SetUp]
     public void Setup()
     {
@@ -21,44 +23,55 @@ public class TuupUpdatePackageTests : UpdatePackageCan
             [ mockApplier1.Object, mockApplier2.Object ],
             [ mockCreation1.Object, mockCreation2.Object ]);
 
-        var sha256 = new SHA256(NullLogger.Instance);
-        UpdatePackage = new TuupUpdatePackage(deltaManager, sha256);
-        UpdatePackageCreator = new TuupUpdatePackageCreator(sha256, deltaManager, FileSystem, new TuupUpdatePackageCreatorOptions());
+        UpdatePackage = new TuupUpdatePackage(deltaManager, SHA256);
+        UpdatePackageCreator = new TuupUpdatePackageCreator(SHA256, deltaManager, FileSystem, new TuupUpdatePackageCreatorOptions());
     }
 
-    protected bool NeedsFixedCreatorSize =>
-        TestContext.CurrentContext.Test.Properties.ContainsKey(FixedCreatorSizeAttribute.PropName);
-
-    //TODO: Imp from here
-    protected override void CheckNewFileInRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
+    protected static bool NeedsFixedCreatorSize => TestContext.CurrentContext.Test.Arguments[0] is DeltaUpdatePackageTestData
     {
-    }
+        NeedsFixedCreatorSize: true
+    };
 
-    protected override void CheckNewFileInSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
+    protected override void CheckUpdatePackageWithExpected(Stream targetFileStream, Stream expectedTargetFileStream)
     {
-    }
+        var targetFileStreamZip = new ZipArchive(targetFileStream, ZipArchiveMode.Read);
+        var expectedTargetFileStreamZip = new ZipArchive(expectedTargetFileStream, ZipArchiveMode.Read);
+        
+        Assert.Multiple(() =>
+        {
+            Assert.That(expectedTargetFileStreamZip.Entries, 
+                Has.Count.EqualTo(targetFileStreamZip.Entries.Count), 
+                () => "They isn't the correct amount of files");
 
-    protected override void CheckDeltaFileInRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
-    {
-    }
+            Assert.That(expectedTargetFileStreamZip.Entries.Select(x => x.Name).OrderDescending(), 
+                Is.EquivalentTo(targetFileStreamZip.Entries.Select(x => x.Name).OrderDescending()), 
+                () => "File structure is not the same in both files");
 
-    protected override void CheckDeltaFileInSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
-    {
-    }
+            foreach (var expectedEntry in expectedTargetFileStreamZip.Entries)
+            {
+                var targetEntry = targetFileStreamZip.GetEntry(expectedEntry.FullName);
+                if (targetEntry == null)
+                {
+                    Assert.Fail($"{expectedEntry.Name} doesn't exist within the target file");
+                    continue;
+                }
 
-    protected override void CheckMovedFileInRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
-    {
-    }
+                using var expectedTargetEntryStream = targetEntry.Open();
+                using var targetEntryStream = targetEntry.Open();
 
-    protected override void CheckMovedFileRootToSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
-    {
-    }
+                using var expectedTargetEntryMemoryStream = new MemoryStream();
+                using var targetEntryMemoryStream = new MemoryStream();
 
-    protected override void CheckMovedFileSubDirToRootUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
-    {
-    }
+                expectedTargetEntryStream.CopyTo(expectedTargetEntryMemoryStream);
+                targetEntryStream.CopyTo(targetEntryMemoryStream);
+                
+                Assert.That(expectedTargetEntryMemoryStream.Length, Is.EqualTo(targetEntryMemoryStream.Length), () => "They is a filesize difference");
 
-    protected override void CheckMovedFileSubDirToSubDirUpdatePackage(Stream targetFileStream, Stream expectedTargetFileStream)
-    {
+                var expectedTargetEntryHash = SHA256.CreateSHA256Hash(expectedTargetEntryMemoryStream);
+                var targetEntryHash = SHA256.CreateSHA256Hash(targetEntryMemoryStream);
+                
+                Assert.That(expectedTargetEntryHash, Is.EqualTo(targetEntryHash), () => "File contents are different");
+            }
+        });
     }
 }

@@ -29,9 +29,4 @@
         <None Remove="Assets\**" />
         <AdditionalFiles Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Assets\MovedSubdirFiles\" />
-      <Folder Include="Assets\Test Files\" />
-    </ItemGroup>
 </Project>
