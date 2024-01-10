@@ -3,9 +3,10 @@ using System.IO.Abstractions.TestingHelpers;
 
 namespace TinyUpdate.Core.Tests;
 
-//TODO: Add Tests for SHA256
 public static class Functions
 {
+    private static IFileSystem? _cachedFileSystem;
+
     public static void FillStreamWithRandomData(Stream stream, long filesize = -1)
     {
         if (filesize < 0)
@@ -40,6 +41,7 @@ public static class Functions
             fileSystem.AddFile(file, new MockFileData(File.ReadAllBytes(file)));
         }
 
+        _cachedFileSystem ??= fileSystem;
         return fileSystem;
     }
 }

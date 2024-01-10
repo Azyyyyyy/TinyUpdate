@@ -26,4 +26,9 @@
       <ProjectReference Include="..\..\src\TinyUpdate.Core\TinyUpdate.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Remove="Assets\**" />
+        <AdditionalFiles Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

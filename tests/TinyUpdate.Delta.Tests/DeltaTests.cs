@@ -18,8 +18,8 @@ public class BSDiffDeltaTests : DeltaCan
 
     protected override void CheckDeltaFile(Stream targetFileStream, Stream expectedTargetFileStream)
     {
-        var expectedTargetFileStreamHash = Hasher.CreateHash(expectedTargetFileStream);
-        var targetFileStreamHash = Hasher.CreateHash(targetFileStream);
+        var expectedTargetFileStreamHash = Hasher.HashData(expectedTargetFileStream);
+        var targetFileStreamHash = Hasher.HashData(targetFileStream);
         Assert.That(expectedTargetFileStreamHash, Is.EqualTo(targetFileStreamHash), () => $"{ApplierName} delta file is not as expected");
     }
 }

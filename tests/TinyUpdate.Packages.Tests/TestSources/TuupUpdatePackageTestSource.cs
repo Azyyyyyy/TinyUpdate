@@ -1,30 +1,9 @@
 ﻿using SemVersion;
+using TinyUpdate.Packages.Tests.Model;
 
-namespace TinyUpdate.Packages.Tests;
+namespace TinyUpdate.Packages.Tests.TestSources;
 
-public class FullUpdatePackageTestData
-{
-    public required string Name { get; init; }
-    public required string SourceFolder { get; init; }
-    public required string ApplicationName { get; init; }
-    public required SemanticVersion Version { get; init; }
-    public required string ExpectedFilename { get; init; }
-    public override string ToString() => Name;
-}
-
-public class DeltaUpdatePackageTestData
-{
-    public required string Name { get; init; }
-    public required string SourceFolder { get; init; }
-    public required string TargetFolder { get; init; }
-    public required string ApplicationName { get; init; }
-    public required SemanticVersion NewVersion { get; init; }
-    public required string ExpectedFilename { get; init; }
-    public bool NeedsFixedCreatorSize { get; init; }
-    public override string ToString() => Name;
-}
-
-public class UpdatePackageTestSource
+public static class TuupUpdatePackageTestSource
 {
     public static IEnumerable<FullUpdatePackageTestData> GetFullTests()
     {

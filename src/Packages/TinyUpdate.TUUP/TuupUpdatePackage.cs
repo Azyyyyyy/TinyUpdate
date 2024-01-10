@@ -7,13 +7,19 @@ namespace TinyUpdate.TUUP;
 /// <summary>
 ///     Update Package based on TinyUpdate V1, Makes use of zip format
 /// </summary>
-public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUpdatePackage
+public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUpdatePackage, IDisposable
 {
-    private bool _loaded;
-    private ZipArchive? _zipArchive;
     private static readonly string[] ExpectedData = ["Filename", "Path", "Hash", "Filesize", "Extension"];
 
+    private bool _loaded;
+    private bool _disposed;
+    private ZipArchive? _zipArchive;
+
     public string Extension => Consts.TuupExtension;
+    public ICollection<FileEntry> DeltaFiles { get; } = new List<FileEntry>();
+    public ICollection<FileEntry> UnchangedFiles { get; } = new List<FileEntry>();
+    public ICollection<FileEntry> NewFiles { get; } = new List<FileEntry>();
+    public ICollection<FileEntry> MovedFiles { get; } = new List<FileEntry>();
 
     public async Task Load(Stream updatePackageStream)
     {
@@ -52,12 +58,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
 
         _loaded = true;
     }
-
-    public ICollection<FileEntry> DeltaFiles { get; } = new List<FileEntry>();
-    public ICollection<FileEntry> UnchangedFiles { get; } = new List<FileEntry>();
-    public ICollection<FileEntry> NewFiles { get; } = new List<FileEntry>();
-    public ICollection<FileEntry> MovedFiles { get; } = new List<FileEntry>();
-
+    
     /// <summary>
     ///     Gets all the files that this update will have and any information needed to correctly apply the update
     /// </summary>
@@ -139,7 +140,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
         }
     }
 
-    private bool HasAllFileEntryData(Dictionary<string, object?> fileEntryData)
+    private static bool HasAllFileEntryData(Dictionary<string, object?> fileEntryData)
     {
         var missingCore = ExpectedData.Except(fileEntryData.Keys).Any();
         if (missingCore)
@@ -165,5 +166,20 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
         fileEntryData.TryAdd("Stream", null);
         fileEntryData.TryAdd("PreviousLocation", null);
         return true;
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            if (_loaded)
+            {
+                _zipArchive?.Dispose();
+                _loaded = false;
+            }
+            
+            GC.SuppressFinalize(this);
+            _disposed = true;
+        }
     }
 }

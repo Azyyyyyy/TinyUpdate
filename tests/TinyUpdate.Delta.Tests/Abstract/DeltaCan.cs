@@ -70,8 +70,8 @@ public abstract class DeltaCan
         var error = GetWin32Error();
         targetFileStream.Seek(0, SeekOrigin.Begin);
 
-        var expectedTargetFileStreamHash = Hasher.CreateHash(expectedTargetFileStream);
-        var targetFileStreamHash = Hasher.CreateHash(targetFileStream);
+        var expectedTargetFileStreamHash = Hasher.HashData(expectedTargetFileStream);
+        var targetFileStreamHash = Hasher.HashData(targetFileStream);
         Assert.Multiple(() =>
         {
             Assert.That(applyResult, Is.True, () => CreateErrorMessage(error));

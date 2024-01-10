@@ -6,13 +6,15 @@ using SemVersion;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Tests;
+using TinyUpdate.Core.Tests.Attributes;
+using TinyUpdate.Packages.Tests.Model;
 
 namespace TinyUpdate.Packages.Tests.Abstract;
 
 public abstract class UpdatePackageCan
 {
-    protected IUpdatePackage UpdatePackage;
-    protected IUpdatePackageCreator UpdatePackageCreator;
+    protected IUpdatePackage UpdatePackage = null!;
+    protected IUpdatePackageCreator UpdatePackageCreator = null!;
     protected IFileSystem FileSystem = null!;
 
     [OneTimeSetUp]
@@ -88,9 +90,8 @@ public abstract class UpdatePackageCan
             }
         }
     }
-    
-    [Test]
-    [TestCaseSource(typeof(UpdatePackageTestSource), nameof(UpdatePackageTestSource.GetFullTests))]
+
+    [ExternalTest]
     public async Task TestFullPackageCreation(FullUpdatePackageTestData testData)
     {
         var location = Path.Combine("Assets", "Test Files", testData.SourceFolder);
@@ -121,8 +122,7 @@ public abstract class UpdatePackageCan
         }
     }
     
-    [Test]
-    [TestCaseSource(typeof(UpdatePackageTestSource), nameof(UpdatePackageTestSource.GetDeltaTests))]
+    [ExternalTest]
     public async Task TestDeltaPackageCreation(DeltaUpdatePackageTestData testData)
     {
         FileSystem.Directory.CreateDirectory(Path.Combine("Assets", "Test Files", "EmptyFolder"));

@@ -143,7 +143,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
             foreach (var oldFile in files)
             {
                 await using var oldFileContentStream = File.OpenRead(oldFile);
-                var hash = _hasher.CreateHash(oldFileContentStream);
+                var hash = _hasher.HashData(oldFileContentStream);
                 if (!hashes.TryGetValue(hash, out var filesList))
                 {
                     filesList = new List<string>();
@@ -185,7 +185,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
             await zipFileEntryStream.DisposeAsync();
         }
         
-        hash ??= _hasher.CreateHash(fileContentStream);
+        hash ??= _hasher.HashData(fileContentStream);
         await AddHashAndSizeData(zipArchive, filepath, hash, fileContentStream.Length);
 
         return true;

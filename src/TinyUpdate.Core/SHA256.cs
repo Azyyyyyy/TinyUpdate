@@ -1,6 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core.Abstract;
 
 namespace TinyUpdate.Core;
@@ -8,51 +6,76 @@ namespace TinyUpdate.Core;
 /// <summary>
 /// Easy access to processing Streams into a SHA256 hash and comparing SHA256 hashes
 /// </summary>
-public partial class SHA256(ILogger logger) : IHasher
+public partial class SHA256 : IHasher
 {
-    public static readonly SHA256 Instance = new SHA256(NullLogger.Instance);
-    
+    private const string EmptyHash = "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855";
     private static readonly Regex Sha256Regex = MyRegex();
 
-    public bool CheckHash(Stream stream, string expectedHash)
-    {
-        stream.Seek(0, SeekOrigin.Begin);
-        var hash = CreateHash(stream);
-        return hash == expectedHash;
-    }
+    public static readonly SHA256 Instance = new SHA256();
 
-    public bool CheckHash(byte[] byteArray, string expectedHash)
+    public bool CompareHash(Stream stream, string expectedHash)
     {
         if (IsValidHash(expectedHash))
         {
-            var sameHash = CreateHash(byteArray) == expectedHash;
-            logger.LogInformation("Do we have the expected SHA256 hash?: {SameHash}", sameHash);
-            return sameHash;
+            var hash = HashData(stream);
+            return hash == expectedHash;
         }
 
-        logger.LogWarning("We been given an invalid hash, can't check");
         return false;
     }
 
-    public string CreateHash(Stream stream)
+    public bool CompareHash(byte[] byteArray, string expectedHash)
     {
-        stream.Seek(0, SeekOrigin.Begin);
-        using var sha256 = System.Security.Cryptography.SHA256.Create();
-        return CreateHash(sha256.ComputeHash(stream));
+        if (IsValidHash(expectedHash))
+        {
+            var hash = HashData(byteArray, true);
+            return hash == expectedHash;
+        }
+
+        return false;
     }
 
-    public string CreateHash(byte[] bytes)
+    public string HashData(Stream stream)
     {
-        string result = string.Empty;
-        foreach (var b in bytes)
+        //If we got nothing then return this, this will always be calculated by below
+        if (stream is { CanSeek: true, Length: 0 })
         {
-            result += b.ToString("X2");
+            return EmptyHash;
         }
-        return result;
+        
+        var dataHashed = System.Security.Cryptography.SHA256.HashData(stream);
+        return HashData(dataHashed, false);
     }
+
+    public string HashData(byte[] bytes) => HashData(bytes, true);
 
     public bool IsValidHash(string hash) => !string.IsNullOrWhiteSpace(hash) && Sha256Regex.IsMatch(hash);
 
     [GeneratedRegex("^[a-fA-F0-9]{64}$", RegexOptions.Compiled)]
     private static partial Regex MyRegex();
+    
+    private static string? HashData(byte[] bytes, bool processBytes)
+    {
+        if (processBytes)
+        {
+            //If we got nothing then return this, this will always be calculated by below
+            if (bytes.Length == 0)
+            {
+                return EmptyHash;
+            }
+            
+            using var memStream = new MemoryStream(bytes);
+            bytes = System.Security.Cryptography.SHA256.HashData(memStream);
+        }
+
+        var resultArray = new Span<char>(new char[64]);
+        var charsWritten = 0;
+        
+        foreach (var @byte in bytes)
+        {
+            @byte.TryFormat(resultArray[charsWritten..], out var written, "X2");
+            charsWritten += written;
+        }
+        return resultArray.ToString();
+    }
 }
