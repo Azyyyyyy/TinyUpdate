@@ -9,8 +9,8 @@ namespace TinyUpdate.Delta.MSDelta.Struct;
 internal struct DeltaOutput
 {
     /// <summary>Memory address</summary>
-    public IntPtr Start;
+    public IntPtr BufferPtr;
 
-    /// <summary>Size of the memory buffer in bytes.</summary>
+    /// <summary>Size of the memory buffer in bytes</summary>
     public IntPtr Size;
 }

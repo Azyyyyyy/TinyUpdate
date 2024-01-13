@@ -2,6 +2,9 @@
 
 namespace TinyUpdate.Delta.MSDelta.Enum;
 
+/// <summary>
+/// Allows you to specify what file types get special handling, enabling smaller file sizes
+/// </summary>
 [Flags]
 internal enum FileType : long
 {
@@ -16,7 +19,7 @@ internal enum FileType : long
 
     /// <summary>File type for AMD64 Portable Executable files</summary>
     AMD64 = 8,
-
+    
     /// <summary>File type for I386 Portable Executable files with CLI4 transform</summary>
     CLI4I386 = 16,
 
@@ -30,16 +33,16 @@ internal enum FileType : long
     CLI4ARM64 = 128,
 
     /// <summary>File type set that distinguishes I386, IA64 and AMD64 Portable Executable file and treats others as raw</summary>
-    Executables = (Raw + I386) | IA64 | AMD64,
+    Executables = Raw | I386 | IA64 | AMD64,
 
     /// <summary>File type set that distinguishes I386, IA64, ARM, and AMD64 Portable Executable file and treats others as raw</summary>
-    Executables2 = (Raw + CLI4I386) | IA64 | CLI4AMD64 | CLI4ARM,
+    Executables2 = Raw | CLI4I386 | IA64 | CLI4AMD64 | CLI4ARM,
 
     /// <summary>
     ///     File type set that distinguishes I386, IA64, ARM, ARM64, and AMD64 Portable Executable file and treats others
     ///     as raw
     /// </summary>
-    Executables3 = (Raw + CLI4I386) | IA64 | CLI4AMD64 | CLI4ARM | CLI4ARM64,
+    Executables3 = Raw | CLI4I386 | IA64 | CLI4AMD64 | CLI4ARM | CLI4ARM64,
 
     /// <summary>Uses the latest executable flag</summary>
     ExecutablesLatest = Executables3

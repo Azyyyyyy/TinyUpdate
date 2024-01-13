@@ -53,6 +53,10 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
+
+/// <summary>
+/// Provides creating and applying BSDiff delta's
+/// </summary>
 public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
 {
     private const long CFileSignature = 0x3034464649445342L;
@@ -60,59 +64,35 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
 
     public string Extension => ".bsdiff";
 
-    public bool SupportedStream(Stream deltaStream)
-    {
-        if (!deltaStream.CanSeek || deltaStream.Length == 0)
-        {
-            return false;
-        }
-
-        var header = deltaStream.ReadExactly(CHeaderSize);
-
-        // check for appropriate magic
-        var signature = ReadInt64(header, 0);
-        if (signature != CFileSignature)
-        {
-            return false;
-        }
-
-        // read lengths from header
-        var controlLength = ReadInt64(header, 8);
-        var diffLength = ReadInt64(header, 16);
-        var newSize = ReadInt64(header, 24);
-        
-        return controlLength >= 0 && diffLength >= 0 && newSize >= 0;
-    }
+    public bool SupportedStream(Stream deltaStream) => SupportedStream(deltaStream, out _);
 
     public long TargetStreamSize(Stream deltaStream)
     {
-        if (!deltaStream.CanSeek || deltaStream.Length == 0)
-        {
-            return -1;
-        }
-
-        var header = deltaStream.ReadExactly(CHeaderSize);
-
-        // check for appropriate magic
-        var signature = ReadInt64(header, 0);
-        if (signature != CFileSignature)
-        {
-            return -1;
-        }
-
-        // read lengths from header
-        var controlLength = ReadInt64(header, 8);
-        var diffLength = ReadInt64(header, 16);
-        var newSize = ReadInt64(header, 24);
-        
-        return controlLength >= 0 && diffLength >= 0 && newSize >= 0 ? newSize : -1;
+        SupportedStream(deltaStream, out var newSize);
+        return newSize;
     }
-
+    
     public async Task<bool> ApplyDeltaFile(Stream originalStream, Stream deltaStream, Stream targetStream, IProgress<double>? progress = null)
     {
+        // check patch stream capabilities
+        if (!deltaStream.CanRead)
+        {
+            logger.LogError("Patch stream must be readable");
+            return false;
+        }
+        if (!deltaStream.CanSeek)
+        {
+            logger.LogError("Patch stream must be seekable");
+            return false;
+        }
+        if (deltaStream.Length == 0)
+        {
+            logger.LogError("Patch stream must contain something");
+            return false;
+        }
+
         var patchMemoryStream = new MemoryStream();
         await deltaStream.CopyToAsync(patchMemoryStream);
-        await deltaStream.DisposeAsync();
 
         /*
         File format:
@@ -131,25 +111,6 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         long controlLength, diffLength, newSize;
         await using (var patchStream = CreatePatchStream())
         {
-            // check patch stream capabilities
-            if (!patchStream.CanRead)
-            {
-                logger.LogError("Patch stream must be readable");
-                return false;
-            }
-
-            if (!patchStream.CanSeek)
-            {
-                logger.LogError("Patch stream must be seekable");
-                return false;
-            }
-
-            if (patchStream.Length == 0)
-            {
-                logger.LogError("Patch stream must contain something");
-                return false;
-            }
-
             var header = patchStream.ReadExactly(CHeaderSize);
 
             // check for appropriate magic
@@ -285,17 +246,17 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         // check arguments
         if (!deltaStream.CanSeek)
         {
-            logger.LogError("deltaStream stream must be seekable");
+            logger.LogError("Patch stream must be seekable");
             return false;
         }
 
         if (!deltaStream.CanWrite)
         {
-            logger.LogError("deltaStream stream must be writable");
+            logger.LogError("Patch stream must be writable");
             return false;
         }
 
-        //get data
+        // get data
         var oldData = new byte[originalStream.Length];
         await originalStream.ReadExactlyAsync(oldData.AsMemory(0, oldData.Length));
 
@@ -330,8 +291,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         var dbLen = 0;
         var ebLen = 0;
 
-        await using (WrappingStream wrappingStream = new(deltaStream, Ownership.None))
-        await using (BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, false))
+        await using (var wrappingStream = new WrappingStream(deltaStream, Ownership.None))
+        await using (var bz2Stream = new BZip2Stream(wrappingStream, CompressionMode.Compress, false))
         {
             // compute the differences, writing ctrl as we go
             var scan = 0;
@@ -450,7 +411,7 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         // write compressed diff data
         if (dbLen > 0)
         {
-            await using WrappingStream wrappingStream = new(deltaStream, Ownership.None);
+            await using var wrappingStream = new WrappingStream(deltaStream, Ownership.None);
             await using var bz2Stream = new BZip2Stream(wrappingStream, CompressionMode.Compress, false);
             bz2Stream.Write(db, 0, dbLen);
         }
@@ -462,8 +423,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         // write compressed extra data
         if (ebLen > 0)
         {
-            await using WrappingStream wrappingStream = new(deltaStream, Ownership.None);
-            await using BZip2Stream bz2Stream = new(wrappingStream, CompressionMode.Compress, false);
+            await using var wrappingStream = new WrappingStream(deltaStream, Ownership.None);
+            await using var bz2Stream = new BZip2Stream(wrappingStream, CompressionMode.Compress, false);
             bz2Stream.Write(eb, 0, ebLen);
         }
 
@@ -474,6 +435,31 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         deltaStream.Position = endPosition;
 
         return true;
+    }
+    
+    private static bool SupportedStream(Stream deltaStream, out long newSize)
+    {
+        newSize = -1;
+        if (!deltaStream.CanSeek || deltaStream.Length == 0)
+        {
+            return false;
+        }
+
+        var header = deltaStream.ReadExactly(CHeaderSize);
+
+        // check for appropriate magic
+        var signature = ReadInt64(header, 0);
+        if (signature != CFileSignature)
+        {
+            return false;
+        }
+
+        // read lengths from header
+        var controlLength = ReadInt64(header, 8);
+        var diffLength = ReadInt64(header, 16);
+        newSize = ReadInt64(header, 24);
+        
+        return controlLength >= 0 && diffLength >= 0 && newSize >= 0;
     }
 }
 

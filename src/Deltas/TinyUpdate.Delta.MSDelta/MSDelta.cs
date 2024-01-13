@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Delta.MSDelta.Enum;
 using TinyUpdate.Delta.MSDelta.Struct;
@@ -59,10 +59,10 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
             var success = ApplyDeltaB(ApplyFlag.None, sourceDeltaInput, deltaDeltaInput, out var output);
             if (success)
             {
-                var deltaStream = new UnmanagedMemoryStream((byte*)output.Start, output.Size);
+                var deltaStream = new UnmanagedMemoryStream((byte*)output.BufferPtr, output.Size);
                 deltaStream.CopyTo(targetFileStream);
                 deltaStream.Dispose();
-                cleared = DeltaFree(output.Start);
+                cleared = DeltaFree(output.BufferPtr);
             }
 
             return Task.FromResult(success && cleared);
@@ -73,6 +73,7 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
         Stream deltaFileStream,
         IProgress<double>? progress = null)
     {
+        //TODO: Add stream length check
         var sourceBytes = new byte[sourceFileStream.Length];
         sourceFileStream.ReadExactly(sourceBytes, 0, sourceBytes.Length);
 
@@ -92,9 +93,9 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
 
             if (success)
             {
-                using var deltaStream = new UnmanagedMemoryStream((byte*)deltaBuffer.Start, deltaBuffer.Size);
+                using var deltaStream = new UnmanagedMemoryStream((byte*)deltaBuffer.BufferPtr, deltaBuffer.Size);
                 deltaStream.CopyTo(deltaFileStream);
-                cleared = DeltaFree(deltaBuffer.Start);
+                cleared = DeltaFree(deltaBuffer.BufferPtr);
             }
 
             Array.Clear(targetBytes);

@@ -54,7 +54,7 @@ public partial class SHA256 : IHasher
     [GeneratedRegex("^[a-fA-F0-9]{64}$", RegexOptions.Compiled)]
     private static partial Regex MyRegex();
     
-    private static string? HashData(byte[] bytes, bool processBytes)
+    private static string HashData(byte[] bytes, bool processBytes)
     {
         if (processBytes)
         {

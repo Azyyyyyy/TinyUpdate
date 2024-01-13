@@ -1,6 +1,5 @@
 namespace TinyUpdate.Delta.BSDiff;
 
-//TODO: Add more modern overrides to this
 /// <summary>
 ///     A <see cref="Stream" /> that wraps another stream. One major feature of <see cref="WrappingStream" /> is that it
 ///     does not dispose the
@@ -15,8 +14,9 @@ namespace TinyUpdate.Delta.BSDiff;
 /// </remarks>
 internal class WrappingStream : Stream
 {
+    // The wrapped stream.
+    private readonly Stream _wrappedStream;
     private readonly Ownership _mOwnership;
-
     private bool _disposed;
 
     /// <summary>
@@ -28,197 +28,251 @@ internal class WrappingStream : Stream
     {
         ArgumentNullException.ThrowIfNull(streamBase);
         
-        WrappedStream = streamBase;
+        _wrappedStream = streamBase;
         _mOwnership = ownership;
     }
 
-    /// <summary>
-    ///     Gets a value indicating whether the current stream supports reading.
-    /// </summary>
-    /// <returns><c>true</c> if the stream supports reading; otherwise, <c>false</c>.</returns>
-    public override bool CanRead => WrappedStream.CanRead;
+    public override bool CanRead
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _wrappedStream.CanRead;
+        }
+    }
 
-    /// <summary>
-    ///     Gets a value indicating whether the current stream supports seeking.
-    /// </summary>
-    /// <returns><c>true</c> if the stream supports seeking; otherwise, <c>false</c>.</returns>
-    public override bool CanSeek => WrappedStream.CanSeek;
+    public override bool CanWrite
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _wrappedStream.CanWrite;
+        }
+    }
 
-    /// <summary>
-    ///     Gets a value indicating whether the current stream supports writing.
-    /// </summary>
-    /// <returns><c>true</c> if the stream supports writing; otherwise, <c>false</c>.</returns>
-    public override bool CanWrite => WrappedStream.CanWrite;
+    public override bool CanSeek
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _wrappedStream.CanSeek;
+        }
+    }
 
-    /// <summary>
-    ///     Gets the length in bytes of the stream.
-    /// </summary>
+    public override bool CanTimeout
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _wrappedStream.CanTimeout;
+        }
+    }
+
     public override long Length
     {
         get
         {
             ThrowIfDisposed();
-            return WrappedStream.Length;
+            return _wrappedStream.Length;
         }
     }
 
-    /// <summary>
-    ///     Gets or sets the position within the current stream.
-    /// </summary>
     public override long Position
     {
         get
         {
             ThrowIfDisposed();
-            return WrappedStream.Position;
+            return _wrappedStream.Position;
         }
         set
         {
             ThrowIfDisposed();
-            WrappedStream.Position = value;
+            _wrappedStream.Position = value;
         }
     }
 
-    /// <summary>
-    ///     Gets the wrapped stream.
-    /// </summary>
-    /// <value>The wrapped stream.</value>
-    protected Stream WrappedStream { get; }
+    public override int ReadTimeout
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _wrappedStream.ReadTimeout;
+        }
+        set
+        {
+            ThrowIfDisposed();
+            _wrappedStream.ReadTimeout = value;
+        }
+    }
 
-    /// <summary>
-    ///     Begins an asynchronous read operation.
-    /// </summary>
+    public override int WriteTimeout
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _wrappedStream.WriteTimeout;
+        }
+        set
+        {
+            ThrowIfDisposed();
+            _wrappedStream.WriteTimeout = value;
+        }
+    }
+
+    public override void CopyTo(Stream destination, int bufferSize)
+    {
+        ThrowIfDisposed();
+        _wrappedStream.CopyTo(destination, bufferSize);
+    }
+
+    public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.CopyToAsync(destination, bufferSize, cancellationToken);
+    }
+
+    public override void Close()
+    {
+        ThrowIfDisposed();
+        base.Close();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing) return;
+
+        // doesn't close the base stream, but just prevents access to it through this WrappingStream
+        if (_mOwnership == Ownership.Owns) 
+            _wrappedStream.Dispose();
+
+        _disposed = true;
+    }
+    
+    public override ValueTask DisposeAsync()
+    {
+        var returnValue = ValueTask.CompletedTask;
+
+        // doesn't close the base stream, but just prevents access to it through this WrappingStream
+        if (_mOwnership == Ownership.Owns)
+            returnValue = _wrappedStream.DisposeAsync();
+
+        _disposed = true;
+        return returnValue;
+    }
+    
+    public override void Flush()
+    {
+        ThrowIfDisposed();
+        _wrappedStream.Flush();
+    }
+
+    public override Task FlushAsync(CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.FlushAsync(cancellationToken);
+    }
+
     public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback,
         object? state)
     {
         ThrowIfDisposed();
-        return WrappedStream.BeginRead(buffer, offset, count, callback, state);
+        return _wrappedStream.BeginRead(buffer, offset, count, callback, state);
     }
 
-    /// <summary>
-    ///     Begins an asynchronous write operation.
-    /// </summary>
+    public override int EndRead(IAsyncResult asyncResult)
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.EndRead(asyncResult);
+    }
+
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.ReadAsync(buffer, offset, count, cancellationToken);
+    }
+
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.ReadAsync(buffer, cancellationToken);
+    }
+
     public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback,
         object? state)
     {
         ThrowIfDisposed();
-        return WrappedStream.BeginWrite(buffer, offset, count, callback, state);
+        return _wrappedStream.BeginWrite(buffer, offset, count, callback, state);
     }
 
-    /// <summary>
-    ///     Waits for the pending asynchronous read to complete.
-    /// </summary>
-    public override int EndRead(IAsyncResult asyncResult)
-    {
-        ThrowIfDisposed();
-        return WrappedStream.EndRead(asyncResult);
-    }
-
-    /// <summary>
-    ///     Ends an asynchronous write operation.
-    /// </summary>
     public override void EndWrite(IAsyncResult asyncResult)
     {
         ThrowIfDisposed();
-        WrappedStream.EndWrite(asyncResult);
+        _wrappedStream.EndWrite(asyncResult);
     }
 
-    /// <summary>
-    ///     Clears all buffers for this stream and causes any buffered data to be written to the underlying device.
-    /// </summary>
-    public override void Flush()
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
-        WrappedStream.Flush();
+        return _wrappedStream.WriteAsync(buffer, offset, count, cancellationToken);
     }
 
-    /// <summary>
-    ///     Reads a sequence of bytes from the current stream and advances the position
-    ///     within the stream by the number of bytes read.
-    /// </summary>
-    public override int Read(byte[] buffer, int offset, int count)
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
     {
         ThrowIfDisposed();
-        return WrappedStream.Read(buffer, offset, count);
+        return _wrappedStream.WriteAsync(buffer, cancellationToken);
     }
-
-    /// <summary>
-    ///     Reads a byte from the stream and advances the position within the stream by one byte, or returns -1 if at the end
-    ///     of the stream.
-    /// </summary>
-    public override int ReadByte()
-    {
-        ThrowIfDisposed();
-        return WrappedStream.ReadByte();
-    }
-
-    /// <summary>
-    ///     Sets the position within the current stream.
-    /// </summary>
-    /// <param name="offset">A byte offset relative to the <paramref name="origin" /> parameter.</param>
-    /// <param name="origin">
-    ///     A value of type <see cref="T:System.IO.SeekOrigin" /> indicating the reference point used to
-    ///     obtain the new position.
-    /// </param>
-    /// <returns>The new position within the current stream.</returns>
+    
     public override long Seek(long offset, SeekOrigin origin)
     {
         ThrowIfDisposed();
-        return WrappedStream.Seek(offset, origin);
+        return _wrappedStream.Seek(offset, origin);
     }
-
-    /// <summary>
-    ///     Sets the length of the current stream.
-    /// </summary>
-    /// <param name="value">The desired length of the current stream in bytes.</param>
+    
     public override void SetLength(long value)
     {
         ThrowIfDisposed();
-        WrappedStream.SetLength(value);
+        _wrappedStream.SetLength(value);
+    }
+    
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.Read(buffer, offset, count);
     }
 
-    /// <summary>
-    ///     Writes a sequence of bytes to the current stream and advances the current position
-    ///     within this stream by the number of bytes written.
-    /// </summary>
+    public override int Read(Span<byte> buffer)
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.Read(buffer);
+    }
+    
+    public override int ReadByte()
+    {
+        ThrowIfDisposed();
+        return _wrappedStream.ReadByte();
+    }
+    
     public override void Write(byte[] buffer, int offset, int count)
     {
         ThrowIfDisposed();
-        WrappedStream.Write(buffer, offset, count);
+        _wrappedStream.Write(buffer, offset, count);
     }
 
-    /// <summary>
-    ///     Writes a byte to the current position in the stream and advances the position within the stream by one byte.
-    /// </summary>
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        ThrowIfDisposed();
+        _wrappedStream.Write(buffer);
+    }
+
     public override void WriteByte(byte value)
     {
         ThrowIfDisposed();
-        WrappedStream.WriteByte(value);
-    }
-
-    /// <summary>
-    ///     Releases the unmanaged resources used by the <see cref="WrappingStream" /> and optionally releases the managed
-    ///     resources.
-    /// </summary>
-    /// <param name="disposing">
-    ///     true to release both managed and unmanaged resources; false to release only unmanaged
-    ///     resources.
-    /// </param>
-    protected override void Dispose(bool disposing)
-    {
-        // doesn't close the base stream, but just prevents access to it through this WrappingStream
-        if (!disposing) return;
-
-        if (_mOwnership == Ownership.Owns) WrappedStream.Dispose();
-
-        _disposed = true;
-        base.Dispose(disposing);
+        _wrappedStream.WriteByte(value);
     }
 
     /// <summary>
     ///     Throws if the stream is disposed
     /// </summary>
-    /// <exception cref="ObjectDisposedException"></exception>
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, GetType().Name);
 }
 

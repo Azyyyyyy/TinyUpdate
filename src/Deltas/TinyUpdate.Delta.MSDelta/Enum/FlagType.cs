@@ -2,10 +2,13 @@
 
 namespace TinyUpdate.Delta.MSDelta.Enum;
 
+/// <summary>
+/// Flags used during the Create process
+/// </summary>
 [Flags]
 internal enum FlagType : long
 {
-    /// <summary>Indicates no special handling.</summary>
+    /// <summary>Indicates no special handling</summary>
     None = 0,
 
     /// <summary>Transform E8 pieces (relative calls in x86) of target file</summary>
@@ -59,7 +62,7 @@ internal enum FlagType : long
     /// <summary>Transform headers of source PE</summary>
     Headers = 65536,
 
-    /// <summary>Allow the source, target and delta files to exceed the default size limit.</summary>
+    /// <summary>Allow the source, target and delta files to exceed the default size limit</summary>
     IgnoreFileSizeLimit = 131072,
 
     /// <summary>Allow options buffer or file to exceed its default size limit</summary>

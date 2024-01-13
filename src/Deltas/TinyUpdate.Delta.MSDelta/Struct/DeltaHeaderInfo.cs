@@ -4,28 +4,45 @@ using TinyUpdate.Delta.MSDelta.Enum;
 
 namespace TinyUpdate.Delta.MSDelta.Struct;
 
+/// <summary>
+/// Delta header information
+/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct DeltaHeaderInfo
 {
-    /** Used file type set. */
+    /// <summary>
+    /// Used file type set
+    /// </summary>
     public FileType FileTypeSet;
 
-    /** Source file type. */
+    /// <summary>
+    /// Source file type
+    /// </summary>
     public FileType FileType;
 
-    /** Delta flags. */
+    /// <summary>
+    /// Delta flags
+    /// </summary>
     public FlagType Flags;
 
-    /** Size of target file in bytes. */
+    /// <summary>
+    /// Size of target file in bytes
+    /// </summary>
     public IntPtr TargetSize;
 
-    /** Time of target file. */
+    /// <summary>
+    /// Time of target file
+    /// </summary>
     public FILETIME TargetFileTime;
 
-    /** Algorithm used for hashing. */
+    /// <summary>
+    /// Algorithm used for hashing
+    /// </summary>
     public HashAlgId TargetHashAlgId;
 
-    /** Target hash. */
+    /// <summary>
+    /// Target hash
+    /// </summary>
     [MarshalAs(UnmanagedType.Struct)]
     public DeltaHash TargetHash;
 }
