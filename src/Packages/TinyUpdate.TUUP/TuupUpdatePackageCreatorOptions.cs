@@ -1,5 +1,9 @@
 ﻿namespace TinyUpdate.TUUP;
 
+//TODO: Add Loader option with V1 setting?
+/// <summary>
+/// Options to make update package creation behave differently
+/// </summary>
 public class TuupUpdatePackageCreatorOptions
 {
     /// <summary>

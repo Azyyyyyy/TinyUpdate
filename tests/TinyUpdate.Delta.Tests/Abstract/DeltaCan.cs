@@ -29,13 +29,15 @@ public abstract class DeltaCan
         FileSystem = Functions.SetupMockFileSystem();
     }
 
+    //TODO: Add test for handling streams over the array size
+    
     [Test]
     public void CanGetCorrectTargetStreamSize()
     {
         SkipIfNoApplier();
 
-        using var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
-        var targetSize = Applier.TargetStreamSize(deltaFileStream);
+        using var deltaStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
+        var targetSize = Applier.TargetStreamSize(deltaStream);
         
         Assert.That(targetSize, Is.EqualTo(233237));
     }
@@ -48,8 +50,8 @@ public abstract class DeltaCan
     {
         SkipIfNoApplier();
         
-        using var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, targetFilename + Applier.Extension));
-        var returnedStatus = Applier.SupportedStream(deltaFileStream);
+        using var deltaStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, targetFilename + Applier.Extension));
+        var returnedStatus = Applier.SupportedStream(deltaStream);
         var error = GetWin32Error();
         
         Assert.That(returnedStatus, Is.EqualTo(expectedResult), () => CreateErrorMessage(error));
@@ -61,21 +63,21 @@ public abstract class DeltaCan
     {
         SkipIfNoApplier();
 
-        await using var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        await using var deltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
-        await using var targetFileStream = FileSystem.File.Create(Path.Combine("Assets", ApplierName, "new (diff).jpg"));
-        await using var expectedTargetFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        await using var sourceStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var deltaStream = FileSystem.File.OpenRead(Path.Combine("Assets", ApplierName, "expected_pass" + Applier.Extension));
+        await using var targetStream = FileSystem.File.Create(Path.Combine("Assets", ApplierName, "new (diff).jpg"));
+        await using var expectedTargetStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
         
-        var applyResult = await Applier.ApplyDeltaFile(sourceFileStream, deltaFileStream, targetFileStream);
+        var applyResult = await Applier.ApplyDeltaFile(sourceStream, deltaStream, targetStream);
         var error = GetWin32Error();
-        targetFileStream.Seek(0, SeekOrigin.Begin);
+        targetStream.Seek(0, SeekOrigin.Begin);
 
-        var expectedTargetFileStreamHash = Hasher.HashData(expectedTargetFileStream);
-        var targetFileStreamHash = Hasher.HashData(targetFileStream);
+        var expectedTargetStreamHash = Hasher.HashData(expectedTargetStream);
+        var targetStreamHash = Hasher.HashData(targetStream);
         Assert.Multiple(() =>
         {
             Assert.That(applyResult, Is.True, () => CreateErrorMessage(error));
-            Assert.That(expectedTargetFileStreamHash, Is.EqualTo(targetFileStreamHash), () => $"{ApplierName} didn't create an exact replica of the target stream. Expected Hash: {expectedTargetFileStreamHash}, Target Hash: {targetFileStreamHash}");
+            Assert.That(expectedTargetStreamHash, Is.EqualTo(targetStreamHash), () => $"{ApplierName} didn't create an exact replica of the target stream. Expected Hash: {expectedTargetStreamHash}, Target Hash: {targetStreamHash}");
         });
     }
 
@@ -85,22 +87,22 @@ public abstract class DeltaCan
     {
         SkipIfNoCreator();
 
-        await using var sourceFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        await using var targetFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
-        await using var deltaFileStream = FileSystem.File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
+        await using var sourceStream = FileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var targetStream = FileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        await using var deltaStream = FileSystem.File.Create(Path.Combine("Assets", CreatorName, "result_delta" + Creator.Extension));
         
-        var createResult = await Creator.CreateDeltaFile(sourceFileStream, targetFileStream, deltaFileStream);
+        var createResult = await Creator.CreateDeltaFile(sourceStream, targetStream, deltaStream);
         var error = GetWin32Error();
         
         Assert.That(createResult, Is.True, () => CreateErrorMessage(error));
 
-        deltaFileStream.Seek(0, SeekOrigin.Begin);
-        await using var expectedDeltaFileStream = FileSystem.File.OpenRead(Path.Combine("Assets", CreatorName, "expectedDelta" + Creator.Extension));
+        deltaStream.Seek(0, SeekOrigin.Begin);
+        await using var expectedDeltaStream = FileSystem.File.OpenRead(Path.Combine("Assets", CreatorName, "expectedDelta" + Creator.Extension));
         
-        CheckDeltaFile(deltaFileStream, expectedDeltaFileStream);
+        CheckDeltaFile(deltaStream, expectedDeltaStream);
     }
     
-    protected abstract void CheckDeltaFile(Stream targetFileStreamHash, Stream expectedTargetFileStreamHash);
+    protected abstract void CheckDeltaFile(Stream targetHashStream, Stream expectedTargetHashStream);
 
     [MemberNotNull(nameof(Applier))]
     private void SkipIfNoApplier()

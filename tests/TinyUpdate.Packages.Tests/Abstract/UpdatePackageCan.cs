@@ -5,6 +5,7 @@ using Moq;
 using SemVersion;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Model;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
 using TinyUpdate.Packages.Tests.Model;
@@ -27,8 +28,8 @@ public abstract class UpdatePackageCan
     public async Task ProcessFileData()
     {
         var baseFilePath = Path.Combine("Assets", UpdatePackage.GetType().Name);
-        await using var fileStream = FileSystem.File.OpenRead(Path.Combine(baseFilePath, "exampleUpdatePackage" + UpdatePackage.Extension));
-        await UpdatePackage.Load(fileStream);
+        await using var updatePackageStream = FileSystem.File.OpenRead(Path.Combine(baseFilePath, "exampleUpdatePackage" + UpdatePackage.Extension));
+        await UpdatePackage.Load(updatePackageStream);
 
         IReadOnlyCollection<FileEntry>? expectedDeltaFiles = null, expectedMovedFiles = null, expectedNewFiles = null, expectedUnchangedFiles = null;
         await Assert.MultipleAsync(async () =>
@@ -109,12 +110,12 @@ public abstract class UpdatePackageCan
             return;
         }
 
-        await using var targetFileStream = GetFullTargetFileStream(packageLocation, testData.ApplicationName, testData.Version);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream(expectedFileLocation);
+        await using var targetStream = GetFullTargetStream(packageLocation, testData.ApplicationName, testData.Version);
+        await using var expectedTargetStream = GetExpectedTargetStream(expectedFileLocation);
 
         try
         {
-            CheckUpdatePackageWithExpected(targetFileStream, expectedTargetFileStream);
+            CheckUpdatePackageWithExpected(targetStream, expectedTargetStream);
         }
         catch (NotImplementedException)
         {
@@ -145,12 +146,12 @@ public abstract class UpdatePackageCan
             return;
         }
 
-        await using var targetFileStream = GetDeltaTargetFileStream(packageLocation, testData.ApplicationName, testData.NewVersion);
-        await using var expectedTargetFileStream = GetExpectedTargetFileStream(expectedFileLocation);
+        await using var targetStream = GetDeltaTargetStream(packageLocation, testData.ApplicationName, testData.NewVersion);
+        await using var expectedTargetStream = GetExpectedTargetStream(expectedFileLocation);
 
         try
         {
-            CheckUpdatePackageWithExpected(targetFileStream, expectedTargetFileStream);
+            CheckUpdatePackageWithExpected(targetStream, expectedTargetStream);
         }
         catch (NotImplementedException)
         {
@@ -201,7 +202,7 @@ public abstract class UpdatePackageCan
         //Content checking is done by other tests, we just want to check if we can create a more complex update package
     }
     
-    protected abstract void CheckUpdatePackageWithExpected(Stream targetFileStream, Stream expectedTargetFileStream);
+    protected abstract void CheckUpdatePackageWithExpected(Stream targetStream, Stream expectedTargetStream);
     
     protected Mock<IDeltaApplier> CreateMockDeltaApplier(string extension)
     {
@@ -211,8 +212,8 @@ public abstract class UpdatePackageCan
         mockApplier.Setup(x => x.SupportedStream(It.IsAny<Stream>())).Returns(true);
         mockApplier.Setup(x => 
                 x.ApplyDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceFileStream, Stream deltaFileStream, Stream targetFileStream,
-                IProgress<double>? progress) => Functions.FillStreamWithRandomData(deltaFileStream))
+            .Callback((Stream sourceStream, Stream deltaStream, Stream targetStream,
+                IProgress<double>? progress) => Functions.FillStreamWithRandomData(deltaStream))
             .ReturnsAsync(true);
 
         return mockApplier;
@@ -226,13 +227,13 @@ public abstract class UpdatePackageCan
         mockCreation.Setup(x => x.Extension).Returns(extension);
         mockCreation.Setup(x => 
                 x.CreateDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceFileStream, Stream targetFileStream, Stream deltaFileStream,
+            .Callback((Stream sourceStream, Stream targetStream, Stream deltaStream,
                 IProgress<double>? progress) =>
             {
                 filesizePercent ??= Random.Shared.NextDouble();
-                var filesize = (long)(targetFileStream.Length * filesizePercent);
+                var filesize = (long)(targetStream.Length * filesizePercent);
 
-                Functions.FillStreamWithRandomData(deltaFileStream, filesize);
+                Functions.FillStreamWithRandomData(deltaStream, filesize);
             }).ReturnsAsync(true);
         
         return mockCreation;
@@ -317,19 +318,19 @@ public abstract class UpdatePackageCan
     
     private string UpdatePackageCreatorName => UpdatePackageCreator.GetType().Name;
     
-    private Stream GetDeltaTargetFileStream(string packageLocation, string applicationName, SemanticVersion newVersion)
+    private Stream GetDeltaTargetStream(string packageLocation, string applicationName, SemanticVersion newVersion)
     {
         return FileSystem.File.OpenRead(Path.Combine(packageLocation,
             string.Format(UpdatePackageCreator.DeltaPackageFilenameTemplate, applicationName, newVersion)));
     }
 
-    private Stream GetFullTargetFileStream(string packageLocation, string applicationName, SemanticVersion newVersion)
+    private Stream GetFullTargetStream(string packageLocation, string applicationName, SemanticVersion newVersion)
     {
         return FileSystem.File.OpenRead(Path.Combine(packageLocation,
             string.Format(UpdatePackageCreator.FullPackageFilenameTemplate, applicationName, newVersion)));
     }
 
-    private Stream GetExpectedTargetFileStream(string fileLocation) => FileSystem.File.OpenRead(fileLocation);
+    private Stream GetExpectedTargetStream(string fileLocation) => FileSystem.File.OpenRead(fileLocation);
 
     private string ExpectedTargetFileLocation(string filename) => Path.Combine("Assets", UpdatePackageCreatorName,
         filename + UpdatePackageCreator.Extension);

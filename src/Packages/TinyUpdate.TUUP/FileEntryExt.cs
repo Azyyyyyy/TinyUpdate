@@ -1,4 +1,5 @@
 using TinyUpdate.Core;
+using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.TUUP;
 
@@ -8,19 +9,19 @@ namespace TinyUpdate.TUUP;
 internal static class FileEntryExt
 {
     /// <summary>
-    /// Checks that this file is a delta file 
+    /// Checks if the file is a delta file 
     /// </summary>
     /// <param name="fileEntry">Details about the file</param>
     public static bool IsDeltaFile(this FileEntry fileEntry) => fileEntry.Filesize != 0 && fileEntry.Extension != Consts.NewFileExtension && fileEntry.Extension != Consts.MovedFileExtension;
 
     /// <summary>
-    /// Checks that this file is a new file 
+    /// Checks if the file is new 
     /// </summary>
     /// <param name="fileEntry">Details about the file</param>
     public static bool IsNewFile(this FileEntry fileEntry) => fileEntry.Filesize != 0 && fileEntry.Extension == Consts.NewFileExtension;
     
     /// <summary>
-    /// Checks that this file has moved
+    /// Checks if the file has moved
     /// </summary>
     /// <param name="fileEntry">Details about the file</param>
     public static bool HasFileMoved(this FileEntry fileEntry) => fileEntry.Filesize != 0 && fileEntry.Extension == Consts.MovedFileExtension;

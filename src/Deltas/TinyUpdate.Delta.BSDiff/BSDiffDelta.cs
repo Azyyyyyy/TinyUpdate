@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+using System.Buffers.Binary;
+using Microsoft.Extensions.Logging;
 using SharpCompress.Compressors;
 using SharpCompress.Compressors.BZip2;
 using TinyUpdate.Core.Abstract;
 
+//TODO: Bring in changes from bsdiff.net into here
 // Squirrel.Bsdiff: Adapted from https://github.com/LogosBible/bsdiff.net/blob/master/src/bsdiff/BinaryPatchUtility.cs
 // TinyUpdate: Adapted from https://github.com/Squirrel/Squirrel.Windows/blob/develop/src/Squirrel/BinaryPatchUtility.cs
 namespace TinyUpdate.Delta.BSDiff;
@@ -72,7 +74,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         return newSize;
     }
     
-    public async Task<bool> ApplyDeltaFile(Stream originalStream, Stream deltaStream, Stream targetStream, IProgress<double>? progress = null)
+    //TODO: Add Source + Target size check
+    public async Task<bool> ApplyDeltaFile(Stream sourceStream, Stream deltaStream, Stream targetStream, IProgress<double>? progress = null)
     {
         // check patch stream capabilities
         if (!deltaStream.CanRead)
@@ -107,6 +110,7 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         from oldfile to x bytes from the diff block; copy y bytes from the
         extra block; seek forwards in oldfile by z bytes".
         */
+
         // read header
         long controlLength, diffLength, newSize;
         await using (var patchStream = CreatePatchStream())
@@ -177,7 +181,7 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
                 }
 
                 // seek old file to the position that the new data is diffed against
-                originalStream.Position = oldPosition;
+                sourceStream.Position = oldPosition;
 
                 var bytesToCopy = (int)control[0];
                 while (bytesToCopy > 0)
@@ -188,8 +192,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
                     await diffStream.ReadExactlyAsync(newData.AsMemory(0, actualBytesToCopy));
 
                     // add old data to diff string
-                    var availableOriginalStreamBytes = Math.Min(actualBytesToCopy, (int)(originalStream.Length - originalStream.Position));
-                    await originalStream.ReadExactlyAsync(oldData.AsMemory(0, availableOriginalStreamBytes));
+                    var availableOriginalStreamBytes = Math.Min(actualBytesToCopy, (int)(sourceStream.Length - sourceStream.Position));
+                    await sourceStream.ReadExactlyAsync(oldData.AsMemory(0, availableOriginalStreamBytes));
 
                     for (var index = 0; index < availableOriginalStreamBytes; index++)
                         newData[index] += oldData[index];
@@ -241,7 +245,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         }
     }
 
-    public async Task<bool> CreateDeltaFile(Stream originalStream, Stream targetStream, Stream deltaStream, IProgress<double>? progress = null)
+    //TODO: Add Source + Target size check
+    public async Task<bool> CreateDeltaFile(Stream sourceStream, Stream targetStream, Stream deltaStream, IProgress<double>? progress = null)
     {
         // check arguments
         if (!deltaStream.CanSeek)
@@ -257,8 +262,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         }
 
         // get data
-        var oldData = new byte[originalStream.Length];
-        await originalStream.ReadExactlyAsync(oldData.AsMemory(0, oldData.Length));
+        var oldData = new byte[sourceStream.Length];
+        await sourceStream.ReadExactlyAsync(oldData.AsMemory(0, oldData.Length));
 
         var newData = new byte[targetStream.Length];
         await targetStream.ReadExactlyAsync(newData.AsMemory(0, newData.Length));
@@ -670,32 +675,14 @@ public partial class BSDiffDelta
 
     private static long ReadInt64(byte[] buf, int offset)
     {
-        long value = buf[offset + 7] & 0x7F;
-
-        for (var index = 6; index >= 0; index--)
-        {
-            value *= 256;
-            value += buf[offset + index];
-        }
-
-        if ((buf[offset + 7] & 0x80) != 0)
-            value = -value;
-
-        return value;
+        var value = BinaryPrimitives.ReadInt64LittleEndian(buf);
+        var mask = value >> 63;
+        return (~mask & value) | (((value & unchecked((long) 0x8000_0000_0000_0000)) - value) & mask);
     }
 
     private static void WriteInt64(long value, byte[] buf, int offset)
     {
-        var valueToWrite = value < 0 ? -value : value;
-
-        for (var byteIndex = 0; byteIndex < 8; byteIndex++)
-        {
-            buf[offset + byteIndex] = (byte)(valueToWrite % 256);
-            valueToWrite -= buf[offset + byteIndex];
-            valueToWrite /= 256;
-        }
-
-        if (value < 0)
-            buf[offset + 7] |= 0x80;
+        var mask = value >> 63;
+        BinaryPrimitives.WriteInt64LittleEndian(buf, ((value + mask) ^ mask) | (value & unchecked((long) 0x8000_0000_0000_0000)));
     }
 }

@@ -6,6 +6,9 @@ using TinyUpdate.Core.Abstract;
 
 namespace TinyUpdate.TUUP;
 
+/// <summary>
+/// Update package creator for <see cref="TuupUpdatePackage"/>
+/// </summary>
 public class TuupUpdatePackageCreator : IUpdatePackageCreator
 {
     private readonly AsyncLock _zipLock;
@@ -52,16 +55,17 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         return true;
     }
 
-    public async Task<bool> CreateDeltaPackage(string oldApplicationLocation, SemanticVersion oldApplicationVersion,
+    public async Task<bool> CreateDeltaPackage(string previousApplicationLocation, SemanticVersion previousApplicationVersion,
         string newApplicationLocation, SemanticVersion newApplicationVersion, string updatePackageLocation,
         string applicationName, IProgress<double>? progress = null)
     {
-        var oldFiles = Directory.GetFiles(oldApplicationLocation, "*", SearchOption.AllDirectories);
+        var previousFiles = Directory.GetFiles(previousApplicationLocation, "*", SearchOption.AllDirectories);
         var newFiles = Directory.GetFiles(newApplicationLocation, "*", SearchOption.AllDirectories);
-        Dictionary<string, List<string>> oldFilesHashes = new();
+        Dictionary<string, List<string>> previousFilesHashes = new();
         Dictionary<string, List<string>> newFilesHashes = new();
 
-        await GetHashes(oldFilesHashes, oldFiles);
+        //We make use of the hashes so we can find files that have moved!
+        await GetHashes(previousFilesHashes, previousFiles);
         await GetHashes(newFilesHashes, newFiles);
         
         using var zipArchive =
@@ -69,34 +73,38 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
 
         for (int i = 0; i < newFiles.Length; ReportAndBump(ref i))
         {
-            var newFile = newFiles[i];
-            var newHash = newFilesHashes.First(x => x.Value.Any(y => y == newFile)).Key;
-            var relativeNewFile = Path.GetRelativePath(newApplicationLocation, newFile);
+            var newFilePath = newFiles[i];
+            var newHash = newFilesHashes.First(x => x.Value.Any(y => y == newFilePath)).Key;
+            var newFileRelativePath = Path.GetRelativePath(newApplicationLocation, newFilePath);
 
-            var oldFile = oldFiles.FirstOrDefault(x => Path.GetRelativePath(oldApplicationLocation, x) == relativeNewFile);
-            await using var newFileContentStream = File.OpenRead(newFile);
+            //First see if the file is in the same place but changed
+            var previousFilePath = previousFiles.FirstOrDefault(x => Path.GetRelativePath(previousApplicationLocation, x) == newFileRelativePath);
+            await using var newFileContentStream = File.OpenRead(newFilePath);
 
-            if (string.IsNullOrWhiteSpace(oldFile))
+            //If we can't find the path in it's original location, maybe it's moved
+            if (string.IsNullOrWhiteSpace(previousFilePath))
             {
-                if (!await FindAndAddMovedFile(newHash, relativeNewFile, newFileContentStream.Length))
+                if (!await FindAndAddMovedFile(newHash, newFileRelativePath, newFileContentStream.Length))
                 {
-                    await AddNewFile(zipArchive, newFileContentStream, relativeNewFile);
+                    // (It hasn't moved)
+                    await AddNewFile(zipArchive, newFileContentStream, newFileRelativePath);
                 }
                 continue;
             }
             
             //See if the file is the same by the outputted hash
-            var oldHash = oldFilesHashes.First(x => x.Value.Any(y => y == oldFile)).Key;
-            if (newHash == oldHash)
+            var previousHash = previousFilesHashes.First(x => x.Value.Any(y => y == previousFilePath)).Key;
+            if (newHash == previousHash)
             {
-                await AddSameFile(zipArchive, relativeNewFile, newHash);
+                await AddSameFile(zipArchive, newFileRelativePath, newHash);
                 continue;
             }
 
-            await using var oldFileContentStream = File.OpenRead(oldFile);
+            //Now the fun stuff, the contents has changed so we want to get a delta file :D
+            await using var previousFileContentStream = File.OpenRead(previousFilePath);
             newFileContentStream.Seek(0, SeekOrigin.Begin);
             
-            var deltaResult = await _deltaManager.CreateDeltaFile(oldFileContentStream, newFileContentStream);
+            var deltaResult = await _deltaManager.CreateDeltaUpdate(previousFileContentStream, newFileContentStream);
             if (deltaResult.Successful)
             {
                 deltaResult.DeltaStream.Seek(0, SeekOrigin.Begin);
@@ -104,7 +112,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
                 await AddFile(
                     zipArchive,
                     deltaResult.DeltaStream,
-                    relativeNewFile + deltaResult.Creator.Extension);
+                    newFileRelativePath + deltaResult.Creator.Extension);
             }
         }
         
@@ -113,28 +121,31 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         async Task<bool> FindAndAddMovedFile(string newHash, string relativeNewFile, long filesize)
         {
             //V1 Tuup format didn't have the concept of moved files, if we want to make v1 packages then don't handle this
-            if (!_options.V1Compatible && oldFilesHashes.TryGetValue(newHash, out var oldFilesList) && oldFilesList.Count > 0)
+            if (!_options.V1Compatible && previousFilesHashes.TryGetValue(newHash, out var previousFilesList) && previousFilesList.Count > 0)
             {
-                var oldFile = oldFilesList[0];
-                var filepath = relativeNewFile + Consts.MovedFileExtension;
+                var previousFileLocation = previousFilesList[0];
+                var newFilePath = relativeNewFile + Consts.MovedFileExtension;
                 using (await _zipLock.LockAsync())
                 {
-                    CheckFilePath(ref filepath);
-                    
-                    await using var zipShasumEntryStream = zipArchive.CreateEntry(filepath, CompressionLevel.SmallestSize).Open();
-                    await using var shasumStreamWriter = new StreamWriter(zipShasumEntryStream);
-                    var path = Path.GetRelativePath(oldApplicationLocation, oldFile);
-
-                    CheckFilePath(ref path);
-                    await shasumStreamWriter.WriteAsync(path);
+                    CheckFilePath(ref newFilePath);
+                    await AddMovedPathFile(newFilePath, previousFileLocation);
                 }
 
-                await AddHashAndSizeData(zipArchive, filepath, newHash, filesize);
-
+                await AddHashAndSizeData(zipArchive, newFilePath, newHash, filesize);
                 return true;
             }
             
             return false;
+        }
+
+        async Task AddMovedPathFile(string newFilePath, string previousFileLocation)
+        {
+            await using var movedPathStream = zipArchive.CreateEntry(newFilePath, CompressionLevel.SmallestSize).Open();
+            await using var movedPathStreamWriter = new StreamWriter(movedPathStream);
+            var previousRelativePath = Path.GetRelativePath(previousApplicationLocation, previousFileLocation);
+
+            CheckFilePath(ref previousRelativePath);
+            await movedPathStreamWriter.WriteAsync(previousRelativePath);
         }
         
         async Task GetHashes(IDictionary<string, List<string>> hashes, IEnumerable<string> files)
@@ -142,8 +153,8 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
             //We want to get a hash of all the old files, this allows us to detect files which have moved
             foreach (var oldFile in files)
             {
-                await using var oldFileContentStream = File.OpenRead(oldFile);
-                var hash = _hasher.HashData(oldFileContentStream);
+                await using var previousFileContentStream = File.OpenRead(oldFile);
+                var hash = _hasher.HashData(previousFileContentStream);
                 if (!hashes.TryGetValue(hash, out var filesList))
                 {
                     filesList = new List<string>();

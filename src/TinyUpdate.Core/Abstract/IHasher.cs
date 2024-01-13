@@ -1,38 +1,40 @@
 ﻿namespace TinyUpdate.Core.Abstract;
 
+/// <summary>
+/// Provides base functionality to create & check hashes from a <see cref="Stream"/> or <see cref="byte"/>[]
+/// </summary>
 public interface IHasher
 {
     /// <summary>
-    /// Checks the output of a <see cref="Stream"/> to a hash that is expected
+    /// Compares the <see cref="Stream"/> with an expected hash
     /// </summary>
-    /// <param name="stream"><see cref="Stream"/> to check against</param>
+    /// <param name="stream"><see cref="Stream"/> to check</param>
     /// <param name="expectedHash">Hash that we are expecting</param>
-    /// <returns>If the <see cref="Stream"/> outputs the same hash as we are expecting</returns>
+    /// <returns>If the <see cref="Stream"/> outputs the same hash as the expected hash</returns>
     bool CompareHash(Stream stream, string expectedHash);
 
     /// <summary>
-    /// Checks a <see cref="byte"/>[] to a hash that is expected
+    /// Compares the <see cref="byte"/>[] with an expected hash
     /// </summary>
-    /// <param name="byteArray"><see cref="byte"/>[] to check against</param>
+    /// <param name="byteArray"><see cref="byte"/>[] to check</param>
     /// <param name="expectedHash">Hash that we are expecting</param>
-    /// <returns>If the <see cref="byte"/>[] outputs the same hash as we are expecting</returns>
+    /// <returns>If the <see cref="byte"/>[] outputs the same hash as the expected hash</returns>
     bool CompareHash(byte[] byteArray, string expectedHash);
 
     /// <summary>
     /// Creates a hash from a <see cref="Stream"/>
     /// </summary>
-    /// <param name="stream"><see cref="Stream"/> to create hash for</param>
+    /// <param name="stream"><see cref="Stream"/> to create the hash from</param>
     string HashData(Stream stream);
 
     /// <summary>
     /// Creates a hash from a <see cref="byte"/>[]
     /// </summary>
-    /// <param name="bytes"><see cref="byte"/>[] to use for creating hash</param>
-    string HashData(byte[] bytes);
+    /// <param name="byteArray"><see cref="byte"/>[] to create the hash from</param>
+    string HashData(byte[] byteArray);
     
     /// <summary>
-    /// Gets if this string is a valid hash  
+    /// Ensures that the <see cref="string"/> is a valid hash
     /// </summary>
-    /// <param name="hash">string to check</param>
     bool IsValidHash(string hash);
 }

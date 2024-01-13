@@ -1,14 +1,16 @@
 ﻿using System.IO.Compression;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.TUUP;
 
 /// <summary>
-///     Update Package based on TinyUpdate V1, Makes use of zip format
+///     Update Package based on TinyUpdate V1 (With some extra functionally)
 /// </summary>
 public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUpdatePackage, IDisposable
 {
+    //What we expect to be contained for every file within the update package
     private static readonly string[] ExpectedData = ["Filename", "Path", "Hash", "Filesize", "Extension"];
 
     private bool _loaded;
@@ -69,17 +71,15 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
         foreach (var zipEntry in zip.Entries)
         {
             //Check if the name contains a extension
-            var entryEtx = Path.GetExtension(zipEntry.Name);
-            if (string.IsNullOrEmpty(entryEtx))
+            var extension = Path.GetExtension(zipEntry.Name);
+            if (string.IsNullOrEmpty(extension))
             {
                 continue;
             }
 
-            //We append the an extension to tell the system how to handle the file, remove it so we get the actual filename
-            var filename =
-                zipEntry.Name[..zipEntry.Name.LastIndexOf(entryEtx, StringComparison.Ordinal)];
+            //We append the extension so the system knows how to handle the file, we want to remove it so we get the actual filename
+            var filename = zipEntry.Name[..zipEntry.Name.LastIndexOf(extension, StringComparison.Ordinal)];
             var filepath = Path.GetDirectoryName(zipEntry.FullName) ?? "";
-
             var key = Path.Combine(filepath, filename); //So we can store data in the same place
 
             if (!fileEntriesData.TryGetValue(key, out var fileEntryData))
@@ -90,7 +90,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
                 fileEntryData["Path"] = filepath;
             }
 
-            switch (entryEtx)
+            switch (extension)
             {
                 case Consts.MovedFileExtension:
                 {
@@ -110,19 +110,20 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
             }
             
             //This means that this entry contains data we want to work with 
-            if (entryEtx == Consts.NewFileExtension
-                || deltaManager.Appliers.Any(x => x.Extension == entryEtx))
+            if (extension == Consts.NewFileExtension
+                || deltaManager.Appliers.Any(x => x.Extension == extension))
             {
                 fileEntryData["Stream"] = zipEntry.Open();
-                fileEntryData["Extension"] = entryEtx;
+                fileEntryData["Extension"] = extension;
             }
 
-            if (entryEtx is Consts.UnchangedFileExtension or Consts.MovedFileExtension)
+            if (extension is Consts.UnchangedFileExtension or Consts.MovedFileExtension)
             {
-                fileEntryData["Extension"] = entryEtx;
+                fileEntryData["Extension"] = extension;
             }
         }
 
+        //TODO: See if they is a way that we could make this without having to cast everything, this works for now
         //Now that we got all the information needed, lets throw it back!
         foreach (var (_, fileEntryData) in fileEntriesData)
         {
@@ -148,6 +149,8 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
             return false;
         }
 
+        //TODO: Maybe relax this restriction?
+        //Check if we've got a file without any data when data is expected!
         var filesize = (long?)fileEntryData["Filesize"];
         if (filesize != 0 
             && fileEntryData["Extension"] is not Consts.UnchangedFileExtension and not Consts.MovedFileExtension 
@@ -156,13 +159,14 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
             return false;
         }
         
-        //Clear out stream if it'll be nothing, no need to keep it
+        //Clear out the stream if it'll be nothing, no need to keep it
         if (filesize == 0 && fileEntryData.TryGetValue("Stream", out var streamObj))
         {
             ((Stream?)streamObj)?.Dispose();
             fileEntryData["Stream"] = null;
         }
 
+        //Possible that these will be nothing, still need something for them
         fileEntryData.TryAdd("Stream", null);
         fileEntryData.TryAdd("PreviousLocation", null);
         return true;

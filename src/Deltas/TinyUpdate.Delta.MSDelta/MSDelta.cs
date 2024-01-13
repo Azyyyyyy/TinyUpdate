@@ -1,30 +1,36 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using System.Text;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Delta.MSDelta.Enum;
 using TinyUpdate.Delta.MSDelta.Struct;
 
 namespace TinyUpdate.Delta.MSDelta;
 
+/*TODO: Possibly imp https://github.com/smilingthax/msdelta-pa30-format so we can at least detect valid files in a cross-platform matter?*/
+
+/// <summary>
+/// Provides creating and applying MSDelta... deltas
+/// </summary>
 public partial class MSDelta : IDeltaApplier, IDeltaCreation
 {
     public string Extension => ".diff";
 
     public unsafe bool SupportedStream(Stream deltaStream)
     {
-        var deltaBytes = new byte[deltaStream.Length];
+        var deltaBytes = new byte[70]; //This is enough space to hold a MSDelta header
         deltaStream.ReadExactly(deltaBytes, 0, deltaBytes.Length);
         
         fixed (byte* deltaBuf = deltaBytes)
         {
             var deltaDeltaInput = new DeltaInput(deltaBuf, deltaBytes.Length, true);
-            var supported = GetDeltaInfoB(deltaDeltaInput, out var info);
+            var supported = GetDeltaInfoB(deltaDeltaInput, out _);
             return supported;
         }
     }
 
     public unsafe long TargetStreamSize(Stream deltaStream)
     {
-        var deltaBytes = new byte[deltaStream.Length];
+        var deltaBytes = new byte[70]; //This is enough space to hold a MSDelta header
         deltaStream.ReadExactly(deltaBytes, 0, deltaBytes.Length);
         
         fixed (byte* deltaBuf = deltaBytes)
@@ -39,15 +45,15 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
         return -1;
     }
 
-    public unsafe Task<bool> ApplyDeltaFile(Stream sourceFileStream, Stream deltaFileStream,
-        Stream targetFileStream,
+    public unsafe Task<bool> ApplyDeltaFile(Stream sourceStream, Stream deltaStream,
+        Stream targetStream,
         IProgress<double>? progress = null)
     {
-        var sourceBytes = new byte[sourceFileStream.Length];
-        sourceFileStream.ReadExactly(sourceBytes, 0, sourceBytes.Length);
+        var sourceBytes = new byte[sourceStream.Length];
+        sourceStream.ReadExactly(sourceBytes, 0, sourceBytes.Length);
 
-        var deltaBytes = new byte[deltaFileStream.Length];
-        deltaFileStream.ReadExactly(deltaBytes, 0, deltaBytes.Length);
+        var deltaBytes = new byte[deltaStream.Length];
+        deltaStream.ReadExactly(deltaBytes, 0, deltaBytes.Length);
 
         fixed (byte* sourceBuf = sourceBytes)
         fixed (byte* deltaBuf = deltaBytes)
@@ -59,9 +65,9 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
             var success = ApplyDeltaB(ApplyFlag.None, sourceDeltaInput, deltaDeltaInput, out var output);
             if (success)
             {
-                var deltaStream = new UnmanagedMemoryStream((byte*)output.BufferPtr, output.Size);
-                deltaStream.CopyTo(targetFileStream);
-                deltaStream.Dispose();
+                var deltaProcessedStream = new UnmanagedMemoryStream((byte*)output.BufferPtr, output.Size);
+                deltaProcessedStream.CopyTo(targetStream);
+                deltaProcessedStream.Dispose();
                 cleared = DeltaFree(output.BufferPtr);
             }
 
@@ -69,16 +75,16 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
         }
     }
 
-    public unsafe Task<bool> CreateDeltaFile(Stream sourceFileStream, Stream targetFileStream,
-        Stream deltaFileStream,
+    //TODO: Add Source + Target size check
+    public unsafe Task<bool> CreateDeltaFile(Stream sourceStream, Stream targetStream,
+        Stream deltaStream,
         IProgress<double>? progress = null)
     {
-        //TODO: Add stream length check
-        var sourceBytes = new byte[sourceFileStream.Length];
-        sourceFileStream.ReadExactly(sourceBytes, 0, sourceBytes.Length);
+        var sourceBytes = new byte[sourceStream.Length];
+        sourceStream.ReadExactly(sourceBytes, 0, sourceBytes.Length);
 
-        var targetBytes = new byte[targetFileStream.Length];
-        targetFileStream.ReadExactly(targetBytes, 0, targetBytes.Length);
+        var targetBytes = new byte[targetStream.Length];
+        targetStream.ReadExactly(targetBytes, 0, targetBytes.Length);
         
         fixed (byte* sourceBuf = sourceBytes)
         fixed (byte* targetBuf = targetBytes)
@@ -93,8 +99,8 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
 
             if (success)
             {
-                using var deltaStream = new UnmanagedMemoryStream((byte*)deltaBuffer.BufferPtr, deltaBuffer.Size);
-                deltaStream.CopyTo(deltaFileStream);
+                using var deltaProcessedStream = new UnmanagedMemoryStream((byte*)deltaBuffer.BufferPtr, deltaBuffer.Size);
+                deltaProcessedStream.CopyTo(deltaStream);
                 cleared = DeltaFree(deltaBuffer.BufferPtr);
             }
 
@@ -105,7 +111,7 @@ public partial class MSDelta : IDeltaApplier, IDeltaCreation
     }
 }
 
-//Ms Imp
+//MSDelta Hooks
 public partial class MSDelta
 {
     /// <summary>

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace TinyUpdate.Core;
+namespace TinyUpdate.Core.Model;
 
 /// <summary>
 /// File entry with all the information to do a update
@@ -64,8 +64,5 @@ public class FileEntry
     /// <summary>
     /// The extension that exposes how to process this file
     /// </summary>
-    /// <remarks>
-    /// .new -> "New File"
-    /// </remarks>
     public required string Extension { get; init; }
 }

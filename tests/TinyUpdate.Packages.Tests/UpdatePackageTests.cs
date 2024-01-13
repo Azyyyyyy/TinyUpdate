@@ -40,24 +40,24 @@ public class TuupUpdatePackageTests : UpdatePackageCan
         }
     }
 
-    protected override void CheckUpdatePackageWithExpected(Stream targetFileStream, Stream expectedTargetFileStream)
+    protected override void CheckUpdatePackageWithExpected(Stream targetStream, Stream expectedTargetStream)
     {
-        var targetFileStreamZip = new ZipArchive(targetFileStream, ZipArchiveMode.Read);
-        var expectedTargetFileStreamZip = new ZipArchive(expectedTargetFileStream, ZipArchiveMode.Read);
+        var targetStreamZip = new ZipArchive(targetStream, ZipArchiveMode.Read);
+        var expectedTargetStreamZip = new ZipArchive(expectedTargetStream, ZipArchiveMode.Read);
         
         Assert.Multiple(() =>
         {
-            Assert.That(expectedTargetFileStreamZip.Entries, 
-                Has.Count.EqualTo(targetFileStreamZip.Entries.Count), 
+            Assert.That(expectedTargetStreamZip.Entries, 
+                Has.Count.EqualTo(targetStreamZip.Entries.Count), 
                 () => "They isn't the correct amount of files");
 
-            Assert.That(expectedTargetFileStreamZip.Entries.Select(x => x.FullName).OrderDescending(), 
-                Is.EquivalentTo(targetFileStreamZip.Entries.Select(x => x.FullName).OrderDescending()), 
+            Assert.That(expectedTargetStreamZip.Entries.Select(x => x.FullName).OrderDescending(), 
+                Is.EquivalentTo(targetStreamZip.Entries.Select(x => x.FullName).OrderDescending()), 
                 () => "File structure is not the same in both files");
 
-            foreach (var expectedEntry in expectedTargetFileStreamZip.Entries)
+            foreach (var expectedEntry in expectedTargetStreamZip.Entries)
             {
-                var targetEntry = targetFileStreamZip.GetEntry(expectedEntry.FullName);
+                var targetEntry = targetStreamZip.GetEntry(expectedEntry.FullName);
                 if (targetEntry == null)
                 {
                     Assert.Fail($"{expectedEntry.FullName} doesn't exist within the target file");

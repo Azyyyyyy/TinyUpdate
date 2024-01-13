@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using NeoSmart.AsyncLock;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.Core;
 
@@ -13,7 +14,7 @@ public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDelt
     public IReadOnlyCollection<IDeltaApplier> Appliers { get; } = appliers.ToImmutableArray();
     public IReadOnlyCollection<IDeltaCreation> Creators { get; } = creators.ToImmutableArray();
 
-    public async Task<DeltaCreationResult> CreateDeltaFile(Stream sourceStream, Stream targetStream)
+    public async Task<DeltaCreationResult> CreateDeltaUpdate(Stream sourceStream, Stream targetStream)
     {
         var resultBag = new ConcurrentBag<DeltaCreationResult>();
         var sourceStreamMasterCopy = new MemoryStream();

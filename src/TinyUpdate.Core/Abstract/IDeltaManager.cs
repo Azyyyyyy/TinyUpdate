@@ -1,24 +1,27 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.Core.Abstract;
 
+/// <summary>
+/// Manages delta processing for external packages
+/// </summary>
 public interface IDeltaManager
 {
+    /// <summary>
+    /// The <see cref="IDeltaApplier"/>s which will be used for applying delta updates
+    /// </summary>
     public IReadOnlyCollection<IDeltaApplier> Appliers { get; }
-    
+
+    /// <summary>
+    /// The <see cref="IDeltaCreation"/>s which will be used for creating delta updates
+    /// </summary>
     public IReadOnlyCollection<IDeltaCreation> Creators { get; }
 
-    public Task<DeltaCreationResult> CreateDeltaFile(Stream sourceStream, Stream targetStream);
-}
-
-public record DeltaCreationResult(IDeltaCreation? creator, Stream? deltaStream, bool successful)
-{
-    public static readonly DeltaCreationResult Failed = new DeltaCreationResult(null, null, false);
-
-    public IDeltaCreation? Creator { get; } = creator;
-
-    public Stream? DeltaStream { get; } = deltaStream;
-
-    [MemberNotNullWhen(true, nameof(Creator), nameof(DeltaStream))]
-    public bool Successful { get; } = successful;
+    /// <summary>
+    /// Creates a delta update, returning the best delta created
+    /// </summary>
+    /// <param name="sourceStream">Source Stream (Previous data)</param>
+    /// <param name="targetStream">Target Stream (New data)</param>
+    /// <returns>The results of delta creation</returns>
+    public Task<DeltaCreationResult> CreateDeltaUpdate(Stream sourceStream, Stream targetStream);
 }

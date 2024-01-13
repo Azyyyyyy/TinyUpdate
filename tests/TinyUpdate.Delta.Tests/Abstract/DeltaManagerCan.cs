@@ -1,6 +1,8 @@
 ﻿using System.IO.Abstractions;
 using Moq;
+using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Model;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
 
@@ -28,10 +30,10 @@ public abstract class DeltaManagerCan
         }
         
         var deltaManager = CreateDeltaManager(Array.Empty<IDeltaApplier>(), creatorList.Select(x => x.Object));
-        await using var sourceFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        await using var targetFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        await using var sourceStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var targetStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
 
-        var result = await deltaManager.CreateDeltaFile(sourceFileStream, targetFileStream);
+        var result = await deltaManager.CreateDeltaUpdate(sourceStream, targetStream);
         Assert.Multiple(() =>
         {
             Assert.That(result.Successful, Is.True, () => "Failed to create a dummy delta file");
@@ -50,10 +52,10 @@ public abstract class DeltaManagerCan
         creatorList[1] = CreateMockDeltaCreation(GetRandomExtension(), false, 0.2);
 
         var deltaManager = CreateDeltaManager(Array.Empty<IDeltaApplier>(), creatorList.Select(x => x.Object));
-        await using var sourceFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        await using var targetFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        await using var sourceStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var targetStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
 
-        var result = await deltaManager.CreateDeltaFile(sourceFileStream, targetFileStream);
+        var result = await deltaManager.CreateDeltaUpdate(sourceStream, targetStream);
         Assert.Multiple(() =>
         {
             Assert.That(result.Successful, Is.True, () => "Failed to create a dummy delta file");
@@ -70,10 +72,10 @@ public abstract class DeltaManagerCan
         creatorList[1] = CreateMockDeltaCreation(GetRandomExtension(), false, 0.2);
 
         var deltaManager = CreateDeltaManager(Array.Empty<IDeltaApplier>(), creatorList.Select(x => x.Object));
-        await using var sourceFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        await using var targetFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        await using var sourceStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var targetStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
 
-        var result = await deltaManager.CreateDeltaFile(sourceFileStream, targetFileStream);
+        var result = await deltaManager.CreateDeltaUpdate(sourceStream, targetStream);
         Assert.That(result, Is.EqualTo(DeltaCreationResult.Failed), () => $"Didn't pass failed {nameof(DeltaCreationResult)}");
     }
     
@@ -83,10 +85,10 @@ public abstract class DeltaManagerCan
     {
         var creatorList = CreateMockDeltaCreators();
         var deltaManager = CreateDeltaManager(Array.Empty<IDeltaApplier>(), creatorList.Select(x => x.Object));
-        await using var sourceFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
-        await using var targetFileStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
+        await using var sourceStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "original.jpg"));
+        await using var targetStream = _fileSystem.File.OpenRead(Path.Combine("Assets", "new.jpg"));
 
-        var result = await deltaManager.CreateDeltaFile(sourceFileStream, targetFileStream);
+        var result = await deltaManager.CreateDeltaUpdate(sourceStream, targetStream);
         Assert.Multiple(() =>
         {
             //One will come back as successful, we want to ensure that's the case here
@@ -124,13 +126,13 @@ public abstract class DeltaManagerCan
         mockCreation.Setup(x => x.Extension).Returns(extension);
         mockCreation.Setup(x => 
                 x.CreateDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceFileStream, Stream targetFileStream, Stream deltaFileStream,
+            .Callback((Stream sourceStream, Stream targetStream, Stream deltaStream,
                 IProgress<double>? progress) =>
             {
                 targetFilesizePercent ??= (long)Random.Shared.NextDouble();
 
-                var filesize = (long)(targetFileStream.Length * targetFilesizePercent.Value);
-                Functions.FillStreamWithRandomData(deltaFileStream, filesize);
+                var filesize = (long)(targetStream.Length * targetFilesizePercent.Value);
+                Functions.FillStreamWithRandomData(deltaStream, filesize);
             }).ReturnsAsync(pass);
         
         return mockCreation;

@@ -1,7 +1,7 @@
 ﻿namespace TinyUpdate.Core.Abstract;
 
 /// <summary>
-/// Provides base functions for applying an delta update
+/// Provides base functionality for applying delta updates
 /// </summary>
 public interface IDeltaApplier : IExtension
 {
@@ -18,10 +18,10 @@ public interface IDeltaApplier : IExtension
     /// <summary>
     /// Applies the delta update into the target stream
     /// </summary>
-    /// <param name="sourceFileStream">Source stream</param>
-    /// <param name="deltaFileStream">Delta stream</param>
-    /// <param name="targetFileStream">Target stream (OUTPUT)</param>
+    /// <param name="sourceStream">Source stream (Previous data)</param>
+    /// <param name="deltaStream">Delta stream (Patch data)</param>
+    /// <param name="targetStream">Target stream (New data - OUTPUT)</param>
     /// <param name="progress">Progress on applying delta update</param>
     /// <returns>If applying the update was successful</returns>
-    Task<bool> ApplyDeltaFile(Stream sourceFileStream, Stream deltaFileStream, Stream targetFileStream, IProgress<double>? progress = null);
+    Task<bool> ApplyDeltaFile(Stream sourceStream, Stream deltaStream, Stream targetStream, IProgress<double>? progress = null);
 }

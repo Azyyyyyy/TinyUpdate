@@ -1,11 +1,20 @@
-﻿namespace TinyUpdate.Core.Abstract;
+﻿using TinyUpdate.Core.Model;
 
+namespace TinyUpdate.Core.Abstract;
+
+/// <summary>
+/// Provides base functionality for handling an update package
+/// </summary>
 public interface IUpdatePackage : IExtension
 {
+    /// <summary>
+    /// Loads the update package data in
+    /// </summary>
+    /// <param name="updatePackageStream">Data to load in</param>
     Task Load(Stream updatePackageStream);
     
     /// <summary>
-    /// Files that need to be processed as a delta file
+    /// Files that have been processed into a delta file
     /// </summary>
     ICollection<FileEntry> DeltaFiles { get; }
 

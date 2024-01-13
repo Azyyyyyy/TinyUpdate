@@ -16,11 +16,11 @@ public class BSDiffDeltaTests : DeltaCan
         Applier = delta;
     }
 
-    protected override void CheckDeltaFile(Stream targetFileStream, Stream expectedTargetFileStream)
+    protected override void CheckDeltaFile(Stream targetHashStream, Stream expectedTargetHashStream)
     {
-        var expectedTargetFileStreamHash = Hasher.HashData(expectedTargetFileStream);
-        var targetFileStreamHash = Hasher.HashData(targetFileStream);
-        Assert.That(expectedTargetFileStreamHash, Is.EqualTo(targetFileStreamHash), () => $"{ApplierName} delta file is not as expected");
+        var expectedHash = Hasher.HashData(expectedTargetHashStream);
+        var hash = Hasher.HashData(targetHashStream);
+        Assert.That(hash, Is.EqualTo(expectedHash), () => $"{ApplierName} delta file is not as expected");
     }
 }
 
@@ -39,10 +39,10 @@ public class MSDeltaTests : DeltaCan
         }
     }
 
-    protected override void CheckDeltaFile(Stream targetFileStream, Stream expectedTargetFileStream)
+    protected override void CheckDeltaFile(Stream targetHashStream, Stream expectedTargetHashStream)
     {
-        var targetHash = GetDeltaHash(targetFileStream);
-        var expectedTargetHash = GetDeltaHash(expectedTargetFileStream);
+        var targetHash = GetDeltaHash(targetHashStream);
+        var expectedTargetHash = GetDeltaHash(expectedTargetHashStream);
         Assert.That(targetHash, Is.EqualTo(expectedTargetHash));
     }
 
