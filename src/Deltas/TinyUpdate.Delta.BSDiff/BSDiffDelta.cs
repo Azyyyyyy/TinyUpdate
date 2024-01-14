@@ -1,8 +1,7 @@
-using System.Buffers.Binary;
 using Microsoft.Extensions.Logging;
 using SharpCompress.Compressors;
 using SharpCompress.Compressors.BZip2;
-using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.Delta;
 
 //TODO: Bring in changes from bsdiff.net into here
 // Squirrel.Bsdiff: Adapted from https://github.com/LogosBible/bsdiff.net/blob/master/src/bsdiff/BinaryPatchUtility.cs
@@ -94,7 +93,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
             return false;
         }
 
-        var patchMemoryStream = new MemoryStream();
+        //TODO: Check stream type passed
+        await using var patchMemoryStream = new MemoryStream();
         await deltaStream.CopyToAsync(patchMemoryStream);
 
         /*
@@ -115,7 +115,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
         long controlLength, diffLength, newSize;
         await using (var patchStream = CreatePatchStream())
         {
-            var header = patchStream.ReadExactly(CHeaderSize);
+            var header = new byte[CHeaderSize];
+            patchStream.ReadExactly(header);
 
             // check for appropriate magic
             var signature = ReadInt64(header, 0);
@@ -450,7 +451,8 @@ public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
             return false;
         }
 
-        var header = deltaStream.ReadExactly(CHeaderSize);
+        var header = new byte[CHeaderSize];
+        deltaStream.ReadExactly(header);
 
         // check for appropriate magic
         var signature = ReadInt64(header, 0);
@@ -675,14 +677,32 @@ public partial class BSDiffDelta
 
     private static long ReadInt64(byte[] buf, int offset)
     {
-        var value = BinaryPrimitives.ReadInt64LittleEndian(buf);
-        var mask = value >> 63;
-        return (~mask & value) | (((value & unchecked((long) 0x8000_0000_0000_0000)) - value) & mask);
-    }
+        long value = buf[offset + 7] & 0x7F;
 
+        for (var index = 6; index >= 0; index--)
+        {
+            value *= 256;
+            value += buf[offset + index];
+        }
+
+        if ((buf[offset + 7] & 0x80) != 0)
+            value = -value;
+
+        return value;
+    }
+    
     private static void WriteInt64(long value, byte[] buf, int offset)
     {
-        var mask = value >> 63;
-        BinaryPrimitives.WriteInt64LittleEndian(buf, ((value + mask) ^ mask) | (value & unchecked((long) 0x8000_0000_0000_0000)));
+        var valueToWrite = value < 0 ? -value : value;
+
+        for (var byteIndex = 0; byteIndex < 8; byteIndex++)
+        {
+            buf[offset + byteIndex] = (byte)(valueToWrite % 256);
+            valueToWrite -= buf[offset + byteIndex];
+            valueToWrite /= 256;
+        }
+
+        if (value < 0)
+            buf[offset + 7] |= 0x80;
     }
 }

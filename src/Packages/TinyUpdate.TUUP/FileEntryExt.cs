@@ -1,4 +1,3 @@
-using TinyUpdate.Core;
 using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.TUUP;

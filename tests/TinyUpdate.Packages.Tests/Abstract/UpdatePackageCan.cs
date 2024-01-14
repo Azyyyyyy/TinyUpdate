@@ -3,8 +3,8 @@ using System.IO.Abstractions;
 using System.Text.Json;
 using Moq;
 using SemVersion;
-using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Model;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
@@ -15,7 +15,8 @@ namespace TinyUpdate.Packages.Tests.Abstract;
 public abstract class UpdatePackageCan
 {
     protected IUpdatePackage UpdatePackage = null!;
-    protected IUpdatePackageCreator UpdatePackageCreator = null!;
+    protected IDeltaUpdatePackageCreator DeltaPackageCreator = null!;
+    protected IUpdatePackageCreator FullPackageCreator = null!;
     protected IFileSystem FileSystem = null!;
 
     [OneTimeSetUp]
@@ -66,7 +67,7 @@ public abstract class UpdatePackageCan
 
             return JsonSerializer.Deserialize<IReadOnlyCollection<FileEntry>>(await File.ReadAllTextAsync(fileLocation));
         }
-        void CheckEntries(IReadOnlyCollection<FileEntry> expectedCollection, ICollection<FileEntry> actualCollection, bool shouldHaveStream)
+        void CheckEntries(IReadOnlyCollection<FileEntry> expectedCollection, IReadOnlyCollection<FileEntry> actualCollection, bool shouldHaveStream)
         {
             Assert.That(expectedCollection, Has.Count.EqualTo(actualCollection.Count));
             foreach (var expectedFileEntry in expectedCollection)
@@ -100,7 +101,7 @@ public abstract class UpdatePackageCan
         
         FileSystem.Directory.CreateDirectory(packageLocation);
         
-        var successful = await UpdatePackageCreator.CreateFullPackage(location, testData.Version, packageLocation, testData.ApplicationName);
+        var successful = await FullPackageCreator.CreateFullPackage(location, testData.Version, packageLocation, testData.ApplicationName);
         Assert.That(successful, Is.True);
 
         var expectedFileLocation = ExpectedTargetFileLocation(testData.ExpectedFilename);
@@ -136,7 +137,7 @@ public abstract class UpdatePackageCan
         
         FileSystem.Directory.CreateDirectory(packageLocation);
         
-        var successful = await UpdatePackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, testData.NewVersion, packageLocation, testData.ApplicationName);
+        var successful = await DeltaPackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, testData.NewVersion, packageLocation, testData.ApplicationName);
         Assert.That(successful, Is.True);
 
         var expectedFileLocation = ExpectedTargetFileLocation(testData.ExpectedFilename);
@@ -171,7 +172,7 @@ public abstract class UpdatePackageCan
         FileSystem.Directory.CreateDirectory(packageLocation);
         await CreateDirectoryData(location, 1);
         
-        var successful = await UpdatePackageCreator.CreateFullPackage(location, version, packageLocation, applicationName);
+        var successful = await FullPackageCreator.CreateFullPackage(location, version, packageLocation, applicationName);
         Assert.That(successful, Is.True);
         //Content checking is done by other tests, we just want to check if we can create a more complex update package
     }
@@ -197,7 +198,7 @@ public abstract class UpdatePackageCan
         CopyDirectory(oldLocation, newLocation);
         await MessAroundWithDirectory(newLocation);
         
-        var successful = await UpdatePackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, newVersion, packageLocation, applicationName);
+        var successful = await DeltaPackageCreator.CreateDeltaPackage(oldLocation, oldVersion, newLocation, newVersion, packageLocation, applicationName);
         Assert.That(successful, Is.True);
         //Content checking is done by other tests, we just want to check if we can create a more complex update package
     }
@@ -316,22 +317,22 @@ public abstract class UpdatePackageCan
         Functions.FillStreamWithRandomData(fileStream);
     }
     
-    private string UpdatePackageCreatorName => UpdatePackageCreator.GetType().Name;
+    private string UpdatePackageCreatorName => DeltaPackageCreator.GetType().Name;
     
     private Stream GetDeltaTargetStream(string packageLocation, string applicationName, SemanticVersion newVersion)
     {
         return FileSystem.File.OpenRead(Path.Combine(packageLocation,
-            string.Format(UpdatePackageCreator.DeltaPackageFilenameTemplate, applicationName, newVersion)));
+            string.Format(DeltaPackageCreator.DeltaPackageFilenameTemplate, applicationName, newVersion)));
     }
 
     private Stream GetFullTargetStream(string packageLocation, string applicationName, SemanticVersion newVersion)
     {
         return FileSystem.File.OpenRead(Path.Combine(packageLocation,
-            string.Format(UpdatePackageCreator.FullPackageFilenameTemplate, applicationName, newVersion)));
+            string.Format(FullPackageCreator.FullPackageFilenameTemplate, applicationName, newVersion)));
     }
 
     private Stream GetExpectedTargetStream(string fileLocation) => FileSystem.File.OpenRead(fileLocation);
 
     private string ExpectedTargetFileLocation(string filename) => Path.Combine("Assets", UpdatePackageCreatorName,
-        filename + UpdatePackageCreator.Extension);
+        filename + DeltaPackageCreator.Extension);
 }

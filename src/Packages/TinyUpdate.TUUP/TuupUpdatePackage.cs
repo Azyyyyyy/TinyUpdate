@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
-using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.TUUP;
@@ -18,10 +18,10 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
     private ZipArchive? _zipArchive;
 
     public string Extension => Consts.TuupExtension;
-    public ICollection<FileEntry> DeltaFiles { get; } = new List<FileEntry>();
-    public ICollection<FileEntry> UnchangedFiles { get; } = new List<FileEntry>();
-    public ICollection<FileEntry> NewFiles { get; } = new List<FileEntry>();
-    public ICollection<FileEntry> MovedFiles { get; } = new List<FileEntry>();
+    public IReadOnlyCollection<FileEntry> DeltaFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
+    public IReadOnlyCollection<FileEntry> UnchangedFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
+    public IReadOnlyCollection<FileEntry> NewFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
+    public IReadOnlyCollection<FileEntry> MovedFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
 
     public async Task Load(Stream updatePackageStream)
     {
@@ -33,31 +33,39 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
         {
             throw new InvalidDataException("TuupUpdatePackage expects a zip formatted package", e);
         }
-        
+
+        var deltaFiles = new List<FileEntry>();
+        var unchangedFiles = new List<FileEntry>();
+        var newFiles = new List<FileEntry>();
+        var movedFiles = new List<FileEntry>();
         await foreach (var fileEntry in GetFilesFromPackage(_zipArchive))
         {
             //Add to the correct collection 
             if (fileEntry.IsDeltaFile())
             {
-                DeltaFiles.Add(fileEntry);
+                deltaFiles.Add(fileEntry);
                 continue;
             }
 
             if (fileEntry.IsNewFile())
             {
-                NewFiles.Add(fileEntry);
+                newFiles.Add(fileEntry);
                 continue;
             }
 
             if (fileEntry.HasFileMoved())
             {
-                MovedFiles.Add(fileEntry);
+                movedFiles.Add(fileEntry);
                 continue;
             }
             
-            UnchangedFiles.Add(fileEntry);
+            unchangedFiles.Add(fileEntry);
         }
 
+        DeltaFiles = deltaFiles;
+        UnchangedFiles = unchangedFiles;
+        NewFiles = newFiles;
+        MovedFiles = movedFiles;
         _loaded = true;
     }
     
@@ -67,7 +75,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
     /// <param name="zip"><see cref="ZipArchive" /> that contains all the files</param>
     private async IAsyncEnumerable<FileEntry> GetFilesFromPackage(ZipArchive zip)
     {
-        var fileEntriesData = new Dictionary<string, Dictionary<string, object?>>(zip.Entries.Count);
+        var fileEntriesData = new Dictionary<string, Dictionary<string, object?>>(zip.Entries.Count / 2);
         foreach (var zipEntry in zip.Entries)
         {
             //Check if the name contains a extension

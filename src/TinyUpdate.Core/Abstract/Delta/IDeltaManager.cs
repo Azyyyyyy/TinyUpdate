@@ -1,6 +1,6 @@
 ﻿using TinyUpdate.Core.Model;
 
-namespace TinyUpdate.Core.Abstract;
+namespace TinyUpdate.Core.Abstract.Delta;
 
 /// <summary>
 /// Manages delta processing for external packages

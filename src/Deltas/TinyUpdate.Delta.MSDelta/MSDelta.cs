@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using System.Text;
-using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Delta.MSDelta.Enum;
 using TinyUpdate.Delta.MSDelta.Struct;
 

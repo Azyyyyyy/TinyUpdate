@@ -3,7 +3,7 @@
 namespace TinyUpdate.Core.Abstract;
 
 /// <summary>
-/// Provides base functionality for handling an update package
+/// Provides base functionality for handling update packages
 /// </summary>
 public interface IUpdatePackage : IExtension
 {
@@ -16,20 +16,20 @@ public interface IUpdatePackage : IExtension
     /// <summary>
     /// Files that have been processed into a delta file
     /// </summary>
-    ICollection<FileEntry> DeltaFiles { get; }
+    IReadOnlyCollection<FileEntry> DeltaFiles { get; }
 
     /// <summary>
     /// Files that should already be on the device
     /// </summary>
-    ICollection<FileEntry> UnchangedFiles { get; }
+    IReadOnlyCollection<FileEntry> UnchangedFiles { get; }
 
     /// <summary>
     /// Files that aren't in the last update 
     /// </summary>
-    ICollection<FileEntry> NewFiles { get; }
+    IReadOnlyCollection<FileEntry> NewFiles { get; }
     
     /// <summary>
     /// Files that are unchanged but moved 
     /// </summary>
-    ICollection<FileEntry> MovedFiles { get; }
+    IReadOnlyCollection<FileEntry> MovedFiles { get; }
 }

@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.Delta;
 
 namespace TinyUpdate.Core.Model;
 

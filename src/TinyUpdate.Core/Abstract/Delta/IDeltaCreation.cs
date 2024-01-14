@@ -1,4 +1,4 @@
-﻿namespace TinyUpdate.Core.Abstract;
+﻿namespace TinyUpdate.Core.Abstract.Delta;
 
 /// <summary>
 /// Provides base functionality for creating delta updates 

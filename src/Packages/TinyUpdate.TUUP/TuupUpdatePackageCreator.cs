@@ -3,13 +3,14 @@ using System.IO.Compression;
 using NeoSmart.AsyncLock;
 using SemVersion;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.Delta;
 
 namespace TinyUpdate.TUUP;
 
 /// <summary>
 /// Update package creator for <see cref="TuupUpdatePackage"/>
 /// </summary>
-public class TuupUpdatePackageCreator : IUpdatePackageCreator
+public class TuupUpdatePackageCreator : IDeltaUpdatePackageCreator, IUpdatePackageCreator
 {
     private readonly AsyncLock _zipLock;
     private readonly IHasher _hasher;
@@ -151,17 +152,17 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         async Task GetHashes(IDictionary<string, List<string>> hashes, IEnumerable<string> files)
         {
             //We want to get a hash of all the old files, this allows us to detect files which have moved
-            foreach (var oldFile in files)
+            foreach (var fileLocation in files)
             {
-                await using var previousFileContentStream = File.OpenRead(oldFile);
-                var hash = _hasher.HashData(previousFileContentStream);
+                await using var fileContentStream = File.OpenRead(fileLocation);
+                var hash = _hasher.HashData(fileContentStream);
                 if (!hashes.TryGetValue(hash, out var filesList))
                 {
                     filesList = new List<string>();
                     hashes.Add(hash, filesList);
                 }
             
-                filesList.Add(oldFile);
+                filesList.Add(fileLocation);
             }
         }
 
@@ -202,7 +203,7 @@ public class TuupUpdatePackageCreator : IUpdatePackageCreator
         return true;
     }
 
-    private void CheckFilePath(ref string filepath)
+    private static void CheckFilePath(ref string filepath)
     {
         if (Path.DirectorySeparatorChar != '\\')
         {

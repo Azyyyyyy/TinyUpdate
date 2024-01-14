@@ -1,6 +1,4 @@
-﻿using System.Collections;
-
-namespace TinyUpdate.Core.Tests.TestSources;
+﻿namespace TinyUpdate.Core.Tests.TestSources;
 
 public static class SHA256TestSource
 {

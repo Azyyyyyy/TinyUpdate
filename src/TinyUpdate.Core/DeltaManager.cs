@@ -1,11 +1,14 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using NeoSmart.AsyncLock;
-using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.Core;
 
+/// <summary>
+/// Default <see cref="IDeltaManager"/> implementation
+/// </summary>
 public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators)
     : IDeltaManager
 {
@@ -16,6 +19,9 @@ public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDelt
 
     public async Task<DeltaCreationResult> CreateDeltaUpdate(Stream sourceStream, Stream targetStream)
     {
+        /*As we'll be using multiple creators at the same time, we want to copy the streams here
+         and then within the for each below, this is so we're not consistently hitting IO*/
+        //TODO: Add some checks for the stream type passed?
         var resultBag = new ConcurrentBag<DeltaCreationResult>();
         var sourceStreamMasterCopy = new MemoryStream();
         var targetStreamMasterCopy = new MemoryStream();
@@ -29,6 +35,7 @@ public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDelt
             var sourceStreamLocalCopy = new MemoryStream();
             var targetStreamLocalCopy = new MemoryStream();
 
+            //Copy the master copy into this local copy, otherwise multiple creators would clash when using the same stream
             using (await _copyLock.LockAsync(token))
             {
                 sourceStreamMasterCopy.Seek(0, SeekOrigin.Begin);
