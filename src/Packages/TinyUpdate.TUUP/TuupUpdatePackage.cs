@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using SemVersion;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Model;
@@ -18,12 +19,16 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
     private ZipArchive? _zipArchive;
 
     public string Extension => Consts.TuupExtension;
+    public SemanticVersion PreviousVersion { get; private set; } = SemanticVersion.BaseVersion();
+    public SemanticVersion NewVersion { get; private set; } = SemanticVersion.BaseVersion();
     public IReadOnlyCollection<FileEntry> DeltaFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
     public IReadOnlyCollection<FileEntry> UnchangedFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
     public IReadOnlyCollection<FileEntry> NewFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
     public IReadOnlyCollection<FileEntry> MovedFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
+    public IReadOnlyCollection<string> Directories { get; private set; } = ArraySegment<string>.Empty;
+    public long FileCount => DeltaFiles.Count + UnchangedFiles.Count + NewFiles.Count + MovedFiles.Count;
 
-    public async Task Load(Stream updatePackageStream)
+    public async Task Load(Stream updatePackageStream, SemanticVersion previousVersion, SemanticVersion newVersion)
     {
         try
         {
@@ -38,8 +43,15 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
         var unchangedFiles = new List<FileEntry>();
         var newFiles = new List<FileEntry>();
         var movedFiles = new List<FileEntry>();
+        var directories = new List<string>();
         await foreach (var fileEntry in GetFilesFromPackage(_zipArchive))
         {
+            var directory = Path.GetDirectoryName(fileEntry.Location);
+            if (!string.IsNullOrWhiteSpace(directory) && !directories.Contains(directory))
+            {
+                directories.Add(directory);
+            }
+            
             //Add to the correct collection 
             if (fileEntry.IsDeltaFile())
             {
@@ -62,10 +74,14 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
             unchangedFiles.Add(fileEntry);
         }
 
-        DeltaFiles = deltaFiles;
-        UnchangedFiles = unchangedFiles;
-        NewFiles = newFiles;
-        MovedFiles = movedFiles;
+        DeltaFiles = deltaFiles.AsReadOnly();
+        UnchangedFiles = unchangedFiles.AsReadOnly();
+        NewFiles = newFiles.AsReadOnly();
+        MovedFiles = movedFiles.AsReadOnly();
+        Directories = directories.AsReadOnly();
+
+        PreviousVersion = previousVersion;
+        NewVersion = newVersion;
         _loaded = true;
     }
     

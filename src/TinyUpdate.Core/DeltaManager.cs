@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using Microsoft.Extensions.Logging;
 using NeoSmart.AsyncLock;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Model;
@@ -9,7 +10,7 @@ namespace TinyUpdate.Core;
 /// <summary>
 /// Default <see cref="IDeltaManager"/> implementation
 /// </summary>
-public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators)
+public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators, ILogger logger)
     : IDeltaManager
 {
     private readonly AsyncLock _copyLock = new AsyncLock();
@@ -17,6 +18,25 @@ public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDelt
     public IReadOnlyCollection<IDeltaApplier> Appliers { get; } = appliers.ToImmutableArray();
     public IReadOnlyCollection<IDeltaCreation> Creators { get; } = creators.ToImmutableArray();
 
+    public Task<bool> ApplyDeltaUpdate(FileEntry fileEntry, Stream sourceStream, Stream targetStream)
+    {
+        var deltaApplier = Appliers.FirstOrDefault(x => x.Extension == fileEntry.Extension);
+        if (deltaApplier == null)
+        {
+            logger.LogError("Wasn't able to find delta applier for {DeltaType}", fileEntry.Extension);
+            return Task.FromResult(false);
+        }
+            
+        if (!deltaApplier.SupportedStream(fileEntry.Stream))
+        {
+            logger.LogError("Delta stream given is not supported for {DeltaType}", fileEntry.Extension);
+            return Task.FromResult(false);
+        }
+
+        fileEntry.Stream.Seek(0, SeekOrigin.Begin);
+        return deltaApplier.ApplyDeltaFile(sourceStream, fileEntry.Stream, targetStream);
+    }
+    
     public async Task<DeltaCreationResult> CreateDeltaUpdate(Stream sourceStream, Stream targetStream)
     {
         /*As we'll be using multiple creators at the same time, we want to copy the streams here

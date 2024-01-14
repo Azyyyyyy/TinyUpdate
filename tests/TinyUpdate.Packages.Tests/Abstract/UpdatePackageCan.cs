@@ -30,7 +30,7 @@ public abstract class UpdatePackageCan
     {
         var baseFilePath = Path.Combine("Assets", UpdatePackage.GetType().Name);
         await using var updatePackageStream = FileSystem.File.OpenRead(Path.Combine(baseFilePath, "exampleUpdatePackage" + UpdatePackage.Extension));
-        await UpdatePackage.Load(updatePackageStream);
+        await UpdatePackage.Load(updatePackageStream, SemanticVersion.BaseVersion(), SemanticVersion.BaseVersion());
 
         IReadOnlyCollection<FileEntry>? expectedDeltaFiles = null, expectedMovedFiles = null, expectedNewFiles = null, expectedUnchangedFiles = null;
         await Assert.MultipleAsync(async () =>

@@ -18,6 +18,15 @@ public interface IDeltaManager
     public IReadOnlyCollection<IDeltaCreation> Creators { get; }
 
     /// <summary>
+    /// Applies the delta update
+    /// </summary>
+    /// <param name="fileEntry"></param>
+    /// <param name="sourceStream">Source Stream (Previous data)</param>
+    /// <param name="targetStream"></param>
+    /// <returns></returns>
+    Task<bool> ApplyDeltaUpdate(FileEntry fileEntry, Stream sourceStream, Stream targetStream);
+    
+    /// <summary>
     /// Creates a delta update, returning the best delta created
     /// </summary>
     /// <param name="sourceStream">Source Stream (Previous data)</param>

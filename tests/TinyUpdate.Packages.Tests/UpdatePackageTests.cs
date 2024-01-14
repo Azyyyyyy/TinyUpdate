@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Tests.Attributes;
 using TinyUpdate.Packages.Tests.Abstract;
@@ -24,8 +25,9 @@ public class TuupUpdatePackageTests : UpdatePackageCan
         var mockCreation2 = CreateMockDeltaCreation(".diffing", NeedsFixedCreatorSize ? 0.3 : null);
         
         var deltaManager = new DeltaManager(
-            [ mockApplier1.Object, mockApplier2.Object ],
-            [ mockCreation1.Object, mockCreation2.Object ]);
+            [mockApplier1.Object, mockApplier2.Object],
+            [mockCreation1.Object, mockCreation2.Object],
+            NullLogger.Instance);
 
         var tuupPackageCreator = new TuupUpdatePackageCreator(_sha256Hasher, deltaManager, FileSystem,
             new TuupUpdatePackageCreatorOptions());

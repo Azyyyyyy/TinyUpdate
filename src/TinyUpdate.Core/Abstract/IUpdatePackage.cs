@@ -1,4 +1,5 @@
-﻿using TinyUpdate.Core.Model;
+﻿using SemVersion;
+using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.Core.Abstract;
 
@@ -11,8 +12,20 @@ public interface IUpdatePackage : IExtension
     /// Loads the update package data in
     /// </summary>
     /// <param name="updatePackageStream">Data to load in</param>
-    Task Load(Stream updatePackageStream);
-    
+    /// <param name="previousVersion">What version this update package was created against</param>
+    /// <param name="newVersion">What version this update package will bump the application too</param>
+    Task Load(Stream updatePackageStream, SemanticVersion previousVersion, SemanticVersion newVersion);
+
+    /// <summary>
+    /// What version this update package will bump the application too
+    /// </summary>
+    SemanticVersion NewVersion { get; }
+
+    /// <summary>
+    /// What version this update package was created against
+    /// </summary>
+    SemanticVersion PreviousVersion { get; }
+
     /// <summary>
     /// Files that have been processed into a delta file
     /// </summary>
@@ -32,4 +45,14 @@ public interface IUpdatePackage : IExtension
     /// Files that are unchanged but moved 
     /// </summary>
     IReadOnlyCollection<FileEntry> MovedFiles { get; }
+
+    /// <summary>
+    /// All the directories that this will require to exist
+    /// </summary>
+    IReadOnlyCollection<string> Directories { get; }
+
+    /// <summary>
+    /// How many files are contained in this <see cref="IUpdatePackage"/>
+    /// </summary>
+    long FileCount { get; }
 }

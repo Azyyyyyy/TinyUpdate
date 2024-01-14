@@ -1,13 +1,13 @@
 ﻿namespace TinyUpdate.Core.Abstract;
 
-//TODO: Imp
+//TODO: Find anywhere which make use of IProgress and see what actually needs hooking up to it
 /// <summary>
 /// Provides base functions for applying update(s)
 /// </summary>
 public interface IUpdateApplier
 {
     /// <summary>
-    /// Detects the current OS running and provides if update(s) can be applied
+    /// Detects if the update(s) can be applied on the running OS
     /// </summary>
     bool SupportedOS();
 
@@ -15,13 +15,14 @@ public interface IUpdateApplier
     /// Apply one update
     /// </summary>
     /// <returns>If the update was successful</returns>
-    Task<bool> ApplyUpdate();
+    Task<bool> ApplyUpdate(IUpdatePackage updatePackage, string applicationLocation, IProgress<double>? progress = null);
     
     /// <summary>
     /// Apply many updates
     /// </summary>
     /// <returns>If the updates was successful</returns>
-    Task<bool> ApplyUpdates();
+    Task<bool> ApplyUpdates(ICollection<IUpdatePackage> updatePackages, string applicationLocation,
+        IProgress<double>? progress = null);
 
     /// <summary>
     /// Cleanup old application builds

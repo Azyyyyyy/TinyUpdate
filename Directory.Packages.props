@@ -1,0 +1,29 @@
+<Project>
+
+  <PropertyGroup>
+    <Authors>Azyyyyyy</Authors>
+    <RepositoryUrl>https://github.com/Azyyyyyy/TinyUpdate</RepositoryUrl>
+    <Version>2024.01.14-alpha</Version>
+    <AssemblyVersion>2024.01.14</AssemblyVersion>
+    <FileVersion>2024.01.14</FileVersion>
+    <Description>Cross platform updater that's small on space but big in function!</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <PublishRepositoryUrl>true</PublishRepositoryUrl> 
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <BasePackageOutputPath>$(SolutionDir)/packages/$(Version)</BasePackageOutputPath>
+	
+    <!--While we only do this on Github, we don't need this-->
+	<!--<IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>-->
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(SolutionDir)/README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+  
+</Project>
