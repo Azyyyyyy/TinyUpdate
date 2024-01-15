@@ -6,10 +6,10 @@ namespace TinyUpdate.MicrosoftStore;
 
 public class MicrosoftStoreClient(StoreContext storeContext, ILogger logger) : IPackageClient
 {
-    public async Task<IEnumerable<ReleaseEntry>> GetUpdates()
+    public async IAsyncEnumerable<ReleaseEntry> GetUpdates()
     {
         var storePackageUpdates = await storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
-        return [new MicrosoftStoreReleaseEntry(storePackageUpdates)];
+        yield return new MicrosoftStoreReleaseEntry(storePackageUpdates);
     }
 
     public async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, IProgress<double>? progress)

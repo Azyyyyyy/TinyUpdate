@@ -8,7 +8,7 @@ public interface IPackageClient
     /// <summary>
     /// Gets all the release entries which can be applied to the application
     /// </summary>
-    Task<IEnumerable<ReleaseEntry>> GetUpdates();
+    IAsyncEnumerable<ReleaseEntry> GetUpdates();
     
     /// <summary>
     /// Downloads a single update
