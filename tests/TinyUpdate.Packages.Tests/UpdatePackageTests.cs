@@ -27,7 +27,7 @@ public class TuupUpdatePackageTests : UpdatePackageCan
         var deltaManager = new DeltaManager(
             [mockApplier1.Object, mockApplier2.Object],
             [mockCreation1.Object, mockCreation2.Object],
-            NullLogger.Instance);
+            NullLogger<DeltaManager>.Instance);
 
         var tuupPackageCreator = new TuupUpdatePackageCreator(_sha256Hasher, deltaManager, FileSystem,
             new TuupUpdatePackageCreatorOptions());

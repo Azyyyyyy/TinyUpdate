@@ -11,7 +11,7 @@ public class BSDiffDeltaTests : DeltaCan
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
-        var delta = new BSDiffDelta(NullLogger.Instance);
+        var delta = new BSDiffDelta(NullLogger<BSDiffDelta>.Instance);
         Creator = delta;
         Applier = delta;
     }

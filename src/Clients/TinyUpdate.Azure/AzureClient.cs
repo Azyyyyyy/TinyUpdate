@@ -1,151 +1,114 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.Azure.Pipelines.WebApi;
+﻿using System.IO.Compression;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualStudio.Services.Common;
-using Microsoft.VisualStudio.Services.WebApi;
-using SemVersion;
+using Microsoft.TeamFoundation.Build.WebApi;
 using TinyUpdate.Core.Abstract;
-using Artifact = Microsoft.Azure.Pipelines.WebApi.Artifact;
 
 namespace TinyUpdate.Azure;
 
 public class AzureClient : IPackageClient
 {
-    const string c_collectionUri = "";
-    const string project = "";
-    const int pipelineId = 1;
-    private const string personalAccessToken = "";
-
-    private readonly Uri _orgUrl = new Uri(c_collectionUri);
-
-    private readonly HttpClient _downloadClient;
     private readonly IUpdateApplier _updateApplier;
-    private readonly ILogger _logger;
-    private readonly IHasher _hasher;
-    public AzureClient(IUpdateApplier updateApplier, ILogger logger, HttpClient downloadClient, IHasher hasher)
+    private readonly ILogger<AzureClient> _logger;
+    private readonly AzureClientSettings _clientSettings;
+    public AzureClient(IUpdateApplier updateApplier, ILogger<AzureClient> logger, AzureClientSettings clientSettings)
     {
         _updateApplier = updateApplier;
         _logger = logger;
-        _downloadClient = downloadClient;
-        _hasher = hasher;
+        _clientSettings = clientSettings;
     }
     
-	//TODO: REDO
     public async IAsyncEnumerable<ReleaseEntry> GetUpdates()
     {
-        using var connection = MakeConnection();
-        using var pipelineConnection = new PipelinesHttpClient(connection.Uri, connection.Credentials);
-        
-        //TODO: Find the first release which allow
-        var runs = await pipelineConnection.ListRunsAsync(project, pipelineId);
-        foreach (var run in runs)
+        IAsyncEnumerable<ReleaseEntry?>? releaseEntries = null;
+        using var buildClient = new BuildHttpClient(_clientSettings.OrganisationUri, _clientSettings.Credentials);
+        var builds = await buildClient.GetBuildsAsync(
+            _clientSettings.ProjectGuid,
+            statusFilter: BuildStatus.Completed,
+            resultFilter: BuildResult.Succeeded,
+            top: 1);
+
+        var build = builds.FirstOrDefault();
+        if (build == null) yield break;
+
+        var releaseArtifact = await GetArtifactAsync(build.Id, "RELEASE", buildClient);
+        if (releaseArtifact == null) yield break;
+
+        using var downloadClient = new DownloadHttpClient(_clientSettings.OrganisationUri, _clientSettings.Credentials);
+        try
         {
-            if (run == null || run.State != RunState.Completed 
-                            || run.Result.GetValueOrDefault(RunResult.Failed) != RunResult.Succeeded)
-            {
-                continue;
-            }
+            await using var releaseArtifactZipStream =
+                await downloadClient.GetStream(releaseArtifact.Resource.DownloadUrl);
+            using var releaseZip = new ZipArchive(releaseArtifactZipStream, ZipArchiveMode.Read);
+            await using var releaseStream = releaseZip.GetEntry("RELEASE/RELEASE")?.Open() ?? Stream.Null;
 
-            Artifact artifact;
-            try
-            {
-                artifact = await pipelineConnection.GetArtifactAsync(project, pipelineId, run.Id, "RELEASE");
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Failed to get RELEASE artifact");
-                continue;
-            }
+            releaseEntries = JsonSerializer.DeserializeAsyncEnumerable<ReleaseEntry>(releaseStream);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to download RELEASE file");
+        }
 
-            if (artifact.SignedContent.SignatureExpires >= DateTime.Now)
+        if (releaseEntries != null)
+        {
+            await foreach (var releaseEntry in releaseEntries)
             {
-                _logger.LogWarning("Unable to download RELEASE file");
-                yield break;
-            }
-
-            await using var releaseFileStream = await _downloadClient.GetStreamAsync(artifact.SignedContent.Url);
-            IAsyncEnumerable<AzureReleaseEntry?> releases;
-
-            try
-            {
-                releases = JsonSerializer.DeserializeAsyncEnumerable<AzureReleaseEntry>(releaseFileStream);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Failed to download RELEASE artifact");
-                continue;
-            }
-            
-            await foreach (var release in releases)
-            {
-                if (release != null && _hasher.IsValidHash(release.Hash))
+                if (releaseEntry != null)
                 {
-                    yield return release;
+                    yield return releaseEntry;
                 }
             }
         }
     }
 
-    public Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, IProgress<double>? progress)
+    public async Task<bool> DownloadUpdate(ReleaseEntry releaseEntry, IProgress<double>? progress)
     {
-        throw new NotImplementedException();
+        if (releaseEntry is not AzureReleaseEntry azureReleaseEntry)
+        {
+            return false;
+        }
+        
+        using var buildClient = new BuildHttpClient(_clientSettings.OrganisationUri, _clientSettings.Credentials);
+
+        try
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "TinyUpdate", "Azure", _clientSettings.ProjectGuid.ToString());
+            Directory.CreateDirectory(dir);
+            
+            azureReleaseEntry.ArtifactDownloadPath = Path.Combine(dir, azureReleaseEntry.FileName);
+            
+            await using var artifactStream =
+                await buildClient.GetArtifactContentZipAsync(_clientSettings.ProjectGuid, azureReleaseEntry.RunId, azureReleaseEntry.ArtifactName);
+            await using var fileStream = File.OpenWrite(azureReleaseEntry.ArtifactDownloadPath);
+            await artifactStream.CopyToAsync(fileStream);
+
+            //TODO: Add some checks to the downloaded file?
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to download '{RunName}' artifact ({Artifact})", azureReleaseEntry.RunId, azureReleaseEntry.ArtifactName);
+            return false;
+        }
     }
 
     public Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, IProgress<double>? progress)
     {
+        //TODO: Load the update package in
         throw new NotImplementedException();
     }
     
-    private VssConnection MakeConnection() => new VssConnection(_orgUrl, new VssBasicCredential(string.Empty, personalAccessToken));
-}
-
-public class AzureReleaseEntry : ReleaseEntry
-{
-    public AzureReleaseEntry(string hash, long filesize, SemanticVersion? previousVersion, SemanticVersion newVersion, string fileName, bool isDelta, int runId, string artifactName)
+    private Task<BuildArtifact?> GetArtifactAsync(int runId, string artifactName, BuildHttpClient buildClient)
     {
-        Hash = hash;
-        Filesize = filesize;
-        PreviousVersion = previousVersion;
-        NewVersion = newVersion;
-        FileName = fileName;
-        IsDelta = isDelta;
-        RunId = runId;
-        ArtifactName = artifactName;
-    }
+        try
+        {
+            return buildClient.GetArtifactAsync(_clientSettings.ProjectGuid, runId, artifactName);
+        }
+        catch (Exception e)
+        { 
+            _logger.LogError(e, "Failed to get pipeline artifact '{ArtifactName}'", artifactName);
+        }
 
-    [JsonIgnore]
-    public override bool HasUpdate => true;
-    
-    public string Hash { get; }
-
-    public long Filesize { get; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), 
-     JsonConverter(typeof(SemanticVersionConverter))]
-    public SemanticVersion? PreviousVersion { get; }
-
-    [JsonConverter(typeof(SemanticVersionConverter))]
-    public SemanticVersion NewVersion { get; }
-
-    public string FileName { get; }
-
-    public bool IsDelta { get; }
-
-    public int RunId { get; }
-
-    public string ArtifactName { get; }
-}
-
-public class SemanticVersionConverter : JsonConverter<SemanticVersion>
-{
-    public override SemanticVersion? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        return SemanticVersion.Parse(reader.GetString());
-    }
-
-    public override void Write(Utf8JsonWriter writer, SemanticVersion value, JsonSerializerOptions options)
-    {
-        writer.WriteStringValue(value.ToString());
+        return Task.FromResult<BuildArtifact?>(null);
     }
 }

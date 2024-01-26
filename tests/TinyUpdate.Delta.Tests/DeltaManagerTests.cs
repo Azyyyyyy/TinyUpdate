@@ -7,5 +7,5 @@ namespace TinyUpdate.Delta.Tests;
 
 public class DeltaManagerTests : DeltaManagerCan
 {
-    protected override IDeltaManager CreateDeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators) => new DeltaManager(appliers, creators, NullLogger.Instance);
+    protected override IDeltaManager CreateDeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators) => new DeltaManager(appliers, creators, NullLogger<DeltaManager>.Instance);
 }

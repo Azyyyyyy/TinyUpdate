@@ -10,7 +10,7 @@ namespace TinyUpdate.Core;
 /// <summary>
 /// Default <see cref="IDeltaManager"/> implementation
 /// </summary>
-public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators, ILogger logger)
+public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDeltaCreation> creators, ILogger<DeltaManager> logger)
     : IDeltaManager
 {
     private readonly AsyncLock _copyLock = new AsyncLock();

@@ -4,7 +4,7 @@ using TinyUpdate.Core.Abstract;
 
 namespace TinyUpdate.MicrosoftStore;
 
-public class MicrosoftStoreClient(StoreContext storeContext, ILogger logger) : IPackageClient
+public class MicrosoftStoreClient(StoreContext storeContext, ILogger<MicrosoftStoreClient> logger) : IPackageClient
 {
     public async IAsyncEnumerable<ReleaseEntry> GetUpdates()
     {

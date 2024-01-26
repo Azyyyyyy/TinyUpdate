@@ -1,17 +1,16 @@
 ﻿using Microsoft.Extensions.Logging;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Desktop.Abstract;
-using TinyUpdate.Desktop.Native;
 
 namespace TinyUpdate.Desktop;
 
 public class DesktopApplier : IUpdateApplier
 {
     private readonly IHasher _hasher;
-    private readonly ILogger _logger;
+    private readonly ILogger<DesktopApplier> _logger;
     private readonly IDeltaManager _deltaManager;
     private readonly INative? _native;
-    public DesktopApplier(ILogger logger, IHasher hasher, INative? native, IDeltaManager deltaManager)
+    public DesktopApplier(ILogger<DesktopApplier> logger, IHasher hasher, INative? native, IDeltaManager deltaManager)
     {
         _logger = logger;
         _hasher = hasher;

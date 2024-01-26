@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 /// <summary>
 /// Provides creating and applying BSDiff delta's
 /// </summary>
-public partial class BSDiffDelta(ILogger logger) : IDeltaApplier, IDeltaCreation
+public partial class BSDiffDelta(ILogger<BSDiffDelta> logger) : IDeltaApplier, IDeltaCreation
 {
     private const long CFileSignature = 0x3034464649445342L;
     private const int CHeaderSize = 32;
