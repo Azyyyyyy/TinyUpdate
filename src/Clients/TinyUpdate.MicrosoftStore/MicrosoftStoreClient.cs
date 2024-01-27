@@ -1,6 +1,8 @@
 ﻿using Windows.Services.Store;
 using Microsoft.Extensions.Logging;
+using SemVersion;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.UpdatePackage;
 
 namespace TinyUpdate.MicrosoftStore;
 
@@ -29,16 +31,16 @@ public class MicrosoftStoreClient(StoreContext storeContext, ILogger<MicrosoftSt
         return downloadResult.OverallState == StorePackageUpdateState.Completed;
     }
 
-    public async Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, IProgress<double>? progress)
+    public async Task<bool> ApplyUpdate(IUpdatePackage updatePackage, IProgress<double>? progress)
     {
         //No need to actually do an update, report as successful
-        if (!releaseEntry.HasUpdate)
+        if (!updatePackage.ReleaseEntry.HasUpdate)
         {
             progress?.Report(1);
             return true;
         }
         
-        if (releaseEntry is not MicrosoftStoreReleaseEntry microsoftStoreReleaseEntry)
+        if (updatePackage.ReleaseEntry is not MicrosoftStoreReleaseEntry microsoftStoreReleaseEntry)
         {
             logger.LogError("Wasn't given a microsoft store update entry");
             return false;
@@ -57,6 +59,7 @@ public class MicrosoftStoreClient(StoreContext storeContext, ILogger<MicrosoftSt
 public class MicrosoftStoreReleaseEntry : ReleaseEntry
 {
     public MicrosoftStoreReleaseEntry(IReadOnlyList<StorePackageUpdate>? storePackageUpdates)
+        : base(null, SemanticVersion.BaseVersion(), false)
     {
         StorePackageUpdates = storePackageUpdates ?? ArraySegment<StorePackageUpdate>.Empty;
     }

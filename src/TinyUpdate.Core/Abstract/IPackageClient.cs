@@ -1,4 +1,6 @@
-﻿namespace TinyUpdate.Core.Abstract;
+﻿using TinyUpdate.Core.Abstract.UpdatePackage;
+
+namespace TinyUpdate.Core.Abstract;
 
 /// <summary>
 /// Handles getting updates from a source
@@ -21,8 +23,8 @@ public interface IPackageClient
     /// <summary>
     /// Applies a single update
     /// </summary>
-    /// <param name="releaseEntry">Entry which contains data about release</param>
+    /// <param name="updatePackage">Update package to apply</param>
     /// <param name="progress">Progress of applying update</param>
     /// <returns>If applying the update was successful</returns>
-    Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, IProgress<double>? progress);
+    Task<bool> ApplyUpdate(IUpdatePackage updatePackage, IProgress<double>? progress);
 }

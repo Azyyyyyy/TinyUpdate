@@ -3,8 +3,8 @@ using System.IO.Abstractions;
 using System.Text.Json;
 using Moq;
 using SemVersion;
-using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Abstract.Delta;
+using TinyUpdate.Core.Abstract.UpdatePackage;
 using TinyUpdate.Core.Model;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
@@ -30,7 +30,9 @@ public abstract class UpdatePackageCan
     {
         var baseFilePath = Path.Combine("Assets", UpdatePackage.GetType().Name);
         await using var updatePackageStream = FileSystem.File.OpenRead(Path.Combine(baseFilePath, "exampleUpdatePackage" + UpdatePackage.Extension));
-        await UpdatePackage.Load(updatePackageStream, SemanticVersion.BaseVersion(), SemanticVersion.BaseVersion());
+        var loadResult = await UpdatePackage.Load(updatePackageStream, null);
+        
+        Assert.That(loadResult.Successful, Is.Not.False, loadResult.Message);
 
         IReadOnlyCollection<FileEntry>? expectedDeltaFiles = null, expectedMovedFiles = null, expectedNewFiles = null, expectedUnchangedFiles = null;
         await Assert.MultipleAsync(async () =>

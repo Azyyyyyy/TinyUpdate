@@ -1,7 +1,19 @@
-﻿using SemVersion;
+﻿using System.Diagnostics.CodeAnalysis;
 using TinyUpdate.Core.Model;
 
-namespace TinyUpdate.Core.Abstract;
+namespace TinyUpdate.Core.Abstract.UpdatePackage;
+
+public record LoadResult
+{
+    public static LoadResult Failed(string message) => new() { Successful = false, Message = message };
+
+    public static readonly LoadResult Success = new() { Successful = true };
+
+    [MemberNotNullWhen(false, nameof(Message))]
+    public bool Successful { get; protected init; }
+
+    public string? Message { get; protected init; }
+}
 
 /// <summary>
 /// Provides base functionality for handling update packages
@@ -12,19 +24,13 @@ public interface IUpdatePackage : IExtension
     /// Loads the update package data in
     /// </summary>
     /// <param name="updatePackageStream">Data to load in</param>
-    /// <param name="previousVersion">What version this update package was created against</param>
-    /// <param name="newVersion">What version this update package will bump the application too</param>
-    Task Load(Stream updatePackageStream, SemanticVersion previousVersion, SemanticVersion newVersion);
+    /// <param name="releaseEntry">Entry that is related to this <see cref="IUpdatePackage"/></param>
+    Task<LoadResult> Load(Stream updatePackageStream, ReleaseEntry releaseEntry);
 
     /// <summary>
-    /// What version this update package will bump the application too
+    /// Entry that is related to this <see cref="IUpdatePackage"/>
     /// </summary>
-    SemanticVersion NewVersion { get; }
-
-    /// <summary>
-    /// What version this update package was created against
-    /// </summary>
-    SemanticVersion PreviousVersion { get; }
+    ReleaseEntry ReleaseEntry { get; }
 
     /// <summary>
     /// Files that have been processed into a delta file

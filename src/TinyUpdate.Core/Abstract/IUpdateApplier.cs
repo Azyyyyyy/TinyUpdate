@@ -1,4 +1,6 @@
-﻿namespace TinyUpdate.Core.Abstract;
+﻿using TinyUpdate.Core.Abstract.UpdatePackage;
+
+namespace TinyUpdate.Core.Abstract;
 
 //TODO: Find anywhere which make use of IProgress and see what actually needs hooking up to it
 /// <summary>

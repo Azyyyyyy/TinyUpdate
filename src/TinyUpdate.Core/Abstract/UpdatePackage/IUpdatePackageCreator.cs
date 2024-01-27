@@ -1,6 +1,6 @@
 using SemVersion;
 
-namespace TinyUpdate.Core.Abstract;
+namespace TinyUpdate.Core.Abstract.UpdatePackage;
 
 /// <summary>
 /// Provides base functionality for creating update packages

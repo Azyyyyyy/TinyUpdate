@@ -2,6 +2,7 @@
 using SemVersion;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Abstract.Delta;
+using TinyUpdate.Core.Abstract.UpdatePackage;
 using TinyUpdate.Core.Model;
 
 namespace TinyUpdate.TUUP;
@@ -19,8 +20,8 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
     private ZipArchive? _zipArchive;
 
     public string Extension => Consts.TuupExtension;
-    public SemanticVersion PreviousVersion { get; private set; } = SemanticVersion.BaseVersion();
-    public SemanticVersion NewVersion { get; private set; } = SemanticVersion.BaseVersion();
+    
+    public ReleaseEntry ReleaseEntry { get; private set; } = null!;
     public IReadOnlyCollection<FileEntry> DeltaFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
     public IReadOnlyCollection<FileEntry> UnchangedFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
     public IReadOnlyCollection<FileEntry> NewFiles { get; private set; } = ArraySegment<FileEntry>.Empty;
@@ -28,7 +29,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
     public IReadOnlyCollection<string> Directories { get; private set; } = ArraySegment<string>.Empty;
     public long FileCount => DeltaFiles.Count + UnchangedFiles.Count + NewFiles.Count + MovedFiles.Count;
 
-    public async Task Load(Stream updatePackageStream, SemanticVersion previousVersion, SemanticVersion newVersion)
+    public async Task<LoadResult> Load(Stream updatePackageStream, ReleaseEntry releaseEntry)
     {
         try
         {
@@ -36,7 +37,7 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
         }
         catch (InvalidDataException e)
         {
-            throw new InvalidDataException("TuupUpdatePackage expects a zip formatted package", e);
+            return LoadResult.Failed($"TuupUpdatePackage expects a zip formatted package: {e.Message}");
         }
 
         var deltaFiles = new List<FileEntry>();
@@ -79,10 +80,10 @@ public class TuupUpdatePackage(IDeltaManager deltaManager, IHasher hasher) : IUp
         NewFiles = newFiles.AsReadOnly();
         MovedFiles = movedFiles.AsReadOnly();
         Directories = directories.AsReadOnly();
+        ReleaseEntry = releaseEntry; 
 
-        PreviousVersion = previousVersion;
-        NewVersion = newVersion;
         _loaded = true;
+        return LoadResult.Success;
     }
     
     /// <summary>

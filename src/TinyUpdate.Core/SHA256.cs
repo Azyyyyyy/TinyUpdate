@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Buffers;
+using System.Text.RegularExpressions;
 using TinyUpdate.Core.Abstract;
 
 namespace TinyUpdate.Core;
@@ -71,7 +72,8 @@ public partial class SHA256 : IHasher
             byteArray = System.Security.Cryptography.SHA256.HashData(memoryStream);
         }
 
-        var resultSpan = new Span<char>(new char[64]);
+        var arrayRent = ArrayPool<char>.Shared.Rent(64);
+        var resultSpan = arrayRent.AsSpan();
         var charsWritten = 0;
         
         foreach (var @byte in byteArray)
@@ -79,6 +81,10 @@ public partial class SHA256 : IHasher
             @byte.TryFormat(resultSpan[charsWritten..], out var written, "X2");
             charsWritten += written;
         }
-        return resultSpan.ToString();
+
+        var result = resultSpan[..64].ToString();
+        ArrayPool<char>.Shared.Return(arrayRent);
+        
+        return result;
     }
 }

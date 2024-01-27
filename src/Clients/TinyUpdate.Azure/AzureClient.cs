@@ -3,19 +3,23 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.Build.WebApi;
 using TinyUpdate.Core.Abstract;
+using TinyUpdate.Core.Abstract.UpdatePackage;
 
 namespace TinyUpdate.Azure;
 
+//TODO: Go over File/Directory logic and replace with IFile & IDirectory 
 public class AzureClient : IPackageClient
 {
     private readonly IUpdateApplier _updateApplier;
+    private readonly IUpdatePackageFactory _updatePackageFactory;
     private readonly ILogger<AzureClient> _logger;
     private readonly AzureClientSettings _clientSettings;
-    public AzureClient(IUpdateApplier updateApplier, ILogger<AzureClient> logger, AzureClientSettings clientSettings)
+    public AzureClient(IUpdateApplier updateApplier, ILogger<AzureClient> logger, AzureClientSettings clientSettings, IUpdatePackageFactory updatePackageFactory)
     {
         _updateApplier = updateApplier;
         _logger = logger;
         _clientSettings = clientSettings;
+        _updatePackageFactory = updatePackageFactory;
     }
     
     public async IAsyncEnumerable<ReleaseEntry> GetUpdates()
@@ -31,7 +35,7 @@ public class AzureClient : IPackageClient
         var build = builds.FirstOrDefault();
         if (build == null) yield break;
 
-        var releaseArtifact = await GetArtifactAsync(build.Id, "RELEASE", buildClient);
+        var releaseArtifact = await GetArtifact(build.Id, "RELEASE", buildClient);
         if (releaseArtifact == null) yield break;
 
         using var downloadClient = new DownloadHttpClient(_clientSettings.OrganisationUri, _clientSettings.Credentials);
@@ -79,8 +83,17 @@ public class AzureClient : IPackageClient
             
             await using var artifactStream =
                 await buildClient.GetArtifactContentZipAsync(_clientSettings.ProjectGuid, azureReleaseEntry.RunId, azureReleaseEntry.ArtifactName);
-            await using var fileStream = File.OpenWrite(azureReleaseEntry.ArtifactDownloadPath);
+
+            var fileStream = File.OpenWrite(azureReleaseEntry.ArtifactDownloadPath);
             await artifactStream.CopyToAsync(fileStream);
+            await fileStream.DisposeAsync();
+
+            //TODO: Ensure that we use correct entry as this will be the zip within a zip :/
+            var readFileStream = File.OpenRead(azureReleaseEntry.ArtifactDownloadPath);
+            
+            //We want to reopen the file with read only access
+            await _updatePackageFactory.CreateUpdatePackage(readFileStream,
+                Path.GetExtension(azureReleaseEntry.ArtifactDownloadPath), releaseEntry);
 
             //TODO: Add some checks to the downloaded file?
             return true;
@@ -92,13 +105,12 @@ public class AzureClient : IPackageClient
         }
     }
 
-    public Task<bool> ApplyUpdate(ReleaseEntry releaseEntry, IProgress<double>? progress)
+    public Task<bool> ApplyUpdate(IUpdatePackage updatePackage, IProgress<double>? progress)
     {
-        //TODO: Load the update package in
-        throw new NotImplementedException();
+        return _updateApplier.ApplyUpdate(updatePackage, new DirectoryInfo(Environment.CurrentDirectory).Parent.FullName, progress);
     }
     
-    private Task<BuildArtifact?> GetArtifactAsync(int runId, string artifactName, BuildHttpClient buildClient)
+    private Task<BuildArtifact?> GetArtifact(int runId, string artifactName, BuildHttpClientBase buildClient)
     {
         try
         {

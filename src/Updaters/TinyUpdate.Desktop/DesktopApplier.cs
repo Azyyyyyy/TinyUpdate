@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using TinyUpdate.Core.Abstract.Delta;
+using TinyUpdate.Core.Abstract.UpdatePackage;
 using TinyUpdate.Desktop.Abstract;
 
 namespace TinyUpdate.Desktop;
@@ -23,8 +24,8 @@ public class DesktopApplier : IUpdateApplier
     public async Task<bool> ApplyUpdates(ICollection<IUpdatePackage> updatePackages, string applicationLocation,
         IProgress<double>? progress = null)
     {
-        var previousVersion = updatePackages.OrderBy(x => x.PreviousVersion).First().PreviousVersion;
-        var newVersion = updatePackages.OrderBy(x => x.PreviousVersion).Last().PreviousVersion;
+        var previousVersion = updatePackages.OrderBy(x => x.ReleaseEntry.PreviousVersion).First().ReleaseEntry.PreviousVersion;
+        var newVersion = updatePackages.OrderBy(x => x.ReleaseEntry.PreviousVersion).Last().ReleaseEntry.PreviousVersion;
 
         var previousVersionLocation = Path.Combine(applicationLocation, previousVersion.ToString());
         var newVersionLocation = Path.Combine(applicationLocation, newVersion.ToString());
@@ -54,8 +55,8 @@ public class DesktopApplier : IUpdateApplier
     
     public Task<bool> ApplyUpdate(IUpdatePackage updatePackage, string applicationLocation, IProgress<double>? progress = null)
     {
-        var previousVersionLocation = Path.Combine(applicationLocation, updatePackage.PreviousVersion.ToString());
-        var newVersionLocation = Path.Combine(applicationLocation, updatePackage.NewVersion.ToString());
+        var newVersionLocation = Path.Combine(applicationLocation, updatePackage.ReleaseEntry.NewVersion.ToString());
+        var previousVersionLocation = Path.Combine(applicationLocation, updatePackage.ReleaseEntry.PreviousVersion.ToString());
 
         return ApplyUpdate(updatePackage, previousVersionLocation, newVersionLocation, progress);
     }   
