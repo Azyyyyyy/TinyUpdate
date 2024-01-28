@@ -15,11 +15,12 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-  - task: NuGetToolInstaller@1
-
-  - task: NuGetCommand@2
+  - task: DotNetCoreCLI@2
     inputs:
-      restoreSolution: '$(solution)'
+      command: 'restore'
+      projects: '$(solution)'
+      feedsToUse: 'select'
+      vstsFeed: 'd4e5e777-2219-4c8d-bb12-0c6a0a661b33'
 
   - task: DotNetCoreCLI@2
     inputs:
