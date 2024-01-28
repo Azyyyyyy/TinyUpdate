@@ -16,6 +16,7 @@ variables:
 
 steps:
   - task: DotNetCoreCLI@2
+    displayName: 'Restore Nuget'
     inputs:
       command: 'restore'
       projects: '$(solution)'
@@ -23,13 +24,17 @@ steps:
       vstsFeed: 'd4e5e777-2219-4c8d-bb12-0c6a0a661b33'
 
   - task: DotNetCoreCLI@2
+    displayName: 'Build'
     inputs:
       command: 'build'
       projects: '$(solution)'
       arguments: '-c $(buildConfiguration)'
 
   - task: DotNetCoreCLI@2
+    displayName: 'Run tests'
     inputs:
       command: 'test'
       projects: '$(solution)'
       arguments: '-c $(buildConfiguration)'
+    env:
+      AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
