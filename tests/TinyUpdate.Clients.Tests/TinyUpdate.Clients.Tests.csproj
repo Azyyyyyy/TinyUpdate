@@ -7,7 +7,6 @@
 
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,14 +16,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Deltas\TinyUpdate.Delta.BSDiff\TinyUpdate.Delta.BSDiff.csproj" />
-      <ProjectReference Include="..\..\src\Deltas\TinyUpdate.Delta.MSDelta\TinyUpdate.Delta.MSDelta.csproj" />
+      <ProjectReference Include="..\..\src\Clients\TinyUpdate.Azure\TinyUpdate.Azure.csproj" />
       <ProjectReference Include="..\TinyUpdate.Core.Tests\TinyUpdate.Core.Tests.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Assets\**" />
-      <AdditionalFiles Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using System.IO.Abstractions;
+using Microsoft.Extensions.Logging;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Abstract.UpdatePackage;
 using TinyUpdate.Desktop.Abstract;
@@ -11,12 +13,14 @@ public class DesktopApplier : IUpdateApplier
     private readonly ILogger<DesktopApplier> _logger;
     private readonly IDeltaManager _deltaManager;
     private readonly INative? _native;
-    public DesktopApplier(ILogger<DesktopApplier> logger, IHasher hasher, INative? native, IDeltaManager deltaManager)
+    private readonly IFileSystem _fileSystem;
+    public DesktopApplier(ILogger<DesktopApplier> logger, IHasher hasher, INative? native, IDeltaManager deltaManager, IFileSystem fileSystem)
     {
         _logger = logger;
         _hasher = hasher;
         _native = native;
         _deltaManager = deltaManager;
+        _fileSystem = fileSystem;
     }
     
     public bool SupportedOS() => OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
@@ -56,22 +60,59 @@ public class DesktopApplier : IUpdateApplier
     public Task<bool> ApplyUpdate(IUpdatePackage updatePackage, string applicationLocation, IProgress<double>? progress = null)
     {
         var newVersionLocation = Path.Combine(applicationLocation, updatePackage.ReleaseEntry.NewVersion.ToString());
-        var previousVersionLocation = Path.Combine(applicationLocation, updatePackage.ReleaseEntry.PreviousVersion.ToString());
+        string? previousVersionLocation = null;
+        if (updatePackage.ReleaseEntry.IsDelta)
+        {
+            previousVersionLocation = Path.Combine(applicationLocation, updatePackage.ReleaseEntry.PreviousVersion.ToString());
+        }
 
         return ApplyUpdate(updatePackage, previousVersionLocation, newVersionLocation, progress);
     }   
     
-    private async Task<bool> ApplyUpdate(IUpdatePackage updatePackage, string previousVersionLocation, 
+    private async Task<bool> ApplyUpdate(IUpdatePackage updatePackage, string? previousVersionLocation, 
         string newVersionLocation, IProgress<double>? progress)
     {
         double progressTotal = 0;
         var ind = (double)1 / updatePackage.FileCount;
-        
+
+        if (updatePackage.ReleaseEntry.IsDelta
+            && string.IsNullOrWhiteSpace(previousVersionLocation))
+        {
+            _logger.LogError("We have not been given the previous version location");
+            return false;
+        }
 
         //Create all the directories beforehand
         foreach (var directory in updatePackage.Directories)
         {
-            Directory.CreateDirectory(Path.Combine(newVersionLocation, directory));
+            _fileSystem.Directory.CreateDirectory(Path.Combine(newVersionLocation, directory));
+        }
+        
+        foreach (var newFile in updatePackage.NewFiles)
+        {
+            var newPath = Path.Combine(newVersionLocation, newFile.Location);
+            await using var newFileStream = _fileSystem.File.Open(newPath, new FileStreamOptions
+            {
+                PreallocationSize = newFile.Filesize, 
+                Mode = FileMode.Create
+            });
+
+            await newFile.Stream.CopyToAsync(newFileStream);
+            await newFile.Stream.DisposeAsync();
+
+            newFileStream.Seek(0, SeekOrigin.Begin);
+            if (!CheckFile(newFileStream, newFile.Hash, newFile.Filesize, newPath))
+            {
+                return false;
+            }
+            UpdateProgress();
+        }
+
+        //If this isn't a delta update then we'll only have new files
+        if (!updatePackage.ReleaseEntry.IsDelta)
+        {
+            Debug.Assert(updatePackage.FileCount != updatePackage.NewFiles.Count, "Non delta update isn't all new files");
+            return true;
         }
         
         foreach (var movedFile in updatePackage.MovedFiles)
@@ -99,34 +140,15 @@ public class DesktopApplier : IUpdateApplier
             }
             UpdateProgress();
         }
-
-        foreach (var newFile in updatePackage.NewFiles)
-        {
-            var newPath = Path.Combine(newVersionLocation, newFile.Location);
-            await using var newFileStream = File.Open(newPath, new FileStreamOptions
-            {
-                PreallocationSize = newFile.Filesize, 
-                Mode = FileMode.Create
-            });
-
-            await newFile.Stream.CopyToAsync(newFileStream);
-            await newFile.Stream.DisposeAsync();
-
-            newFileStream.Seek(0, SeekOrigin.Begin);
-            if (!CheckFile(newFileStream, newFile.Hash, newFile.Filesize, newPath))
-            {
-                return false;
-            }
-            UpdateProgress();
-        }
-
+        
         foreach (var deltaFile in updatePackage.DeltaFiles)
         {
+            Debug.Assert(previousVersionLocation != null, nameof(previousVersionLocation) + " != null");
             var sourcePath = Path.Combine(previousVersionLocation, deltaFile.Location);
             var targetPath = Path.Combine(newVersionLocation, deltaFile.Location);
 
-            await using var sourceStream = File.OpenRead(sourcePath);
-            await using var targetStream = File.Open(targetPath, new FileStreamOptions
+            await using var sourceStream = _fileSystem.File.OpenRead(sourcePath);
+            await using var targetStream = _fileSystem.File.Open(targetPath, new FileStreamOptions
             {
                 PreallocationSize = deltaFile.Filesize,
                 Mode = FileMode.Create
@@ -166,7 +188,7 @@ public class DesktopApplier : IUpdateApplier
             //Attempt to create the file as a hard link
             if (_native?.CreateHardLink(previousPath, newPath) ?? false)
             {
-                using (fileStream = File.OpenRead(newPath))
+                using (fileStream = _fileSystem.File.OpenRead(newPath))
                 {
                     return CheckFile(fileStream, expectedHash, expectedFilesize, newPath);
                 }
@@ -174,8 +196,8 @@ public class DesktopApplier : IUpdateApplier
             
             //We failed, we'll copy the file as a backup
             _logger.LogWarning("Was unable to hard link {PreviousPath} to {NewPath}, going to copy file", previousPath, newPath);
-            File.Copy(previousPath, newPath, true);
-            using (fileStream = File.OpenRead(newPath))
+            _fileSystem.File.Copy(previousPath, newPath, true);
+            using (fileStream = _fileSystem.File.OpenRead(newPath))
             {
                 return CheckFile(fileStream, expectedHash, expectedFilesize, newPath);
             }

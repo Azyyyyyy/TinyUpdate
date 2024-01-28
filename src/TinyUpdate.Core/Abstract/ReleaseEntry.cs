@@ -24,8 +24,8 @@ public abstract class ReleaseEntry
     /// <summary>
     /// What version this update package was created against
     /// </summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), 
-     JsonConverter(typeof(SemanticVersionConverter))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(SemanticVersionConverter))]
     public SemanticVersion? PreviousVersion { get; }
 
     /// <summary>

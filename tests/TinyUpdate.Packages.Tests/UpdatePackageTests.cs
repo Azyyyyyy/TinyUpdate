@@ -1,6 +1,8 @@
 ﻿using System.IO.Compression;
+using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
 using TinyUpdate.Packages.Tests.Abstract;
 using TinyUpdate.Packages.Tests.Model;
@@ -18,6 +20,7 @@ public class TuupUpdatePackageTests : UpdatePackageCan
     [SetUp]
     public void Setup()
     {
+        var ta = Testing.InTestRunner;
         var mockApplier1 = CreateMockDeltaApplier(".bsdiff");
         var mockApplier2 = CreateMockDeltaApplier(".diffing");
 
