@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Updaters\TinyUpdate.Desktop\TinyUpdate.Desktop.csproj" />
+      <ProjectReference Include="..\..\src\Appliers\TinyUpdate.Desktop\TinyUpdate.Desktop.csproj" />
       <ProjectReference Include="..\TinyUpdate.Core.Tests\TinyUpdate.Core.Tests.csproj" />
     </ItemGroup>
 

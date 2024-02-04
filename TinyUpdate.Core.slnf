@@ -1,0 +1,10 @@
+﻿{
+  "solution": {
+    "path": "TinyUpdate.sln",
+    "projects": [
+      "src\\TinyUpdate.Cli\\TinyUpdate.Cli.csproj",
+      "src\\TinyUpdate.Core\\TinyUpdate.Core.csproj",
+      "tests\\TinyUpdate.Core.Tests\\TinyUpdate.Core.Tests.csproj"
+    ]
+  }
+}

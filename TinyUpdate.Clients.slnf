@@ -1,0 +1,12 @@
+﻿{
+  "solution": {
+    "path": "TinyUpdate.sln",
+    "projects": [
+      "src\\Clients\\TinyUpdate.Azure\\TinyUpdate.Azure.csproj",
+      "src\\Clients\\TinyUpdate.MicrosoftStore\\TinyUpdate.MicrosoftStore.csproj",
+      "src\\TinyUpdate.Core\\TinyUpdate.Core.csproj",
+      "tests\\TinyUpdate.Clients.Tests\\TinyUpdate.Clients.Tests.csproj",
+      "tests\\TinyUpdate.Core.Tests\\TinyUpdate.Core.Tests.csproj"
+    ]
+  }
+}

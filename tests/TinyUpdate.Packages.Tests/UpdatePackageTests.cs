@@ -1,6 +1,4 @@
 ﻿using System.IO.Compression;
-using System.Reflection;
-using Microsoft.Extensions.Logging.Abstractions;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
@@ -20,17 +18,7 @@ public class TuupUpdatePackageTests : UpdatePackageCan
     [SetUp]
     public void Setup()
     {
-        var ta = Testing.InTestRunner;
-        var mockApplier1 = CreateMockDeltaApplier(".bsdiff");
-        var mockApplier2 = CreateMockDeltaApplier(".diffing");
-
-        var mockCreation1 = CreateMockDeltaCreation(".bsdiff", NeedsFixedCreatorSize ? 0.5 : null);
-        var mockCreation2 = CreateMockDeltaCreation(".diffing", NeedsFixedCreatorSize ? 0.3 : null);
-        
-        var deltaManager = new DeltaManager(
-            [mockApplier1.Object, mockApplier2.Object],
-            [mockCreation1.Object, mockCreation2.Object],
-            NullLogger<DeltaManager>.Instance);
+        var deltaManager = DeltaMocker.CreateDeltaManager(NeedsFixedCreatorSize);
 
         var tuupPackageCreator = new TuupUpdatePackageCreator(_sha256Hasher, deltaManager, FileSystem,
             new TuupUpdatePackageCreatorOptions());

@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\Deltas\TinyUpdate.Delta.BSDiff\TinyUpdate.Delta.BSDiff.csproj" />
+      <ProjectReference Include="..\..\src\Deltas\TinyUpdate.Delta.MSDelta\TinyUpdate.Delta.MSDelta.csproj" />
+      <ProjectReference Include="..\..\src\Packages\TinyUpdate.TUUP\TinyUpdate.TUUP.csproj" />
+      <ProjectReference Include="..\..\src\Appliers\TinyUpdate.Desktop\TinyUpdate.Desktop.csproj" />
+    </ItemGroup>
+
+</Project>

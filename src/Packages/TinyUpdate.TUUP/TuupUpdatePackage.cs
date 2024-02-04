@@ -1,5 +1,4 @@
 ﻿using System.IO.Compression;
-using SemVersion;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Abstract.UpdatePackage;

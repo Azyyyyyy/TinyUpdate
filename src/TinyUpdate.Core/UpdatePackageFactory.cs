@@ -30,7 +30,7 @@ public class UpdatePackageFactory : IUpdatePackageFactory
         var updatePackage = Activator.CreateInstance(updatePackageType) as IUpdatePackage;
         if (updatePackage == null)
         {
-            return LoadUpdatePackageResult.Failed($"Failed to create {updatePackageType.Name}");
+            return LoadUpdatePackageResult.Failed($"Failed to create an instance of {updatePackageType.Name}, does it contain a parameterless constructor?");
         }
 
         var loadResult = await updatePackage.Load(stream, releaseEntry);

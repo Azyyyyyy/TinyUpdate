@@ -1,0 +1,12 @@
+﻿{
+  "solution": {
+    "path": "TinyUpdate.sln",
+    "projects": [
+      "src\\Deltas\\TinyUpdate.Delta.BSDiff\\TinyUpdate.Delta.BSDiff.csproj",
+      "src\\Deltas\\TinyUpdate.Delta.MSDelta\\TinyUpdate.Delta.MSDelta.csproj",
+      "src\\TinyUpdate.Core\\TinyUpdate.Core.csproj",
+      "tests\\TinyUpdate.Core.Tests\\TinyUpdate.Core.Tests.csproj",
+      "tests\\TinyUpdate.Delta.Tests\\TinyUpdate.Delta.Tests.csproj"
+    ]
+  }
+}

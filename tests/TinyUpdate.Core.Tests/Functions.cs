@@ -1,11 +1,10 @@
-﻿using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
+﻿using System.IO.Abstractions.TestingHelpers;
 
 namespace TinyUpdate.Core.Tests;
 
 public static class Functions
 {
-    private static IFileSystem? _cachedFileSystem;
+    private static MockFileSystem? _cachedFileSystem;
 
     public static void FillStreamWithRandomData(Stream stream, long filesize = -1)
     {
@@ -19,8 +18,13 @@ public static class Functions
         stream.Write(buffer);
     }
 
-    public static IFileSystem SetupMockFileSystem()
+    public static MockFileSystem SetupMockFileSystem()
     {
+        if (_cachedFileSystem != null)
+        {
+            return _cachedFileSystem;
+        }
+        
         //return new FileSystem();
         var fileSystem = new MockFileSystem(new MockFileSystemOptions
         {

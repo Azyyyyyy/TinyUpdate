@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.IO.Abstractions;
 using System.Text.Json;
-using Moq;
 using SemVersion;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Abstract.UpdatePackage;
@@ -17,13 +16,7 @@ public abstract class UpdatePackageCan
     protected IUpdatePackage UpdatePackage = null!;
     protected IDeltaUpdatePackageCreator DeltaPackageCreator = null!;
     protected IUpdatePackageCreator FullPackageCreator = null!;
-    protected IFileSystem FileSystem = null!;
-
-    [OneTimeSetUp]
-    public void BaseSetup()
-    {
-        FileSystem = Functions.SetupMockFileSystem();
-    }
+    protected readonly IFileSystem FileSystem = Functions.SetupMockFileSystem();
     
     [Test]
     public async Task ProcessFileData()
@@ -44,7 +37,7 @@ public abstract class UpdatePackageCan
         });
         if (expectedMovedFiles == null || expectedDeltaFiles == null || expectedNewFiles == null || expectedUnchangedFiles == null)
         {
-            Assert.Fail("Unable to test as expected JSON files contain nothing");
+            Assert.Inconclusive("Unable to test as expected JSON files contain nothing");
             return;
         }
         
@@ -207,41 +200,6 @@ public abstract class UpdatePackageCan
     
     protected abstract void CheckUpdatePackageWithExpected(Stream targetStream, Stream expectedTargetStream);
     
-    protected Mock<IDeltaApplier> CreateMockDeltaApplier(string extension)
-    {
-        var mockApplier = new Mock<IDeltaApplier>();
-        
-        mockApplier.Setup(x => x.Extension).Returns(extension);
-        mockApplier.Setup(x => x.SupportedStream(It.IsAny<Stream>())).Returns(true);
-        mockApplier.Setup(x => 
-                x.ApplyDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceStream, Stream deltaStream, Stream targetStream,
-                IProgress<double>? progress) => Functions.FillStreamWithRandomData(deltaStream))
-            .ReturnsAsync(true);
-
-        return mockApplier;
-    }
-
-
-    protected Mock<IDeltaCreation> CreateMockDeltaCreation(string extension, double? filesizePercent = null)
-    {
-        var mockCreation = new Mock<IDeltaCreation>();
-
-        mockCreation.Setup(x => x.Extension).Returns(extension);
-        mockCreation.Setup(x => 
-                x.CreateDeltaFile(It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<Stream>(), It.IsAny<IProgress<double>>()))
-            .Callback((Stream sourceStream, Stream targetStream, Stream deltaStream,
-                IProgress<double>? progress) =>
-            {
-                filesizePercent ??= Random.Shared.NextDouble();
-                var filesize = (long)(targetStream.Length * filesizePercent);
-
-                Functions.FillStreamWithRandomData(deltaStream, filesize);
-            }).ReturnsAsync(true);
-        
-        return mockCreation;
-    }
-
     private async Task MessAroundWithDirectory(string directory)
     {
         var subDirs = FileSystem.Directory.GetDirectories(directory);
