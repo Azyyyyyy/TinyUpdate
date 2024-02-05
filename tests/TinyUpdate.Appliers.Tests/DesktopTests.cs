@@ -91,7 +91,7 @@ public class DesktopTests
     
     private class MockNative(IFileSystem fileSystem) : INative
     {
-        public readonly List<string> ProcessedFiles = new List<string>();
+        public readonly List<string> ProcessedFiles = [];
         
         public bool CreateHardLink(string sourcePath, string targetPath)
         {

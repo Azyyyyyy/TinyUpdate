@@ -97,11 +97,7 @@ public class DesktopApplier : IUpdateApplier
             foreach (var newFile in updatePackage.NewFiles)
             {
                 var newPath = Path.Combine(newVersionLocation, newFile.Location);
-                await using var newFileStream = _fileSystem.File.Open(newPath, new FileStreamOptions
-                {
-                    PreallocationSize = newFile.Filesize, 
-                    Mode = FileMode.Create
-                });
+                await using var newFileStream = CreatePreAllocatedFile(newPath, newFile.Filesize);
 
                 await newFile.Stream.CopyToAsync(newFileStream);
                 await newFile.Stream.DisposeAsync();
@@ -163,14 +159,7 @@ public class DesktopApplier : IUpdateApplier
                 var targetPath = Path.Combine(newVersionLocation, deltaFile.Location);
 
                 await using var sourceStream = _fileSystem.File.OpenRead(sourcePath);
-                await using var targetStream = _fileSystem.File.Open(targetPath, new FileStreamOptions
-                {
-                    PreallocationSize = deltaFile.Filesize,
-                    Mode = FileMode.Create, 
-                    Access = FileAccess.ReadWrite,
-                    Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
-                    Share = FileShare.None
-                });
+                await using var targetStream = CreatePreAllocatedFile(targetPath, deltaFile.Filesize);
 
                 var successful = await _deltaManager.ApplyDeltaUpdate(deltaFile, sourceStream, targetStream);
                 await deltaFile.Stream.DisposeAsync();
@@ -225,6 +214,15 @@ public class DesktopApplier : IUpdateApplier
             }
         }
     }
+
+    private Stream CreatePreAllocatedFile(string path, long size) => _fileSystem.File.Open(path, new FileStreamOptions
+    {
+        PreallocationSize = size,
+        Mode = FileMode.Create, 
+        Access = FileAccess.ReadWrite,
+        Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+        Share = FileShare.None
+    });
 
     private bool CheckFile(Stream targetStream, string expectedHash, long expectedFilesize, string filePath)
     {
