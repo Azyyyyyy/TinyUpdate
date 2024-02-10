@@ -6,7 +6,7 @@ namespace TinyUpdate.Core.Model;
 /// <summary>
 /// Details of creating a new delta update
 /// </summary>
-public record DeltaCreationResult(IDeltaCreation? Creator, Stream? DeltaStream, bool Successful)
+public class DeltaCreationResult(IDeltaCreation? creator, Stream? deltaStream, bool successful)
 {
     /// <summary>
     /// Failed to create a delta update
@@ -16,16 +16,16 @@ public record DeltaCreationResult(IDeltaCreation? Creator, Stream? DeltaStream, 
     /// <summary>
     /// The <see cref="IDeltaCreation"/> that created the update
     /// </summary>
-    public IDeltaCreation? Creator { get; } = Creator;
+    public IDeltaCreation? Creator { get; } = creator;
 
     /// <summary>
     /// The contents of the delta update
     /// </summary>
-    public Stream? DeltaStream { get; } = DeltaStream;
+    public Stream? DeltaStream { get; } = deltaStream;
 
     /// <summary>
     /// If we was successful in creating a delta update
     /// </summary>
     [MemberNotNullWhen(true, nameof(Creator), nameof(DeltaStream))]
-    public bool Successful { get; } = Successful;
+    public bool Successful { get; } = successful;
 }

@@ -1,4 +1,5 @@
-﻿using TinyUpdate.Core.Tests.Abstract;
+﻿using TinyUpdate.Core.Services;
+using TinyUpdate.Core.Tests.Abstract;
 using TinyUpdate.Core.Tests.Attributes;
 using TinyUpdate.Core.Tests.TestSources;
 

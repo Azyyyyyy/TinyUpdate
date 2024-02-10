@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using SemVersion;
 
-namespace TinyUpdate.Core;
+namespace TinyUpdate.Core.Converters;
 
 public class SemanticVersionConverter : JsonConverter<SemanticVersion>
 {

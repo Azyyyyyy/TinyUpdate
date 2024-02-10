@@ -5,7 +5,7 @@ using NeoSmart.AsyncLock;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Model;
 
-namespace TinyUpdate.Core;
+namespace TinyUpdate.Core.Services;
 
 /// <summary>
 /// Default <see cref="IDeltaManager"/> implementation

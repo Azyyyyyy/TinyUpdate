@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
 using TinyUpdate.Core.Abstract.Delta;
@@ -28,17 +29,24 @@ public class DesktopApplier : IUpdateApplier
     public async Task<bool> ApplyUpdates(ICollection<IUpdatePackage> updatePackages, string applicationLocation,
         IProgress<double>? progress = null)
     {
-        var previousVersion = updatePackages.OrderBy(x => x.ReleaseEntry.PreviousVersion).First().ReleaseEntry.PreviousVersion;
-        var newVersion = updatePackages.OrderBy(x => x.ReleaseEntry.PreviousVersion).Last().ReleaseEntry.PreviousVersion;
+        if (updatePackages.Count == 0)
+        {
+            //TODO: Add logging
+            return false;
+        }
+        
+        var orderedUpdatePackages = updatePackages.OrderBy(x => x.ReleaseEntry.PreviousVersion).ToImmutableArray();
 
-        var previousVersionLocation = Path.Combine(applicationLocation, previousVersion.ToString());
-        var newVersionLocation = Path.Combine(applicationLocation, newVersion.ToString());
         var multiProgress = progress != null
             ? new MultiProgress(progress, updatePackages.Count)
             : null;
 
-        foreach (var updatePackage in updatePackages)
+        foreach (var updatePackage in orderedUpdatePackages)
         {
+            var releaseEntry = updatePackage.ReleaseEntry;
+            var previousVersionLocation = Path.Combine(applicationLocation, releaseEntry.PreviousVersion.ToString());
+            var newVersionLocation = Path.Combine(applicationLocation, releaseEntry.NewVersion.ToString());
+
             var successful =
                 await ApplyUpdate(updatePackage, previousVersionLocation, newVersionLocation, multiProgress);
             if (!successful)

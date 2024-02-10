@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Services;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
 using TinyUpdate.Packages.Tests.Abstract;

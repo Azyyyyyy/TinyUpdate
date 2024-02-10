@@ -3,6 +3,7 @@ using TinyUpdate.Appliers.Tests.Models;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Model;
+using TinyUpdate.Core.Services;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Desktop;
 
@@ -91,7 +92,7 @@ public class DesktopApplierTestSource
         yield return new ApplierTestData("MovedFileSubDirToRoot", movedSubDirToRootUpdatePackage, applicationPath);
     }
     
-    private static FileEntry MakeFileEntry(string location, string sourceVersionPath, bool createInitialFile = true, bool unchanged = false, string? lastLocation = null)
+    internal static FileEntry MakeFileEntry(string location, string sourceVersionPath, bool createInitialFile = true, bool unchanged = false, string? lastLocation = null)
     {
         var dir = Path.GetDirectoryName(location) ?? "";
         var targetFileStream = new MemoryStream();

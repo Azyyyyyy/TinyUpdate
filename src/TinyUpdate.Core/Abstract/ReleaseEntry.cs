@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using SemVersion;
+using TinyUpdate.Core.Converters;
 
 namespace TinyUpdate.Core.Abstract;
 

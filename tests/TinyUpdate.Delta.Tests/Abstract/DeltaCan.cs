@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Abstract.Delta;
+using TinyUpdate.Core.Services;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Core.Tests.Attributes;
 

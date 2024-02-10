@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 using TinyUpdate.Core.Abstract;
 
-namespace TinyUpdate.Core;
+namespace TinyUpdate.Core.Services;
 
 /// <summary>
 /// Easy access to processing Streams into a SHA256 hash and comparing SHA256 hashes

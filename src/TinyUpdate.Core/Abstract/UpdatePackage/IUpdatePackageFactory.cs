@@ -1,4 +1,6 @@
-﻿namespace TinyUpdate.Core.Abstract.UpdatePackage;
+﻿using TinyUpdate.Core.Model;
+
+namespace TinyUpdate.Core.Abstract.UpdatePackage;
 
 public interface IUpdatePackageFactory
 {

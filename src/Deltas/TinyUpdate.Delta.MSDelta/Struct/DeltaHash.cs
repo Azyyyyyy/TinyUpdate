@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using TinyUpdate.Core;
+using TinyUpdate.Core.Services;
 
 namespace TinyUpdate.Delta.MSDelta.Struct;
 

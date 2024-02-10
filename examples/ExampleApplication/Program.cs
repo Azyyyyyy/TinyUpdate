@@ -4,4 +4,9 @@
 
 using TinyUpdate.Core;
 
-Console.WriteLine("Hello, World! In Test Runner?: " + Testing.InTestRunner);
+var versionDetails = VersionHelper.GetVersionDetails();
+
+Console.WriteLine("Hello, Updates!");
+Console.WriteLine("In Test Runner?: " + Testing.InTestRunner);
+Console.WriteLine("Version: " + versionDetails.Version.ToString());
+Console.WriteLine("SourceRevisionId: " + versionDetails.SourceRevisionId.ToString());

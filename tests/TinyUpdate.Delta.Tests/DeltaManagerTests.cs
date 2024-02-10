@@ -1,5 +1,6 @@
 ﻿using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract.Delta;
+using TinyUpdate.Core.Services;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Delta.Tests.Abstract;
 

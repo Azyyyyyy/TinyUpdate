@@ -1,5 +1,6 @@
 ﻿using Moq;
 using TinyUpdate.Core.Abstract.Delta;
+using TinyUpdate.Core.Services;
 
 namespace TinyUpdate.Core.Tests;
 

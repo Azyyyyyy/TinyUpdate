@@ -7,6 +7,7 @@ using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Abstract.Delta;
 using TinyUpdate.Core.Abstract.UpdatePackage;
 using TinyUpdate.Core.Model;
+using TinyUpdate.Core.Services;
 using TinyUpdate.Core.Tests;
 using TinyUpdate.Desktop;
 using TinyUpdate.Desktop.Abstract;
@@ -29,6 +30,33 @@ public class DesktopTests
         _fileSystem = Functions.SetupMockFileSystem();
         _mockNative = new MockNative(_fileSystem);
         _updateApplier = new DesktopApplier(NUnitLogger<DesktopApplier>.Instance, _hasher, _mockNative, _deltaManager, _fileSystem);
+    }
+    
+    [Test]
+    public async Task CanApplyUpdates() {
+        var applicationPath = Path.Combine("Assets", nameof(DesktopApplier));
+        var appV0Path = Path.Combine(applicationPath, "1.0.0");
+        var appV1Path = Path.Combine(applicationPath, "1.0.1");
+        var appV2Path = Path.Combine(applicationPath, "1.0.2");
+
+        var appV1 = new MockUpdatePackage(applicationPath, _fileSystem)
+        {
+            ReleaseEntry = new MockReleaseEntry("1.0.0", "1.0.1", true),
+            NewFiles = [DesktopApplierTestSource.MakeFileEntry("testing.exe", appV0Path)]
+        };
+        var appV2 = new MockUpdatePackage(applicationPath, _fileSystem)
+        {
+            ReleaseEntry = new MockReleaseEntry("1.0.1", "1.0.2", true),
+            NewFiles = [DesktopApplierTestSource.MakeFileEntry(Path.Combine("testsub", "testApplication.exe"), appV1Path)]
+        };
+        var appV3 = new MockUpdatePackage(applicationPath, _fileSystem)
+        {
+            ReleaseEntry = new MockReleaseEntry("1.0.2", "1.0.3", true),
+            NewFiles = [DesktopApplierTestSource.MakeFileEntry(Path.Combine("newsub", "testApplication.exe"), appV2Path)]
+        };
+
+        var result = await _updateApplier.ApplyUpdates([appV1, appV3, appV2], applicationPath);
+        Assert.That(result, Is.True);
     }
     
     [Test]
