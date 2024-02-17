@@ -27,7 +27,7 @@ public class DeltaManager(IEnumerable<IDeltaApplier> appliers, IEnumerable<IDelt
             return Task.FromResult(false);
         }
             
-        if (!deltaApplier.SupportedStream(fileEntry.Stream))
+        if (fileEntry.Stream == null || !deltaApplier.SupportedStream(fileEntry.Stream))
         {
             logger.LogError("Delta stream given is not supported for {DeltaType}", fileEntry.Extension);
             return Task.FromResult(false);

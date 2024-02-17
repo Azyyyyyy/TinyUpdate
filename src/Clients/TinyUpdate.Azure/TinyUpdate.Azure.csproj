@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="16.205.1" />
+      <PackageReference Include="TestableIO.System.IO.Abstractions" Version="20.0.15" />
     </ItemGroup>
 
     <ItemGroup>

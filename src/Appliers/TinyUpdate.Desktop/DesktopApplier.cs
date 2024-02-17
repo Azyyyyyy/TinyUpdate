@@ -35,7 +35,9 @@ public class DesktopApplier : IUpdateApplier
             return false;
         }
         
-        var orderedUpdatePackages = updatePackages.OrderBy(x => x.ReleaseEntry.PreviousVersion).ToImmutableArray();
+        var orderedUpdatePackages = updatePackages
+            .OrderBy(x => x.ReleaseEntry.PreviousVersion)
+            .ToImmutableArray();
 
         var multiProgress = progress != null
             ? new MultiProgress(progress, updatePackages.Count)
@@ -47,6 +49,7 @@ public class DesktopApplier : IUpdateApplier
             var previousVersionLocation = Path.Combine(applicationLocation, releaseEntry.PreviousVersion.ToString());
             var newVersionLocation = Path.Combine(applicationLocation, releaseEntry.NewVersion.ToString());
 
+            //TODO: Maybe cache the last hash, no need to redo the hashing if we just did it
             var successful =
                 await ApplyUpdate(updatePackage, previousVersionLocation, newVersionLocation, multiProgress);
             if (!successful)
@@ -136,7 +139,7 @@ public class DesktopApplier : IUpdateApplier
                     return false;
                 }
 
-                if (!ProcessHardLinkableFile(movedFile.PreviousLocation, movedFile.Location, movedFile.Hash, 
+                if (!HardLinkFile(movedFile.PreviousLocation, movedFile.Location, movedFile.Hash, 
                         movedFile.Filesize))
                 {
                     return false;
@@ -149,7 +152,7 @@ public class DesktopApplier : IUpdateApplier
         {
             foreach (var unchangedFile in updatePackage.UnchangedFiles)
             {
-                if (!ProcessHardLinkableFile(unchangedFile.Location, unchangedFile.Location, 
+                if (!HardLinkFile(unchangedFile.Location, unchangedFile.Location, 
                         unchangedFile.Hash, unchangedFile.Filesize))
                 {
                     return false;
@@ -198,7 +201,7 @@ public class DesktopApplier : IUpdateApplier
             progress?.Report(progressTotal);
         }
         
-        bool ProcessHardLinkableFile(string previousRelativePath, string newRelativePath, string expectedHash, long expectedFilesize)
+        bool HardLinkFile(string previousRelativePath, string newRelativePath, string expectedHash, long expectedFilesize)
         {
             var previousPath = Path.Combine(previousVersionLocation, previousRelativePath);
             var newPath = Path.Combine(newVersionLocation, newRelativePath);

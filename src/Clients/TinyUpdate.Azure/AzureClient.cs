@@ -1,30 +1,35 @@
-﻿using System.IO.Compression;
+﻿using System.IO.Abstractions;
+using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.Build.WebApi;
+using SemVersion;
+using TinyUpdate.Core;
 using TinyUpdate.Core.Abstract;
 using TinyUpdate.Core.Abstract.UpdatePackage;
 
 namespace TinyUpdate.Azure;
 
-//TODO: Go over File/Directory logic and replace with IFile & IDirectory 
 public class AzureClient : IPackageClient
 {
     private readonly IUpdateApplier _updateApplier;
     private readonly IUpdatePackageFactory _updatePackageFactory;
     private readonly ILogger<AzureClient> _logger;
+    private readonly IFileSystem _fileSystem;
     private readonly AzureClientSettings _clientSettings;
-    public AzureClient(IUpdateApplier updateApplier, ILogger<AzureClient> logger, AzureClientSettings clientSettings, IUpdatePackageFactory updatePackageFactory)
+    
+    public AzureClient(IUpdateApplier updateApplier, ILogger<AzureClient> logger, AzureClientSettings clientSettings, IUpdatePackageFactory updatePackageFactory, IFileSystem fileSystem)
     {
         _updateApplier = updateApplier;
         _logger = logger;
         _clientSettings = clientSettings;
         _updatePackageFactory = updatePackageFactory;
+        _fileSystem = fileSystem;
     }
     
     public async IAsyncEnumerable<ReleaseEntry> GetUpdates()
     {
-        IAsyncEnumerable<ReleaseEntry?>? releaseEntries = null;
+        IAsyncEnumerable<ReleaseEntry?>? releaseEntries;
         using var buildClient = new BuildHttpClient(_clientSettings.OrganisationUri, _clientSettings.Credentials);
         var builds = await buildClient.GetBuildsAsync(
             _clientSettings.ProjectGuid,
@@ -51,16 +56,16 @@ public class AzureClient : IPackageClient
         catch (Exception e)
         {
             _logger.LogError(e, "Failed to download RELEASE file");
+            yield break;
         }
 
-        if (releaseEntries != null)
+        var currentVersion = SemanticVersion.Parse(VersionHelper.GetVersionDetails().Version.ToString());
+        await foreach (var releaseEntry in releaseEntries)
         {
-            await foreach (var releaseEntry in releaseEntries)
+            if (releaseEntry != null 
+                && (releaseEntry.NewVersion > currentVersion || !releaseEntry.IsDelta))
             {
-                if (releaseEntry != null)
-                {
-                    yield return releaseEntry;
-                }
+                yield return releaseEntry;
             }
         }
     }
@@ -77,19 +82,19 @@ public class AzureClient : IPackageClient
         try
         {
             var dir = Path.Combine(Path.GetTempPath(), "TinyUpdate", "Azure", _clientSettings.ProjectGuid.ToString());
-            Directory.CreateDirectory(dir);
+            _fileSystem.Directory.CreateDirectory(dir);
             
             azureReleaseEntry.ArtifactDownloadPath = Path.Combine(dir, azureReleaseEntry.FileName);
             
             await using var artifactStream =
                 await buildClient.GetArtifactContentZipAsync(_clientSettings.ProjectGuid, azureReleaseEntry.RunId, azureReleaseEntry.ArtifactName);
 
-            var fileStream = File.OpenWrite(azureReleaseEntry.ArtifactDownloadPath);
+            var fileStream = _fileSystem.File.OpenWrite(azureReleaseEntry.ArtifactDownloadPath);
             await artifactStream.CopyToAsync(fileStream);
             await fileStream.DisposeAsync();
 
             //TODO: Ensure that we use correct entry as this will be the zip within a zip :/
-            var readFileStream = File.OpenRead(azureReleaseEntry.ArtifactDownloadPath);
+            var readFileStream = _fileSystem.File.OpenRead(azureReleaseEntry.ArtifactDownloadPath);
             
             //We want to reopen the file with read only access
             await _updatePackageFactory.CreateUpdatePackage(readFileStream,
@@ -105,11 +110,9 @@ public class AzureClient : IPackageClient
         }
     }
 
-    public Task<bool> ApplyUpdate(IUpdatePackage updatePackage, IProgress<double>? progress)
-    {
-        return _updateApplier.ApplyUpdate(updatePackage, new DirectoryInfo(Environment.CurrentDirectory).Parent.FullName, progress);
-    }
-    
+    public Task<bool> ApplyUpdate(IUpdatePackage updatePackage, IProgress<double>? progress) => 
+        _updateApplier.ApplyUpdate(updatePackage, new DirectoryInfo(Environment.CurrentDirectory).Parent.FullName, progress);
+
     private Task<BuildArtifact?> GetArtifact(int runId, string artifactName, BuildHttpClientBase buildClient)
     {
         try
